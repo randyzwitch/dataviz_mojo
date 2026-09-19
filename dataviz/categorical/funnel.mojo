@@ -122,11 +122,12 @@ def _render_funnel[
         top_width.append((plot._continuous.y[order[i]] / largest) * max_width)
 
     var text_requests = List[_TextRequest]()
+    var tooltips_on = plot._tooltips_on(n)
     for i in range(n):
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
         var y0 = plot_y0 + Int(Float64(i) * row_height)
         var y1 = plot_y0 + Int(Float64(i + 1) * row_height)
-        if theme.svg_tooltips:
+        if tooltips_on:
             # `order[i]`, not `i`: rows are drawn largest-value first, so
             # the stage's own name and value live at its pre-sort index.
             target.begin_annotated_group(
@@ -144,7 +145,7 @@ def _render_funnel[
             y1,
             palette[i % len(palette)],
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var value = plot._continuous.y[order[i]]

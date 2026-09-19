@@ -221,6 +221,7 @@ def _draw_bullet_rows[
     var baseline_py = _axis_pixel_f(value_scale, 0.0)
     var sc = _Scaled(theme)
 
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_x = band_scale.band_start(i)
         var band_x1 = band_x + bandwidth
@@ -245,7 +246,7 @@ def _draw_bullet_rows[
         var measure_rect = _pull_off_axis_line_f(
             baseline_py, measure_py, baseline
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             # Measure and target together: a bullet chart's whole point is
             # the one against the other, so reading either alone off the
             # hover text would miss what the row is saying. The range
@@ -293,7 +294,7 @@ def _draw_bullet_rows[
             theme.axis_color,
             theme.scale,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
 

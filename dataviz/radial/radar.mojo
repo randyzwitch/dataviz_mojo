@@ -140,6 +140,7 @@ def _render_radar[
         )
 
     var palette = categorical_palette_for(theme)
+    var tooltips_on = plot._tooltips_on(len(plot._radar.series_values))
     for s in range(len(plot._radar.series_values)):
         var values = plot._radar.series_values[s].copy()
         var color = palette[s % len(palette)]
@@ -157,7 +158,7 @@ def _render_radar[
             else:
                 poly.line_to(pt.x, pt.y)
         poly.close()
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(plot._radar.series_names[s])
         target.fill_path_aa(
             poly,
@@ -165,7 +166,7 @@ def _render_radar[
             fill_rule=FillRule.NONZERO,
         )
         target.stroke_path_aa(poly, color, sc.line_width)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     # Axis labels just outside each spoke's tip, aligned by which side of

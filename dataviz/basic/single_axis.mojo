@@ -226,7 +226,6 @@ def single_axis[
     color: List[Float64] = List[Float64](),
     color_categories: List[String] = List[String](),
     size: List[Float64] = List[Float64](),
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -257,10 +256,6 @@ def single_axis[
             point uses `Theme.mark_color`.
         size: Optional point-size channel. Left empty (the default),
             every point uses `Theme.point_radius`.
-        tooltips: Whether each point carries a hover `<title>` naming
-            its value; defaults to `False`, since a title per point
-            roughly doubles a dense chart's SVG. `Theme.svg_tooltips`
-            gates it as well.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -299,7 +294,7 @@ def single_axis[
     var x_f = _materialize_scalar_list(x)
     var plot = (
         Plot()
-        .mark_single_axis(tooltips=tooltips)
+        .mark_single_axis()
         .encode_single_axis(
             x=x_f, color=color, color_categories=color_categories, size=size
         )

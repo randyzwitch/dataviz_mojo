@@ -133,6 +133,7 @@ def _render_population_pyramid[
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
+    var tooltips_on = plot._tooltips_on(2 * len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
 
@@ -142,7 +143,7 @@ def _render_population_pyramid[
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
         if left_w > 0.0:
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
@@ -155,7 +156,7 @@ def _render_population_pyramid[
             var ly0 = snap_to_pixel_edge(row_y)
             var ly1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(lx0, ly0, lx1 - lx0, ly1 - ly0, palette[0])
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var left_value = plot._pyramid.left[i]
@@ -191,7 +192,7 @@ def _render_population_pyramid[
             center_px, right_edge_px
         )
         if right_w > 0.0:
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
@@ -204,7 +205,7 @@ def _render_population_pyramid[
             var ry0 = snap_to_pixel_edge(row_y)
             var ry1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, palette[1])
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var right_value = plot._pyramid.right[i]

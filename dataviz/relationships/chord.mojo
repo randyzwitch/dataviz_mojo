@@ -153,6 +153,7 @@ def _render_chord[
 
     var palette = categorical_palette_for(theme)
 
+    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
     for i in range(len(plot._edges.from_categories)):
         var fi = from_idx[i]
         var ti = to_idx[i]
@@ -163,7 +164,7 @@ def _render_chord[
         var t0 = node_cursor[ti]
         var t1 = t0 + (value / grand_total) * 2.0 * pi
         node_cursor[ti] = t1
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
                     plot._edges.from_categories[i],
@@ -182,7 +183,7 @@ def _render_chord[
             t1,
             palette[fi % len(palette)],
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     for i in range(n):

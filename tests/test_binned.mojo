@@ -6,6 +6,7 @@ compilation, so the suite is organized by family (#605).
 
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
+from dataviz.core.tooltips import Tooltips
 from dataviz import histogram, kdeplot
 from dataviz.binned.hexbin import _HexBins, _hexbin_bins, hexbin
 from dataviz.binned.hist2d import _hist2d_counts, hist2d
@@ -822,9 +823,9 @@ def test_a_hexbin_cell_is_titled_by_its_count() raises:
 def test_binned_tooltips_follow_the_theme_flag() raises:
     var d: List[Float64] = [0.0, 1.0, 2.0]
     var off = render_svg(
-        histogram(d, bins=3, theme=Theme(svg_tooltips=False))
+        histogram(d, bins=3, theme=Theme(tooltips=Tooltips.OFF))
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------

@@ -22,6 +22,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.tooltips import Tooltips
 from dataviz import (
     gauge,
     nightingale,
@@ -1207,18 +1208,11 @@ def test_render_single_axis_raises_on_no_data() raises:
 
 
 def test_single_axis_tooltips_report_the_value_alone() raises:
-    # This mark draws through Mark.POINT's layer, which had the whole
-    # tooltip mechanism already -- only the opt-in parameter was
-    # missing, so the capability was unreachable through the public API.
-    # Its label is the value alone: encode_single_axis() leaves the y
+    # This mark draws through Mark.POINT's layer (#683). Its label is the value alone: encode_single_axis() leaves the y
     # column zero, and the pair form reported a "0" coordinate the
     # chart does not have.
     var xs: List[Float64] = [1.0, 2.5]
-    var off = render_svg(single_axis(xs, width=300, height=200)).to_string()
-    assert_true("<title>" not in off, "no titles without tooltips=True")
-    var on = render_svg(
-        single_axis(xs, tooltips=True, width=300, height=200)
-    ).to_string()
+    var on = render_svg(single_axis(xs, width=300, height=200)).to_string()
     assert_true("<title>1</title>" in on, "the first value, alone")
     assert_true("<title>2.5</title>" in on, "the second, keeping its decimal")
     assert_true("<title>1, 0</title>" not in on, "no phantom y coordinate")
@@ -1265,6 +1259,21 @@ def test_a_gauge_is_titled_by_its_one_value() raises:
     assert_equal(titles[0], "42")
 
 
+def test_a_gauge_s_tooltip_group_holds_only_the_needle() raises:
+    """The group opened for the needle is closed after the needle and
+    its hub. Left open, the SVG writer closed it at the end of the
+    document, so the title's group swallowed the value text and
+    everything else drawn after it (#700)."""
+    var svg = render_svg(gauge(42.0, width=300, height=300)).to_string()
+    var open_at = svg.find("<g>")
+    var close_at = svg.find("</g>", open_at)
+    assert_true(open_at >= 0 and close_at > open_at, "one group")
+    var inside = String(svg[byte=open_at:close_at])
+    assert_true("<text" not in inside, "no text inside the group")
+    assert_true("<line" in inside or "<path" in inside, "the needle is")
+    assert_true("<circle" in inside, "and so is its hub")
+
+
 def test_a_radar_ring_is_titled_by_its_series() raises:
     # The unit here is the series, not the vertex: the shape a reader
     # points at is the whole ring.
@@ -1291,10 +1300,14 @@ def test_radial_tooltips_follow_the_theme_flag() raises:
     var vals: List[Float64] = [12.0, 3.5]
     var off = render_svg(
         nightingale(
-            cats, vals, theme=Theme(svg_tooltips=False), width=300, height=300
+            cats,
+            vals,
+            theme=Theme(tooltips=Tooltips.OFF),
+            width=300,
+            height=300,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------

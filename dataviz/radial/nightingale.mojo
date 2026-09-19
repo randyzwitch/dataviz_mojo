@@ -75,6 +75,7 @@ def _render_nightingale[
     var n = len(plot._categorical.x)
     var span = 2.0 * pi / Float64(n)
     var start = -pi / 2.0
+    var tooltips_on = plot._tooltips_on(n)
     for i in range(n):
         var end = start + span
         var frac = plot._continuous.y[i] / max_v
@@ -82,12 +83,12 @@ def _render_nightingale[
             sqrt(frac) if plot._nightingale.area else frac
         )
         var color = palette[i % len(palette)]
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
         target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             _radial_value_label(

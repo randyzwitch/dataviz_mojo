@@ -212,6 +212,7 @@ def _draw_waterfall_bars[
     var bar_x_list = List[Float64]()
     var bar_x1_list = List[Float64]()
     var bandwidth = band_scale.bandwidth()
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_start = band_scale.band_start(i)
         var row_is_total = (
@@ -244,7 +245,7 @@ def _draw_waterfall_bars[
             theme.mark_color_negative if plot._continuous.y[i]
             < 0.0 else theme.mark_color
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             # Whichever number this bar's height actually encodes: a delta
             # row is drawn from the running total before it to the total
             # after, so its height is the delta; a checkpoint row is drawn
@@ -258,7 +259,7 @@ def _draw_waterfall_bars[
                 )
             )
         orient.fill_band_rect(target, rect, bar_x, bar_x1 - bar_x, bar_color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var delta = plot._continuous.y[i]

@@ -284,6 +284,7 @@ def _render_gantt[
     )
 
     var row_height = frame.y_scale.bandwidth()
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
         var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
@@ -298,7 +299,7 @@ def _render_gantt[
             bx1 = bx0 + 1.0
         var by0 = snap_to_pixel_edge(row_y)
         var by1 = snap_to_pixel_edge(row_y + row_height)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _span_tooltip_label(
                     plot._categorical.x[i],
@@ -307,7 +308,7 @@ def _render_gantt[
                 )
             )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var span = abs(plot._gantt.end[i] - plot._gantt.start[i])

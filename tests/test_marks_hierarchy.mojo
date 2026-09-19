@@ -15,6 +15,7 @@ from _test_helpers import (
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.tooltips import Tooltips
 from dataviz import (
     GraphLayout,
     arc_diagram,
@@ -1063,12 +1064,12 @@ def test_relationship_tooltips_follow_the_theme_flag() raises:
             src,
             dst,
             vals,
-            theme=Theme(svg_tooltips=False),
+            theme=Theme(tooltips=Tooltips.OFF),
             width=360,
             height=240,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 def test_a_sankey_flow_that_skips_a_column_is_titled_by_its_real_ends() raises:
@@ -1193,12 +1194,12 @@ def test_hierarchy_mark_tooltips_follow_the_theme_flag() raises:
             _ids(),
             _parent_ids(),
             _hierarchy_values(),
-            theme=Theme(svg_tooltips=False),
+            theme=Theme(tooltips=Tooltips.OFF),
             width=300,
             height=300,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------

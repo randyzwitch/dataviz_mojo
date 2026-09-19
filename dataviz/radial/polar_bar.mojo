@@ -76,17 +76,18 @@ def _render_polar_bar[
     var slot = 2.0 * pi / Float64(n)
     var gap = slot * plot._mark_style.polar_bar_padding
     var slot_start = -pi / 2.0
+    var tooltips_on = plot._tooltips_on(n)
     for i in range(n):
         var start = slot_start + gap / 2.0
         var end = slot_start + slot - gap / 2.0
         var radius = max_radius * (plot._continuous.y[i] / max_v)
         var color = palette[i % len(palette)]
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
         target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             _radial_value_label(

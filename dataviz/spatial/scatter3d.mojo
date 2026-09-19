@@ -263,7 +263,7 @@ def _render_scatter3d[
 
     var order = _depth_order(plot, frame)
     var radius = sc.point_radius
-    var tooltips = theme.svg_tooltips and plot._mark_style.point_tooltips
+    var tooltips = plot._tooltips_on(len(order))
     for k in range(len(order)):
         var i = order[k]
         var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
@@ -338,7 +338,6 @@ def scatter3d[
     z: List[Scalar[dtype]],
     elev: Float64 = 30.0,
     azim: Float64 = -60.0,
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 480,
@@ -364,10 +363,6 @@ def scatter3d[
         elev: Degrees to look down on the scene from, above the x-y
             plane.
         azim: Degrees to turn the scene through, about the z axis.
-        tooltips: Whether each point carries a hover `<title>` naming
-            its x, y and z; defaults to `False`, since a title per
-            point roughly doubles a dense chart's SVG.
-            `Theme.svg_tooltips` gates it as well.
         theme: Full styling knobs beyond this function's own
             parameters -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot` (`.size()`).
@@ -406,7 +401,7 @@ def scatter3d[
     """
     var plot = (
         Plot()
-        .mark_scatter3d(elev=elev, azim=azim, tooltips=tooltips)
+        .mark_scatter3d(elev=elev, azim=azim)
         .encode_xyz(
             _materialize_scalar_list(x),
             _materialize_scalar_list(y),

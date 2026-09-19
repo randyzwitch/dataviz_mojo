@@ -24,6 +24,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.tooltips import Tooltips
 from dataviz import (
     bump,
     bullet,
@@ -2726,17 +2727,21 @@ def test_a_marimekko_segment_is_titled_by_category_and_subcategory() raises:
 
 
 def test_grid_tooltips_follow_the_theme_flag() raises:
-    # Under svg_tooltips alone, with no per-mark opt-in: there is one
-    # title per cell, not one per point of a dense scatter.
+    # One title per cell.
     var xs: List[String] = ["Mon", "Tue"]
     var ys: List[String] = ["09:00", "09:00"]
     var vals: List[Float64] = [42.0, 7.5]
     var off = render_svg(
         heatmap(
-            xs, ys, vals, theme=Theme(svg_tooltips=False), width=300, height=200
+            xs,
+            ys,
+            vals,
+            theme=Theme(tooltips=Tooltips.OFF),
+            width=300,
+            height=200,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------
@@ -2802,12 +2807,12 @@ def test_categorical_tooltips_follow_the_theme_flag() raises:
             cats,
             start,
             end,
-            theme=Theme(svg_tooltips=False),
+            theme=Theme(tooltips=Tooltips.OFF),
             width=400,
             height=200,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------
@@ -3018,12 +3023,12 @@ def test_eventplot_tooltips_follow_the_theme_flag() raises:
         eventplot(
             _eventplot_labels(),
             _eventplot_positions(),
-            theme=Theme(svg_tooltips=False),
+            theme=Theme(tooltips=Tooltips.OFF),
             width=400,
             height=300,
         )
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 # ---------------------------------------------------------------

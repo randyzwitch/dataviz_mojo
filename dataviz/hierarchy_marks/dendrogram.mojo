@@ -148,6 +148,7 @@ def _render_dendrogram[
     var pos = List[Float64]()
     var hgt = List[Float64]()
     _node_positions(data, pos, hgt)
+    var tooltips_on = plot._tooltips_on(len(data.height))
     if data.horizontal:
         # Leaves down the y-axis, heights running right: the form that
         # sits beside a matrix's rows. Same tree, same brackets, the two
@@ -175,14 +176,14 @@ def _render_dendrogram[
                 bar,
                 swap=True,
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _dendrogram_bracket_label(data.height[k])
                 )
             target.stroke_path_aa(
                 bracket, theme.mark_color, width=hframe.sc.line_width
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
         return hframe.result()
     var frame = _draw_categorical_axis_frame(
@@ -207,14 +208,14 @@ def _render_dendrogram[
             frame.y_scale.to_pixel(hgt[r]),
             bar,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _dendrogram_bracket_label(data.height[k])
             )
         target.stroke_path_aa(
             bracket, theme.mark_color, width=frame.sc.line_width
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
     return frame.result()
 

@@ -28,6 +28,7 @@ from _test_helpers import (
     _group_titles,
     _drawn,
 )
+from dataviz.core.tooltips import Tooltips
 from dataviz import bar, box, grouped_bar, pie, rugplot, scatter
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.plot import Plot, render_svg
@@ -51,7 +52,7 @@ def test_bars_produce_one_rect_each_in_the_mark_color() raises:
     Gridlines are `<line>` and axis labels are `<text>`, so the only
     rects in a plain bar chart are the background and the bars.
     """
-    var t = Theme(show_gridlines=False, svg_tooltips=False)
+    var t = Theme(show_gridlines=False, tooltips=Tooltips.OFF)
     var svg = render_svg(
         bar(_cats(), _vals(), theme=t, width=400, height=300)
     ).to_string()
@@ -80,7 +81,7 @@ def test_attr_values_reads_an_elements_first_attribute() raises:
         against fixed coordinates: the point is that the two attributes are
         read equally well, not where this particular chart puts its bars.
     """
-    var t = Theme(show_gridlines=False, svg_tooltips=False)
+    var t = Theme(show_gridlines=False, tooltips=Tooltips.OFF)
     var svg = render_svg(
         bar(_cats(), _vals(), theme=t, width=400, height=300)
     ).to_string()
@@ -252,7 +253,9 @@ def test_grouped_bars_use_each_series_color_once_per_category() raises:
     vals.append(r0^)
     vals.append(r1^)
 
-    var t = Theme(show_gridlines=False, show_legend=False, svg_tooltips=False)
+    var t = Theme(
+        show_gridlines=False, show_legend=False, tooltips=Tooltips.OFF
+    )
     var svg = render_svg(
         grouped_bar(cats, names, vals, theme=t, width=420, height=300)
     ).to_string()
@@ -289,7 +292,7 @@ def test_legend_swatches_are_counted_separately_from_marks() raises:
     vals.append(r0^)
     vals.append(r1^)
 
-    var t = Theme(show_gridlines=False, svg_tooltips=False)
+    var t = Theme(show_gridlines=False, tooltips=Tooltips.OFF)
     var svg = render_svg(
         grouped_bar(cats, names, vals, theme=t, width=420, height=300)
     ).to_string()
@@ -303,12 +306,12 @@ def test_legend_swatches_are_counted_separately_from_marks() raises:
 
 
 def test_tooltips_wrap_exactly_one_group_per_datum() raises:
-    """`svg_tooltips=True` opens one group per datum, each carrying one
+    """`tooltips=Tooltips.ON` opens one group per datum, each carrying one
     `<title>`, and closes all of them. The count is the assertion: a mark
     that opened a group per *primitive* rather than per datum would still
     contain every expected title.
     """
-    var t = Theme(show_gridlines=False, svg_tooltips=True)
+    var t = Theme(show_gridlines=False, tooltips=Tooltips.ON)
     var svg = render_svg(
         bar(_cats(), _vals(), theme=t, width=400, height=300)
     ).to_string()
@@ -334,7 +337,7 @@ def test_a_box_plot_puts_all_five_primitives_in_one_group() raises:
     var one: List[Float64] = [60.0, 70.0, 75.0, 80.0, 85.0]
     vals.append(one^)
 
-    var t = Theme(show_gridlines=False, show_legend=False, svg_tooltips=True)
+    var t = Theme(show_gridlines=False, show_legend=False, tooltips=Tooltips.ON)
     var svg = render_svg(
         box(cats, vals, theme=t, width=320, height=240)
     ).to_string()
@@ -360,7 +363,7 @@ def test_tooltips_off_leaves_no_groups_and_the_same_marks() raises:
         bar(
             _cats(),
             _vals(),
-            theme=Theme(show_gridlines=False, svg_tooltips=True),
+            theme=Theme(show_gridlines=False, tooltips=Tooltips.ON),
             width=400,
             height=300,
         )
@@ -369,7 +372,7 @@ def test_tooltips_off_leaves_no_groups_and_the_same_marks() raises:
         bar(
             _cats(),
             _vals(),
-            theme=Theme(show_gridlines=False, svg_tooltips=False),
+            theme=Theme(show_gridlines=False, tooltips=Tooltips.OFF),
             width=400,
             height=300,
         )
@@ -396,7 +399,7 @@ def test_pie_wedges_are_paths_one_per_category_in_palette_order() raises:
     category order. Reading `fill` off `<path>` specifically is what
     keeps the legend's `<rect>` swatches out of the comparison.
     """
-    var t = Theme(show_legend=True, svg_tooltips=False)
+    var t = Theme(show_legend=True, tooltips=Tooltips.OFF)
     var svg = render_svg(
         pie(_cats(), _vals(), theme=t, width=420, height=300)
     ).to_string()
@@ -418,7 +421,7 @@ def test_scatter_points_are_circles_not_rects() raises:
     """
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [3.0, 1.0, 2.0]
-    var t = Theme(show_gridlines=False, svg_tooltips=False)
+    var t = Theme(show_gridlines=False, tooltips=Tooltips.OFF)
     var svg = render_svg(scatter(x, y, theme=t, width=320, height=240))
     var s = svg.to_string()
     _assert_well_formed_svg(s, "scatter")

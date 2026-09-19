@@ -157,13 +157,14 @@ def _draw_boxen_glyphs[
     var theme = plot._theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
         var depth = len(plot._boxen.lower[i])
         var scale = ColorScale.from_theme(
             theme, 0.0, Float64(max(depth - 1, 1))
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(_boxen_tooltip_label(plot, i))
         var k = depth - 1
         while k >= 0:
@@ -190,7 +191,7 @@ def _draw_boxen_glyphs[
             theme.axis_color,
             theme.scale,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
     for j in range(len(plot._boxen.outlier_value)):
         orient.band_point(

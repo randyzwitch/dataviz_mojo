@@ -13,6 +13,7 @@ from std.testing import (
     assert_raises,
     assert_true,
 )
+from dataviz.core.tooltips import Tooltips
 from dataviz.aggregation.barplot import barplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
@@ -514,9 +515,9 @@ def test_pointplot_and_boxenplot_tooltips_follow_the_theme_flag() raises:
     var cats: List[String] = ["a", "a"]
     var vals: List[Float64] = [5.0, 5.0]
     var off = render_svg(
-        pointplot(cats, vals, theme=Theme(svg_tooltips=False))
+        pointplot(cats, vals, theme=Theme(tooltips=Tooltips.OFF))
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 def main() raises:

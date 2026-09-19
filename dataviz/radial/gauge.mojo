@@ -143,7 +143,8 @@ def _render_gauge[
         needle_angle,
         max_radius * plot._mark_style.gauge_needle_fraction,
     )
-    if theme.svg_tooltips:
+    var tooltips_on = plot._tooltips_on(1)
+    if tooltips_on:
         target.begin_annotated_group(
             _format_fixed(value, _label_decimals(value))
         )
@@ -158,6 +159,8 @@ def _render_gauge[
     target.fill_circle_aa(
         Int(cx), Int(cy), Int(sc.point_radius), theme.mark_color
     )
+    if tooltips_on:
+        target.end_annotated_group()
 
     text_requests.append(
         _TextRequest(

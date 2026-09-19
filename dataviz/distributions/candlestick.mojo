@@ -130,11 +130,12 @@ def _render_candlestick[
         cache=cache,
     )
 
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var center_px = snap_to_pixel_center(frame.x_scale.center(i))
         var high_py = _axis_pixel_f(frame.y_scale, plot._candle.high[i])
         var low_py = _axis_pixel_f(frame.y_scale, plot._candle.low[i])
-        if theme.svg_tooltips:
+        if tooltips_on:
             # Wick and body in one group: they are two halves of a single
             # datum, so hovering either should name the same candle.
             target.begin_annotated_group(
@@ -175,7 +176,7 @@ def _render_candlestick[
             >= plot._candle.open_price[i] else theme.mark_color_negative
         )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, body_color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var close = plot._candle.close_price[i]

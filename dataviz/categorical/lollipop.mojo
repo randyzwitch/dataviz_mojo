@@ -60,6 +60,7 @@ def _draw_lollipop_stems[
     var baseline_on_axis_line = abs(baseline - Float64(baseline_edge)) < 0.5
     var band_size = band_scale.bandwidth()
 
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         var center = band_scale.center(i)
@@ -70,7 +71,7 @@ def _draw_lollipop_stems[
                 baseline_on_axis_line and value != baseline
             ) else baseline
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
@@ -86,7 +87,7 @@ def _draw_lollipop_stems[
             Float64(radius),
             theme.mark_color,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var extent = _pull_off_axis_line_f(

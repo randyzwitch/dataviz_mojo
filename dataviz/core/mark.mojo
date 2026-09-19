@@ -433,10 +433,8 @@ struct Feature(Copyable, ImplicitlyCopyable, Movable):
     var _value: Int
 
     comptime TOOLTIPS = Self(0)
-    """`Theme.svg_tooltips`: each datum gets an SVG `<title>`. The
-    point-per-datum marks also need their own function's
-    `tooltips=True`, since a title roughly doubles a dense scatter's
-    SVG."""
+    """`Theme.tooltips`/`Plot.tooltips()`: each datum gets an SVG
+    `<title>`, subject to `Tooltips.AUTO`'s limit (tooltips.mojo)."""
     comptime DATA_LABELS = Self(1)
     """`Theme.show_data_labels`: each value drawn as text."""
     comptime HORIZONTAL = Self(2)
@@ -496,7 +494,7 @@ struct Feature(Copyable, ImplicitlyCopyable, Movable):
         """What a user sets: the column heading on the feature-support
         page, in Markdown."""
         if self == Self.TOOLTIPS:
-            return "`Theme.svg_tooltips`"
+            return "`Theme.tooltips`, `Plot.tooltips()`"
         if self == Self.DATA_LABELS:
             return "`Theme.show_data_labels`"
         if self == Self.HORIZONTAL:
@@ -520,9 +518,10 @@ struct Feature(Copyable, ImplicitlyCopyable, Movable):
         feature does, and what an unsupported mark does with it."""
         if self == Self.TOOLTIPS:
             return (
-                "each datum gets an SVG `<title>`, shown as a hover tooltip;"
-                " other marks ignore the flag. POINT, EFFECT_SCATTER and"
-                " BEESWARM also need their own function's `tooltips=True`."
+                "each datum gets an SVG `<title>`, shown as a hover tooltip."
+                " `Tooltips.AUTO`, the default, draws them only when a plot"
+                " has at most `Theme.auto_tooltip_limit` (1,000) of them;"
+                " `Tooltips.ON` on another mark raises."
             )
         if self == Self.DATA_LABELS:
             return "each value is drawn as text; other marks ignore the flag."
@@ -590,22 +589,20 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.BEESWARM,
             Mark.VIOLIN,
             Mark.SPAN_CHART,
-            # Opt-in, like POINT and EFFECT_SCATTER: each draws one
-            # primitive per datum, so a group can wrap it (#683). The
+            # Each draws one primitive per datum, so a group can wrap
+            # it (#683). The
             # mesh marks (BAR3D, VOXELS, SURFACE3D, TRISURF3D) cannot:
             # they depth-sort every face and emit one `fill_mesh`.
             Mark.SINGLE_AXIS,
             Mark.SCATTER3D,
-            # One cell, one title, under the theme flag alone (#679):
-            # a grid encodes its value as a color or a radius, so the
+            # One cell, one title (#679): a grid encodes its value as a color or a radius, so the
             # title is the only way to read the number back.
             Mark.HEATMAP,
             Mark.CALENDAR_HEATMAP,
             Mark.CORRPLOT,
             Mark.PUNCHCARD,
             Mark.MARIMEKKO,
-            # The radial family (#680), under the theme flag alone:
-            # one title per wedge, ring row or point. RADAR's unit is
+            # The radial family (#680): one title per wedge, ring row or point. RADAR's unit is
             # the series, not the vertex -- the shape a reader points
             # at is the whole ring -- and GAUGE draws one value.
             Mark.NIGHTINGALE,

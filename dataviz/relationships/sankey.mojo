@@ -206,6 +206,7 @@ def _render_sankey[
     var palette = categorical_palette_for(theme)
     var out_cursor = node_y0.copy()
     var in_cursor = node_y0.copy()
+    var tooltips_on = plot._tooltips_on(len(final_from))
     for e in range(len(final_from)):
         var fi = final_from[e]
         var ti = final_to[e]
@@ -232,7 +233,7 @@ def _render_sankey[
         path.line_to(tgt_x, tgt_bottom)
         path.line_to(tgt_x, tgt_top)
         path.close()
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
                     nodes[edge_origin[e]],
@@ -247,7 +248,7 @@ def _render_sankey[
             ),
             fill_rule=FillRule.NONZERO,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     var text_requests = List[_TextRequest]()

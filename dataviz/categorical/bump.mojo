@@ -277,6 +277,7 @@ def _render_bump[
             rank[j].append(rank_at_i[j])
 
     var palette = categorical_palette_for(theme)
+    var tooltips_on = plot._tooltips_on(n_series)
     for j in range(n_series):
         var px = List[Float64](capacity=n_categories)
         var py = List[Float64](capacity=n_categories)
@@ -291,12 +292,12 @@ def _render_bump[
         # Per series, not per step: the line is the shape a reader
         # points at, and a title per vertex would put one on every
         # category it crosses.
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(plot._grouped_bar.series_names[j])
         target.stroke_path_aa(
             path, palette[j % len(palette)], width=sc.line_width
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     if show_legend:

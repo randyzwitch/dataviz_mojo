@@ -15,6 +15,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 
+from dataviz.core.tooltips import Tooltips
 from dataviz import (
     fill_between3d,
     scatter3d,
@@ -585,22 +586,20 @@ def test_the_six_ribbon_columns_must_agree() raises:
 # scatter3d tooltips (#683)
 
 
-def _scatter3d_svg(tooltips: Bool) raises -> String:
+def _scatter3d_svg(policy: Tooltips) raises -> String:
     var x: List[Float64] = [1.0, 2.5]
     var y: List[Float64] = [3.0, 4.0]
     var z: List[Float64] = [5.0, 6.5]
     return render_svg(
-        scatter3d(x, y, z, tooltips=tooltips, width=300, height=300)
+        scatter3d(x, y, z, width=300, height=300).tooltips(policy)
     ).to_string()
 
 
-def test_scatter3d_tooltips_are_off_until_asked_for() raises:
-    # Opt-in for the reason POINT's are: a title per point roughly
-    # doubles a dense chart's SVG.
+def test_scatter3d_tooltips_follow_the_policy() raises:
     assert_true(
-        "<title>" not in _scatter3d_svg(False),
-        "no titles without tooltips=True",
+        "<title>" in _scatter3d_svg(Tooltips.AUTO), "two points: titled"
     )
+    assert_true("<title>" not in _scatter3d_svg(Tooltips.OFF), "OFF: none")
 
 
 def test_scatter3d_tooltips_carry_all_three_coordinates() raises:
@@ -608,7 +607,7 @@ def test_scatter3d_tooltips_carry_all_three_coordinates() raises:
     # two points that look adjacent on the page can be far apart along
     # the view direction, and the title is the only way to tell them
     # apart.
-    var svg = _scatter3d_svg(True)
+    var svg = _scatter3d_svg(Tooltips.AUTO)
     assert_true("<title>1, 3, 5</title>" in svg, "the first point's x, y, z")
     assert_true(
         "<title>2.5, 4, 6.5</title>" in svg,

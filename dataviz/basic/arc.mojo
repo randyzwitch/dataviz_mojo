@@ -128,11 +128,12 @@ def _render_arc[
 
     var palette = categorical_palette_for(theme)
     var start = -pi / 2.0
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var span = (plot._continuous.y[i] / total) * 2.0 * pi
         var end = start + span
         var color = palette[i % len(palette)]
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
@@ -142,7 +143,7 @@ def _render_arc[
             )
         else:
             target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             _arc_share_label(

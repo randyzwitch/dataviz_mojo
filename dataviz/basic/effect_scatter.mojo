@@ -8,7 +8,6 @@ def effect_scatter[
 ](
     x: List[Scalar[dtype]],
     y: List[Scalar[dtype]],
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -25,15 +24,12 @@ def effect_scatter[
     `Mark.EFFECT_SCATTER` over continuous `x`/`y`, the static equivalent
     of ECharts' effect scatter. Accepts the same `encode()` channels as
     `Mark.POINT` (`color`/`color_categories`/`size`); use
-    `Plot().mark_effect_scatter(tooltips=tooltips).encode(...)` directly
+    `Plot().mark_effect_scatter().encode(...)` directly
     for those.
 
     Args:
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
-        tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. `Theme.svg_tooltips`
-            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -67,7 +63,6 @@ def effect_scatter[
             var c = effect_scatter(
                 duration_minutes,
                 peak_memory_gb,
-                tooltips=True,
                 theme=Theme(halo_alpha=55),
                 title="Illustrative Resource-Intensive CI Jobs",
                 x_title="Build duration (minutes)",
@@ -78,9 +73,7 @@ def effect_scatter[
     """
     var x_f = _materialize_scalar_list(x)
     var y_f = _materialize_scalar_list(y)
-    var plot = (
-        Plot().mark_effect_scatter(tooltips=tooltips).encode(x=x_f, y=y_f)
-    )
+    var plot = Plot().mark_effect_scatter().encode(x=x_f, y=y_f)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )

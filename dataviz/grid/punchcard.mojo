@@ -90,6 +90,7 @@ def _render_punchcard[
         cache=cache,
     )
 
+    var tooltips_on = plot._tooltips_on(len(plot._punchcard.x))
     for i in range(len(plot._punchcard.x)):
         # Same rule as corrplot: a disk has no crisp position to snap
         # to, and the radius is the encoding -- rounding it to whole
@@ -101,7 +102,7 @@ def _render_punchcard[
         var radius = (
             plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _cell_tooltip_label(
                     plot._punchcard.x[i],
@@ -110,7 +111,7 @@ def _render_punchcard[
                 )
             )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     return frame.result()

@@ -679,12 +679,18 @@ def _draw_histogram_layer[
     for i in range(n):
         ext.append(vp[i] - baseline if horizontal else baseline - vp[i])
 
+    # Empty bins draw no bar and carry no title.
+    var drawn = 0
+    for i in range(n):
+        if min(ep[i], ep[i + 1]) < max(ep[i], ep[i + 1]) and ext[i] > 0.0:
+            drawn += 1
+    var tooltips_on = plot._tooltips_on(drawn)
     for i in range(n):
         var lo = min(ep[i], ep[i + 1])
         var hi = max(ep[i], ep[i + 1])
         if hi <= lo or ext[i] <= 0.0:
             continue
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(_histogram_bin_tooltip_label(plot, i))
         if horizontal:
             target.fill_rect(
@@ -694,7 +700,7 @@ def _draw_histogram_layer[
             target.fill_rect(
                 lo, vp[i], hi - lo, baseline - vp[i], theme.mark_color
             )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var label = _format_fixed(
