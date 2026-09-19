@@ -20,4 +20,10 @@ below as your chart becomes more composed or publication-ready.
 - [Accessibility](accessibility/)
 - [Performance and large datasets](performance/)
 
+Coming from another plotting library:
+
+- [Coming from matplotlib](from-matplotlib/)
+- [Coming from pyplot](from-pyplot/)
+- [Coming from seaborn](from-seaborn/)
+
 New terminology is defined in the [Glossary](../glossary/).
