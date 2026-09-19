@@ -2,6 +2,7 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.frame import _fitting_ticks
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     _draw_axis_spines,
@@ -74,6 +75,8 @@ def _draw_single_axis_frame[
     oy0: Int,
     ox1: Int,
     oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _SingleAxisFrame:
     """Draw a continuous bottom axis and no y-axis.
 
@@ -90,7 +93,15 @@ def _draw_single_axis_frame[
     out_x_scale.range_min = Float64(plot_x0)
     out_x_scale.range_max = Float64(plot_x1)
 
-    var x_ticks = out_x_scale.ticks()
+    var x_ticks = _fitting_ticks(
+        out_x_scale,
+        Float64(plot_x1 - plot_x0),
+        True,
+        theme.x_tick_format,
+        sc,
+        theme.font_family,
+        cache,
+    )
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
     if theme.show_gridlines:
@@ -178,7 +189,15 @@ def _render_single_axis[
 
     var x_scale = _data_extent(plot._continuous.x)
     var frame = _draw_single_axis_frame(
-        target, x_scale, theme, legend_reserve, ox0, oy0, ox1, oy1
+        target,
+        x_scale,
+        theme,
+        legend_reserve,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
     )
 
     var point_y = Float64(frame.py0 + frame.py1) / 2.0

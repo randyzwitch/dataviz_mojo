@@ -54,6 +54,7 @@ from dataviz.core.frame import (
     _axis_pixel,
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
+    _fitting_ticks,
     _with_secondary_axis,
 )
 from dataviz.distributions.ecdf import _draw_ecdf_layer, _ecdf_points
@@ -1465,7 +1466,17 @@ def _render_layers_generic[
     out_y_scale2.range_min = Float64(frame.py1)
     out_y_scale2.range_max = Float64(frame.py0)
     if has_secondary_data:
-        var y2_ticks = out_y_scale2.ticks()
+        # The margin was sized from the default ticks' labels; the
+        # drawn ones fit the axis's real height (#727).
+        var y2_ticks = _fitting_ticks(
+            y_scale2,
+            Float64(frame.py1 - frame.py0),
+            False,
+            theme.y_tick_format,
+            sc,
+            theme.font_family,
+            cache,
+        )
         var y2_labels = y2_ticks.labels(theme.y_tick_format)
         var y2_label_baseline_offset = Int(sc.font_size * 0.35)
         target.draw_line_aa(
