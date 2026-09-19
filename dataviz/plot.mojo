@@ -2673,6 +2673,8 @@ struct Plot(Copyable, Movable):
             elev: Degrees to look down on the scene from, above the
                 x-y plane.
             azim: Degrees to turn the scene through, about the z axis.
+            tooltips: Whether each point carries a hover `<title>`; it
+                also needs `Theme.svg_tooltips` on (#683).
 
         Returns:
             Self, for further chaining.
