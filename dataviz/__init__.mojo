@@ -74,7 +74,7 @@ from dataviz.aggregation.residplot import residplot
 from dataviz.aggregation.barplot import barplot
 from dataviz.aggregation.lineplot import lineplot
 from dataviz.aggregation.pointplot import pointplot
-from dataviz.core.stats import ErrorBar, Estimator
+from dataviz.core.stats import ErrorBar, Estimator, SmoothMethod
 from dataviz.grid.image import imshow, pcolormesh
 from dataviz.binned.hist2d import hist2d
 from dataviz.binned.hexbin import hexbin

@@ -29,6 +29,7 @@ from dataviz.core.annotations import (
     _draw_annotation_areas,
     _draw_annotation_bands,
     _draw_annotation_best_fit,
+    _draw_annotation_smooth,
     _draw_annotation_lines,
     _draw_annotation_points,
     _draw_annotation_vlines,
@@ -493,6 +494,7 @@ def _render_bar_combo_layers[
             or len(plots[i]._annotations.point_x) > 0
             or len(plots[i]._annotations.band_x) > 0
             or plots[i]._annotations.best_fit
+            or plots[i]._annotations.smooth
         )
         if has_annotations:
             raise Error(
@@ -1707,6 +1709,7 @@ def _render_layers_generic[
         var layer_point_requests = _draw_annotation_points(
             target, plots[j], layer_result, plots[j]._theme, cache=cache
         )
+        _draw_annotation_smooth(target, plots[j], layer_result, plots[j]._theme)
         var layer_best_fit_requests = _draw_annotation_best_fit(
             target, plots[j], layer_result, plots[j]._theme, cache=cache
         )

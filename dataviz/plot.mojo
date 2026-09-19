@@ -238,6 +238,7 @@ from dataviz.core.annotations import (
     _draw_annotation_areas,
     _draw_annotation_bands,
     _draw_annotation_best_fit,
+    _draw_annotation_smooth,
     _draw_annotation_lines,
     _draw_annotation_arrows,
     _draw_annotation_points,
@@ -273,6 +274,7 @@ from dataviz.core.scale import (
     _min_max,
     _symlog_forward,
 )
+from dataviz.core.stats import SmoothMethod
 from dataviz.core.theme import Theme
 
 from dataviz.radial.nightingale import _render_nightingale
@@ -5914,6 +5916,48 @@ struct Plot(Copyable, Movable):
         self._annotations.best_fit_ci = ci
         return self^
 
+    def annotate_smooth(
+        var self,
+        method: SmoothMethod = SmoothMethod.LOESS,
+        span: Float64 = 0.75,
+        degree: Int = 2,
+    ) -> Self:
+        """Overlay a curved trend line fitted to this plot's own x/y
+        data (#147) -- `annotate_best_fit()`'s straight line, for data a
+        straight line does not describe.
+
+        - `SmoothMethod.LOESS` (the default): locally weighted
+          regression. At each x, a polynomial of `degree` (1 or 2) is
+          fitted to the nearest `span` share of the points, weighted by
+          the tricube of their distance, and evaluated there. `span`
+          sets how smooth: smaller follows the data more closely. The
+          defaults, `span=0.75` and `degree=2`, are the conventional
+          ones for local regression.
+        - `SmoothMethod.POLYNOMIAL`: one least-squares polynomial of
+          `degree` over every point; `span` is unused.
+
+        Drawn across the data's own x range, in `annotate_best_fit()`'s
+        color and line style, clipped to the plot area. Unlike
+        `annotate_best_fit()` there is no confidence band, equation or
+        R-squared: those are defined for the straight-line fit.
+
+        Args:
+            method: `SmoothMethod.LOESS` or `SmoothMethod.POLYNOMIAL`.
+            span: LOESS's window as a share of the points, in `(0, 1]`.
+            degree: LOESS's local degree (1 or 2), or the polynomial's.
+
+        Returns:
+            Self, for further chaining -- `render()`/`render_svg()` raise
+            later if the mark has no continuous x/y axes, or the data
+            cannot support the fit (too few points or distinct x values
+            for the degree, or a span outside `(0, 1]`).
+        """
+        self._annotations.smooth = True
+        self._annotations.smooth_method = method
+        self._annotations.smooth_span = span
+        self._annotations.smooth_degree = degree
+        return self^
+
     def scale_y_log(var self) -> Self:
         """Scale the y-axis logarithmically (base 10). Every y value, and every
         y-axis annotation value, must be strictly positive; `render()`/
@@ -7025,6 +7069,7 @@ def _draw_figure_into[
         text,
         _draw_annotation_arrows(target, plot, result, plot._theme, cache=cache),
     )
+    _draw_annotation_smooth(target, plot, result, plot._theme)
     _extend_text_requests(
         text,
         _draw_annotation_best_fit(

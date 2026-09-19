@@ -39,6 +39,7 @@ from dataviz.core.annotations import (
     _draw_annotation_areas,
     _draw_annotation_bands,
     _draw_annotation_best_fit,
+    _draw_annotation_smooth,
     _draw_annotation_lines,
     _draw_annotation_points,
     _draw_annotation_vlines,
@@ -675,6 +676,7 @@ def _render_cells_generic[
         var cell_point_requests = _draw_annotation_points(
             target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
+        _draw_annotation_smooth(target, plots[i], cell_result, plots[i]._theme)
         var cell_best_fit_requests = _draw_annotation_best_fit(
             target, plots[i], cell_result, plots[i]._theme, cache=cache
         )
