@@ -258,11 +258,15 @@ def test_every_mark_matches_the_table() raises:
             Feature.ANNOTATIONS_XY,
             _renders(plot.copy().annotate_point(1.5, 1.5, label="ref")),
         )
-        _check(
-            mismatches, mark, Feature.LOG_X, _renders(plot.copy().scale_x_log())
+        # A log axis must change the picture, not just be accepted. The
+        # old oracle only asked whether scale_x_log() raised, which a
+        # mark that took the flag and drew linearly would have passed
+        # (#687).
+        _check_raises_or_changes(
+            mismatches, mark, Feature.LOG_X, plot.copy().scale_x_log(), base, ""
         )
-        _check(
-            mismatches, mark, Feature.LOG_Y, _renders(plot.copy().scale_y_log())
+        _check_raises_or_changes(
+            mismatches, mark, Feature.LOG_Y, plot.copy().scale_y_log(), base, ""
         )
 
         var colored: Bool

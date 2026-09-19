@@ -21,6 +21,7 @@ from dataviz.plot import (
     _LegendLayout,
     _RenderResult,
     _data_extent,
+    _position_x_extent,
     _draw_continuous_axis_frame,
     _finished,
     _min_max,
@@ -361,7 +362,7 @@ def _render_rug[
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(values),
+        _position_x_extent(plot, values),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,
         _LegendLayout(),
