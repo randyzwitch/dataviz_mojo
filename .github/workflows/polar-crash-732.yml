@@ -4,8 +4,8 @@ name: Polar crash diagnostic (#732)
 # macos-latest in roughly one CI run in five, printing a stack of raw
 # addresses and no test output, so the log never says which test faults.
 #
-# Run it by hand from the Actions tab. It does three things the normal
-# test job cannot:
+# Pushing this branch runs it; the Actions tab can also re-run it with
+# different inputs. It does three things the normal test job cannot:
 #
 #  1. Runs *only* that module, many times, so a run is minutes rather
 #     than the 25 the full macOS job takes.
@@ -22,6 +22,10 @@ name: Polar crash diagnostic (#732)
 # Delete this file once #732 is understood.
 
 on:
+  # Dispatch only works for a workflow on the default branch, and this
+  # one is deliberately not there, so pushing the branch is the trigger.
+  push:
+    branches: [diag/polar-crash-732]
   workflow_dispatch:
     inputs:
       iterations:
@@ -59,7 +63,7 @@ jobs:
           sw_vers
 
       - name: Build with line tables
-        if: inputs.mode != 'jit'
+        if: inputs.mode != 'jit'  # empty on a push, so the build runs
         run: |
           mkdir -p build
           pixi run mojo build -debug-level=line-tables -I . -I tests \
@@ -71,6 +75,10 @@ jobs:
           COPIES: ${{ inputs.copies }}
           MODE: ${{ inputs.mode }}
         run: |
+          # A push carries no inputs, so the defaults live here too.
+          ITERATIONS="${ITERATIONS:-20}"
+          COPIES="${COPIES:-4}"
+          MODE="${MODE:-both}"
           mkdir -p crashes
           crashed=0
           ran=0
