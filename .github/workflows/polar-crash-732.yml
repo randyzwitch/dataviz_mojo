@@ -12,7 +12,14 @@ name: Polar crash diagnostic (#732)
 #  2. Runs several copies at once. Every observed crash came from the
 #     parallel suite, so contention is part of the recipe; a single
 #     quiet run may never fail.
-#  3. Also runs an ahead-of-time build with line tables, which is what
+#  3. Runs each copy under a pseudo-terminal (`script`). Redirected to
+#     a file, the module's stdout is block-buffered and a crash throws
+#     it all away: killing a healthy run nine seconds in leaves an
+#     empty file, though it has run most of its tests by then. That is
+#     why the original CI logs showed no test output, and it is not
+#     evidence about when the crash happens. A pty makes the stream
+#     line-buffered, so the last test printed survives the crash.
+#  4. Also runs an ahead-of-time build with line tables, which is what
 #     the toolchain's own crash message asks for and the only way to
 #     turn the addresses into function names. That build is a different
 #     execution path from `mojo run`'s JIT, so it may not reproduce the
@@ -85,7 +92,11 @@ jobs:
           for i in $(seq 1 "$ITERATIONS"); do
             for c in $(seq 1 "$COPIES"); do
               if [ "$MODE" != "aot" ]; then
-                ( pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
+                # `script -q /dev/null CMD` runs CMD on a pty (BSD form,
+                # which is what macOS ships), so its output is line
+                # buffered and survives the crash.
+                ( script -q /dev/null \
+                    pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
                     > "crashes/jit_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/jit_${i}_${c}.code" ) &
               fi
@@ -107,6 +118,8 @@ jobs:
               crashed=$((crashed + 1))
               echo "=== FAILED: $f (exit $(cat "${f%.out}.code" 2>/dev/null || echo 0))"
               tail -40 "$f"
+              echo "--- last test line: $(grep -E '(PASS|FAIL) \[' "$f" | tail -1)"
+              echo "--- tests printed: $(grep -cE '(PASS|FAIL) \[' "$f")"
             else
               rm -f "$f"
             fi
