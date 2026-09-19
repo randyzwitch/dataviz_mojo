@@ -4,7 +4,7 @@ drawn as colored hexagons. The lattice tiles the plane without the
 axis-aligned artifacts a rectangular grid shows on diagonal structure,
 which is the reason it exists alongside `hist2d()`."""
 
-from std.math import floor, pi, sqrt
+from std.math import floor, log10, pi, sqrt
 
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -23,6 +23,7 @@ from dataviz.plot import (
     Plot,
     _RenderResult,
     _data_extent,
+    _log_data_extent,
     _draw_continuous_axis_frame,
     _finished,
 )
@@ -365,6 +366,41 @@ def _draw_hexbin_layer[
             target.end_annotated_group()
 
 
+def _log10_all(values: List[Float64], axis: String) raises -> List[Float64]:
+    """`log10` of every value, for binning in log space (#718).
+
+    Args:
+        values: The observations.
+        axis: "x" or "y", for the error message.
+
+    Returns:
+        Their logarithms.
+
+    Raises:
+        Error: A value at or below zero.
+    """
+    var out = List[Float64](capacity=len(values))
+    for v in values:
+        if v <= 0.0:
+            raise Error(
+                "scale_"
+                + axis
+                + "_log(): every value must be > 0 for a log-scaled axis"
+                " (log10(0) and log10(negative) are undefined) -- got "
+                + String(v)
+            )
+        out.append(log10(v))
+    return out^
+
+
+def _pow10_all(values: List[Float64]) -> List[Float64]:
+    """Back from log10 space to data units."""
+    var out = List[Float64](capacity=len(values))
+    for v in values:
+        out.append(10.0**v)
+    return out^
+
+
 def _render_hexbin[
     T: DrawTarget
 ](
@@ -404,8 +440,21 @@ def _render_hexbin[
     Raises:
         Error: As `_hexbin_bins`.
     """
+    # Under a log x axis the lattice is laid out in log10(x), so every
+    # hexagon is regular on screen rather than stretched across decades
+    # (#718). The bins, their centers and their reach are all in that
+    # space from here on; only the axis and the drawing need to know.
+    if plot._x_symlog or plot._y_symlog:
+        raise Error(
+            "Plot.scale_x_symlog()/scale_y_symlog(): Mark.HEXBIN takes"
+            " scale_x_log() only. The lattice is laid out in one space, and"
+            " symlog is two spaces joined at a threshold"
+        )
+    var x_log = plot._x_log
     var bins = _hexbin_bins(
-        plot._hexbin.x, plot._hexbin.y, plot._hexbin.gridsize
+        _log10_all(plot._hexbin.x, "x") if x_log else plot._hexbin.x.copy(),
+        plot._hexbin.y,
+        plot._hexbin.gridsize,
     )
     var theme = plot._theme
     var sc = _Scaled(theme)
@@ -429,7 +478,7 @@ def _render_hexbin[
         reach_y.append(bins.cy[i] + bins.sy / 3.0)
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(reach),
+        _log_data_extent(_pow10_all(reach)) if x_log else _data_extent(reach),
         _data_extent(reach_y),
         theme,
         legend,
@@ -439,11 +488,17 @@ def _render_hexbin[
         oy1,
         cache=cache,
     )
+    # The cells are in log10 space under a log axis, so they are drawn
+    # through the same scale with its log switched off: linear over the
+    # log-space domain, which is the affine map `_cell_transform` needs.
+    var draw_x = frame.x_scale
+    if x_log:
+        draw_x.is_log = False
     _draw_hexbin_layer(
         target,
         bins,
         color_scale,
-        frame.x_scale,
+        draw_x,
         frame.y_scale,
         sc,
         theme.svg_tooltips,

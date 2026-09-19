@@ -69,6 +69,13 @@ struct _ImageData(Copyable, Movable):
     """Leave a cell whose value is exactly 0 undrawn. Set by
     `encode_hist2d()`: an empty bin is "nothing here", not the bottom
     of the ramp."""
+    var linear_auto_x: Bool
+    """`hist2d()` chose the x bins itself, evenly in linear units. A log
+    x axis over those would draw them wildly unequal, so the render
+    raises and says to pass `log_x=True` instead (#718). Edges a caller
+    gave `encode_hist2d()` are theirs and are drawn as given."""
+    var linear_auto_y: Bool
+    """The same for y."""
 
     def __init__(out self):
         self.z = List[List[Float64]]()
@@ -77,6 +84,8 @@ struct _ImageData(Copyable, Movable):
         self.y_corners = List[List[Float64]]()
         self.y_edges = List[Float64]()
         self.blank_zero = False
+        self.linear_auto_x = False
+        self.linear_auto_y = False
 
 
 def _image_grid_shape(
@@ -792,6 +801,24 @@ def _render_image[
         color_scale, theme, sc, cache=cache
     )
 
+    if mark == Mark.HIST2D:
+        for axis in range(2):
+            var is_x = axis == 0
+            if (plot._x_log and plot._image.linear_auto_x) if is_x else (
+                plot._y_log and plot._image.linear_auto_y
+            ):
+                var name = "x" if is_x else "y"
+                raise Error(
+                    "scale_"
+                    + name
+                    + "_log(): hist2d() binned "
+                    + name
+                    + " evenly in linear units, and on a log axis those"
+                    " bins are wildly unequal widths. Pass log_"
+                    + name
+                    + "=True to hist2d() to bin in log space instead, or give"
+                    " encode_hist2d() log_bin_edges()"
+                )
     if plot._x_symlog or plot._y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): "

@@ -792,10 +792,8 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
         # places each cell between its real edges, so a log axis is a
         # pure change of spacing.
         #
-        # No, pending estimation or binning in log space: KDE (the
-        # density is estimated in linear x, and stretched onto a log
-        # axis its area no longer reads as probability), HEXBIN and
-        # HIST2D (linear-width bins become unequal on a log axis).
+        # KDE, HEXBIN and HIST2D: yes since #718, estimated or binned in
+        # log10(x) under a log axis rather than in linear x.
         #
         # No: BARBS, QUIVER, STREAMPLOT (a vector's direction and length
         # are in data units, and compressing x distorts both);
@@ -812,12 +810,28 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             Mark.RUG,
             Mark.ECDF,
             Mark.PCOLORMESH,
+            # Estimated on log10(x) under a log axis, so the kernel is a
+            # fixed width in decades (#718).
+            Mark.KDE,
+            # Binned in log10(x) under a log axis, so every cell is the
+            # same width on screen (#718). HIST2D through log_x=True or
+            # log_bin_edges(); it refuses a log axis over the linear bins
+            # hist2d() chose itself.
+            Mark.HEXBIN,
+            Mark.HIST2D,
         ]
     elif feature == Feature.LOG_Y:
         # PCOLORMESH for the same reason as on x: a log frequency axis
         # is what a spectrogram is usually drawn on. RUG has no y axis
         # and ECDF's is a fraction running from 0 (#687).
-        out = [Mark.POINT, Mark.LINE, Mark.EFFECT_SCATTER, Mark.PCOLORMESH]
+        out = [
+            Mark.POINT,
+            Mark.LINE,
+            Mark.EFFECT_SCATTER,
+            Mark.PCOLORMESH,
+            # Binned in log10(y) through log_y=True (#718).
+            Mark.HIST2D,
+        ]
     elif feature == Feature.COLOR_SIZE:
         out = [Mark.POINT, Mark.SINGLE_AXIS, Mark.EFFECT_SCATTER]
     return out^
