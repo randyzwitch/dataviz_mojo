@@ -643,6 +643,14 @@ def _cookbook_api_links(category: String) -> String:
     return "[Data shapes](../../data-shapes/)"
 
 
+def _front_matter_title(title: String) -> String:
+    """A page's `title:` front-matter line, with the title as a quoted
+    YAML string. Unquoted, a title such as "Workflow: A Scatter" is read
+    as a nested mapping and Hugo refuses the page (#374).
+    """
+    return 'title: "' + title.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 def _use_when(hook: String) -> String:
     """Turn an imperative recipe summary into a reader-focused sentence."""
     if hook.byte_length() == 0:
@@ -760,7 +768,7 @@ def _build_page(
 
     var out = List[String]()
     out.append("---")
-    out.append("title: " + title)
+    out.append(_front_matter_title(title))
     if weight > 0:
         out.append("weight: " + String(weight))
     if len(aliases) > 0:
@@ -901,7 +909,7 @@ def _build_contributed_page(
 
     var out = List[String]()
     out.append("---")
-    out.append("title: " + title)
+    out.append(_front_matter_title(title))
     out.append("---")
     out.append("")
     out.append(_use_when(hook))
@@ -1123,7 +1131,7 @@ def main() raises:
         # The section's own index: what the sidebar group opens to.
         var sec = List[String]()
         sec.append("---")
-        sec.append("title: " + cat.title)
+        sec.append(_front_matter_title(cat.title))
         sec.append("weight: " + String(10 * (ci + 1)))
         sec.append("---")
         sec.append("")
