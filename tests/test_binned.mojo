@@ -861,5 +861,131 @@ def test_a_histogram_bar_draws_its_count_above_the_bar() raises:
     assert_true(bin0 in on and bin1 in on and bin2 in on)
 
 
+# ---------------------------------------------------------------
+# The mark_histogram().encode_histogram() chain (#698)
+
+
+def _sample() -> List[Float64]:
+    var d: List[Float64] = [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0, 4.4, 4.9]
+    return d^
+
+
+def test_the_builder_chain_draws_what_histogram_draws() raises:
+    # The chain used to raise -- encode_histogram() took Mark.BAR only.
+    # It now bins through bin_edges() and histogram_bins(), the path
+    # histogram() takes, so the two render the same bytes.
+    var d = _sample()
+    assert_equal(
+        render_svg(
+            Plot().mark_histogram().encode_histogram(d, bins=4).size(400, 300)
+        ).to_string(),
+        render_svg(histogram(d, bins=4, width=400, height=300)).to_string(),
+    )
+
+
+def test_the_builder_chain_takes_every_normalization_histogram_does() raises:
+    var d = _sample()
+    var w: List[Float64] = [1.0, 2.0, 1.0, 1.0, 3.0, 1.0, 1.0, 2.0, 1.0]
+    assert_equal(
+        render_svg(
+            Plot()
+            .mark_histogram()
+            .encode_histogram(
+                d, bins=4, weights=w, stat=HistStat.DENSITY, cumulative=True
+            )
+            .size(400, 300)
+        ).to_string(),
+        render_svg(
+            histogram(
+                d,
+                bins=4,
+                weights=w,
+                stat=HistStat.DENSITY,
+                cumulative=True,
+                width=400,
+                height=300,
+            )
+        ).to_string(),
+    )
+
+
+def test_the_builder_chain_takes_a_bin_rule_as_histogram_does() raises:
+    var d = _sample()
+    assert_equal(
+        render_svg(
+            Plot()
+            .mark_histogram()
+            .encode_histogram(d, BinRule.SQRT, stat=HistStat.PROBABILITY)
+            .size(400, 300)
+        ).to_string(),
+        render_svg(
+            histogram(
+                d,
+                BinRule.SQRT,
+                stat=HistStat.PROBABILITY,
+                width=400,
+                height=300,
+            )
+        ).to_string(),
+    )
+
+
+def test_the_builder_chain_draws_a_horizontal_histogram() raises:
+    var d = _sample()
+    assert_equal(
+        render_svg(
+            Plot()
+            .mark_histogram(horizontal=True)
+            .encode_histogram(d, bins=4)
+            .size(400, 300)
+        ).to_string(),
+        render_svg(
+            histogram(d, bins=4, horizontal=True, width=400, height=300)
+        ).to_string(),
+    )
+
+
+def test_builder_chain_histograms_layer_as_histogram_ones_do() raises:
+    # The same range, so both forms pin the same x-domain and
+    # render_layers() accepts the pair (it refuses disagreeing ones,
+    # for histogram() plots and chained ones alike).
+    var a = _sample()
+    var b: List[Float64] = [0.5, 1.5, 2.5, 3.5, 3.6, 4.9]
+    var chained = List[Plot]()
+    chained.append(
+        Plot().mark_histogram().encode_histogram(a, bins=4).size(400, 300)
+    )
+    chained.append(
+        Plot().mark_histogram().encode_histogram(b, bins=4).size(400, 300)
+    )
+    var one_call = List[Plot]()
+    one_call.append(histogram(a, bins=4, width=400, height=300))
+    one_call.append(histogram(b, bins=4, width=400, height=300))
+    assert_equal(
+        render_layers_svg(chained).to_string(),
+        render_layers_svg(one_call).to_string(),
+    )
+
+
+def test_the_categorical_path_refuses_what_it_cannot_draw() raises:
+    # mark_bar().encode_histogram() still draws labeled counts, and says
+    # so rather than silently dropping an option it has no way to show.
+    var d = _sample()
+    var w: List[Float64] = [1.0, 2.0, 1.0, 1.0, 3.0, 1.0, 1.0, 2.0, 1.0]
+    with assert_raises(contains="need mark_histogram()"):
+        _ = Plot().mark_bar().encode_histogram(d, bins=4, weights=w)
+    with assert_raises(contains="need mark_histogram()"):
+        _ = Plot().mark_bar().encode_histogram(d, bins=4, stat=HistStat.DENSITY)
+    with assert_raises(contains="need mark_histogram()"):
+        _ = Plot().mark_bar().encode_histogram(d, BinRule.AUTO, cumulative=True)
+    var legacy = Plot().mark_bar().encode_histogram(d, bins=4)
+    assert_equal(len(legacy._categorical.x), 4, "four labeled bars, as before")
+
+
+def test_encode_histogram_on_another_mark_points_at_mark_histogram() raises:
+    with assert_raises(contains="mark_histogram()"):
+        _ = Plot().mark_point().encode_histogram(_sample(), bins=4)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

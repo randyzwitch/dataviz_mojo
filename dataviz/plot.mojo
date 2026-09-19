@@ -328,7 +328,10 @@ from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
 
 from dataviz.binned.histogram import (
     BinRule,
+    HistStat,
     HistogramBins,
+    bin_edges,
+    histogram_bins,
     _HistogramData,
     _bin_histogram,
     _draw_histogram_layer,
@@ -692,6 +695,29 @@ struct _LabelData(Copyable, Movable):
         self.y_title = ""
         self.description = ""
         self.series_name = ""
+
+
+def _require_histogram_encoder_mark(mark: Mark) raises:
+    """`encode_histogram()` binds to `Mark.HISTOGRAM` (the numeric
+    histogram) or `Mark.BAR` (the categorical one), and nothing else."""
+    var ok = List[Mark]()
+    ok.append(Mark.HISTOGRAM)
+    ok.append(Mark.BAR)
+    _require_mark(mark, "encode_histogram", "mark_histogram()", ok^)
+
+
+def _require_counts_only(
+    weights: List[Float64], stat: HistStat, cumulative: Bool
+) raises:
+    """The categorical `Mark.BAR` histogram draws plain counts; raise on
+    an option only the numeric `Mark.HISTOGRAM` has, rather than drawing
+    counts the caller did not ask for (#698)."""
+    if len(weights) > 0 or not (stat == HistStat.COUNT) or cumulative:
+        raise Error(
+            "encode_histogram(): weights, stat and cumulative need"
+            " mark_histogram(); the mark_bar() histogram draws plain"
+            " counts per labeled interval"
+        )
 
 
 struct Plot(Copyable, Movable):
@@ -1100,8 +1126,10 @@ struct Plot(Copyable, Movable):
         """A histogram drawn as one rectangle per bin at numeric x
         positions, with a separator between adjacent bins
         (`Theme.histogram_edge_color`); `horizontal` puts the bins up
-        the y-axis and the values running right. Encoded via
-        `encode_histogram_bins()`; see `_draw_histogram_layer`
+        the y-axis and the values running right. Encoded from raw
+        observations via `encode_histogram()` -- the same binning
+        `histogram()` does -- or from bins already computed via
+        `encode_histogram_bins()` (#698); see `_draw_histogram_layer`
         (histogram.mojo) for the drawing and `histogram()` for the
         one-call form. Follows `Mark.AREA`'s rules everywhere else: a
         zero-baselined y-domain, `render_layers()` and
@@ -3333,22 +3361,56 @@ struct Plot(Copyable, Movable):
         )
 
     def encode_histogram(
-        var self, data: List[Float64], bins: Int = 10
+        var self,
+        data: List[Float64],
+        bins: Int = 10,
+        weights: List[Float64] = List[Float64](),
+        stat: HistStat = HistStat.COUNT,
+        cumulative: Bool = False,
     ) raises -> Self:
-        """Bin values into equal-width intervals for a categorical bar chart.
+        """Bin raw observations into `bins` equal-width intervals, for
+        whichever histogram mark was selected (#698):
+
+        - After `mark_histogram()`, the numeric histogram: exactly what
+          `histogram()` draws for the same `data`, `bins`, `weights`,
+          `stat` and `cumulative` -- `bin_edges()`, then
+          `histogram_bins()`, then `encode_histogram_bins()`. This is
+          the raw-data path; `encode_histogram_bins()` stays the one for
+          bins already computed.
+        - After `mark_bar()`, the categorical bar chart this encoder has
+          always produced: one bar per interval, labeled with its range.
+          That path counts and nothing else, so it raises on `weights`,
+          a non-`COUNT` `stat` or `cumulative` rather than ignoring them.
 
         Args:
             data: Raw observations to bin.
             bins: Number of equal-width intervals.
+            weights: One nonnegative weight per observation, or empty;
+                `mark_histogram()` only.
+            stat: What a bin's height is; see `HistStat`.
+                `mark_histogram()` only.
+            cumulative: Draw running totals; `mark_histogram()` only.
 
         Returns:
             Self, for further chaining.
 
         Raises:
             Error: If data is empty, bins is not positive, or a value is not
-                finite.
+                finite; or a `mark_bar()` chart is given an option only
+                the numeric histogram has.
         """
-        _require_mark(self._mark, "encode_histogram", "mark_bar()", Mark.BAR)
+        _require_histogram_encoder_mark(self._mark)
+        if self._mark == Mark.HISTOGRAM:
+            return self^._encode_raw_histogram(
+                histogram_bins(
+                    data,
+                    bin_edges(data, bins),
+                    weights=weights,
+                    stat=stat,
+                    cumulative=cumulative,
+                )
+            )
+        _require_counts_only(weights, stat, cumulative)
         var binned = _bin_histogram(data, bins)
         self._categorical.x = binned.labels.copy()
         self._continuous.x = List[Float64]()
@@ -3356,24 +3418,47 @@ struct Plot(Copyable, Movable):
         return self^
 
     def encode_histogram(
-        var self, data: List[Float64], rule: BinRule
+        var self,
+        data: List[Float64],
+        rule: BinRule,
+        weights: List[Float64] = List[Float64](),
+        stat: HistStat = HistStat.COUNT,
+        cumulative: Bool = False,
     ) raises -> Self:
         """`encode_histogram` with the bin count chosen by `rule` rather
         than named -- `BinRule.AUTO` for numpy's `bins="auto"`. The
         overload `histogram()` and `bin_edges()` already have, so both
-        histogram paths accept the same request (#456).
+        histogram paths accept the same request (#456), and it follows
+        the selected mark the same way (#698).
 
         Args:
             data: Raw observations to bin.
             rule: Which `BinRule` picks the bin count.
+            weights: One nonnegative weight per observation, or empty;
+                `mark_histogram()` only.
+            stat: What a bin's height is; `mark_histogram()` only.
+            cumulative: Draw running totals; `mark_histogram()` only.
 
         Returns:
             Self, for further chaining.
 
         Raises:
-            Error: If data is empty or a value is not finite.
+            Error: If data is empty or a value is not finite; or a
+                `mark_bar()` chart is given an option only the numeric
+                histogram has.
         """
-        _require_mark(self._mark, "encode_histogram", "mark_bar()", Mark.BAR)
+        _require_histogram_encoder_mark(self._mark)
+        if self._mark == Mark.HISTOGRAM:
+            return self^._encode_raw_histogram(
+                histogram_bins(
+                    data,
+                    bin_edges(data, rule),
+                    weights=weights,
+                    stat=stat,
+                    cumulative=cumulative,
+                )
+            )
+        _require_counts_only(weights, stat, cumulative)
         var binned = _bin_histogram(data, rule)
         self._categorical.x = binned.labels.copy()
         self._continuous.x = List[Float64]()
@@ -4293,6 +4378,22 @@ struct Plot(Copyable, Movable):
         if len(x) > 0:
             self._x_tz_offset = x[0].tz.offset
         return self^
+
+    def _encode_raw_histogram(
+        var self, var binned: HistogramBins
+    ) raises -> Self:
+        """`encode_histogram()`'s `Mark.HISTOGRAM` path: the bins, plus
+        the bin range pinned on whichever axis carries them -- what
+        `histogram()` does, so the leftmost and rightmost bars sit on
+        the axis ends rather than inside `_data_extent`'s padding (#698).
+        `encode_histogram_bins()` itself pins nothing, as before.
+        """
+        var lo = binned.edges[0]
+        var hi = binned.edges[len(binned.edges) - 1]
+        var plot = self^.encode_histogram_bins(binned^)
+        if plot._histogram.horizontal:
+            return plot^.scale_y_domain(lo, hi)
+        return plot^.scale_x_domain(lo, hi)
 
     def encode_histogram_bins(var self, bins: HistogramBins) raises -> Self:
         """Map already-binned data onto `Mark.HISTOGRAM`'s shape: the
