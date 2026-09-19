@@ -968,6 +968,50 @@ def test_builder_chain_histograms_layer_as_histogram_ones_do() raises:
     )
 
 
+def test_a_domain_set_before_encode_histogram_is_kept() raises:
+    # #721: the bin-range pin used to overwrite a domain the caller had
+    # already set, so the result depended on call order. Set before or
+    # after, the caller's domain wins -- upright on x, horizontal on y.
+    var d = _sample()
+    var before = render_svg(
+        Plot()
+        .mark_histogram()
+        .scale_x_domain(0.0, 10.0)
+        .encode_histogram(d, bins=4)
+        .size(400, 300)
+    ).to_string()
+    var after = render_svg(
+        Plot()
+        .mark_histogram()
+        .encode_histogram(d, bins=4)
+        .scale_x_domain(0.0, 10.0)
+        .size(400, 300)
+    ).to_string()
+    assert_equal(before, after, "x: the caller's domain wins either way")
+    assert_true(
+        before
+        != render_svg(
+            Plot().mark_histogram().encode_histogram(d, bins=4).size(400, 300)
+        ).to_string(),
+        "and it is not the bin range",
+    )
+    var turned_before = render_svg(
+        Plot()
+        .mark_histogram(horizontal=True)
+        .scale_y_domain(0.0, 10.0)
+        .encode_histogram(d, bins=4)
+        .size(400, 300)
+    ).to_string()
+    var turned_after = render_svg(
+        Plot()
+        .mark_histogram(horizontal=True)
+        .encode_histogram(d, bins=4)
+        .scale_y_domain(0.0, 10.0)
+        .size(400, 300)
+    ).to_string()
+    assert_equal(turned_before, turned_after, "y, when horizontal")
+
+
 def test_each_histogram_encoder_names_the_mark_it_needs() raises:
     # Two encoders, two charts: encode_histogram() for the numeric
     # Mark.HISTOGRAM, encode_binned_categories() for Mark.BAR's labeled

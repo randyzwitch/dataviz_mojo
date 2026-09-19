@@ -4400,12 +4400,21 @@ struct Plot(Copyable, Movable):
         `histogram()` does, so the leftmost and rightmost bars sit on
         the axis ends rather than inside `_data_extent`'s padding (#698).
         `encode_histogram_bins()` itself pins nothing, as before.
+
+        Only when the caller has not pinned that axis already (#721):
+        `histogram()` builds a fresh `Plot` and never has an earlier
+        domain, but a builder chain can, and `scale_x_domain()` before
+        `encode_histogram()` must win just as it does after.
         """
         var lo = binned.edges[0]
         var hi = binned.edges[len(binned.edges) - 1]
         var plot = self^.encode_histogram_bins(binned^)
         if plot._histogram.horizontal:
+            if plot._y_domain.has:
+                return plot^
             return plot^.scale_y_domain(lo, hi)
+        if plot._x_domain.has:
+            return plot^
         return plot^.scale_x_domain(lo, hi)
 
     def encode_histogram_bins(var self, bins: HistogramBins) raises -> Self:
