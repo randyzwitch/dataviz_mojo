@@ -16,21 +16,9 @@ from dataviz.spatial.scatter3d import plot3d, scatter3d
 from dataviz.spatial.bar3d import bar3d, voxels
 from dataviz.spatial.stem3d import fill_between3d, quiver3d, stem3d
 from dataviz.spatial.surface3d import surface3d, trisurf3d, wire3d
-from dataviz.aggregation.clustermap import (
-    clustermap,
-    clustermap_pdf,
-    clustermap_svg,
-)
-from dataviz.aggregation.jointplot import (
-    jointplot,
-    jointplot_pdf,
-    jointplot_svg,
-)
-from dataviz.aggregation.pairplot import (
-    pairplot,
-    pairplot_pdf,
-    pairplot_svg,
-)
+from dataviz.aggregation.clustermap import clustermap
+from dataviz.aggregation.jointplot import jointplot
+from dataviz.aggregation.pairplot import pairplot
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle
@@ -58,6 +46,7 @@ from dataviz.plot import (
 # Unequal-cell composition (#347). Imported directly rather than
 # re-exported through plot.mojo, which layout.mojo depends on.
 from dataviz.layout import (
+    Figure,
     GridCell,
     render_grid,
     render_grid_pdf,

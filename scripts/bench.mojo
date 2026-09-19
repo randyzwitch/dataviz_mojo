@@ -403,7 +403,7 @@ def _bench_clustermap(mut timings: List[_Timing], sizes: List[Int]) raises:
         _ = linkage(rows)
         _record(timings, "LINKAGE", "compute", n, perf_counter() - t0)
         t0 = perf_counter()
-        _ = clustermap(rows, width=800, height=600)
+        _ = render(clustermap(rows, width=800, height=600))
         _record(timings, "CLUSTERMAP", "raster", n, perf_counter() - t0)
 
 

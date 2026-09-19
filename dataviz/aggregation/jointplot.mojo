@@ -28,21 +28,13 @@ vertical edges (#569). That is the piece this chart was waiting on.
 The corner opposite the two marginals is left empty and takes the figure background rather than showing through.
 """
 
-from canvas.buffer import Canvas
 
 from dataviz.binned.histogram import bin_edges, histogram_bins
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
-from canvas.vector.pdf import PdfCanvas
-from canvas.vector.svg import SvgCanvas
 
-from dataviz.layout import (
-    GridCell,
-    render_grid,
-    render_grid_pdf,
-    render_grid_svg,
-)
+from dataviz.layout import Figure, GridCell
 from dataviz.plot import Plot
 
 
@@ -127,9 +119,8 @@ def _jointplot_panels[
 
     Everything that decides what the figure says -- the shared domains,
     the two marginals\' bin edges, which panel carries the title -- is
-    here, so the two entry points differ only in which `render_grid`
-    they hand the result to and cannot drift into drawing different
-    charts.
+    here; `jointplot()` only wraps the result in a `Figure`, and every
+    export format draws that one figure.
 
     Args:
         x: The horizontal variable.
@@ -245,17 +236,18 @@ def jointplot[
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Canvas:
+) raises -> Figure:
     """A scatter of `y` against `x` with each variable's distribution
     along its own axis.
 
-    Returns a rendered `Canvas` rather than a
-    `Plot`, for the reason `pairplot()` does: the result is several
-    charts in a grid, and a `Plot` is one chart.
+    Returns a `Figure` rather than a `Plot`, because the result is
+    several charts in a grid and a `Plot` is one chart. Like a `Plot`,
+    it is not rendered until it is exported: `save()`, `render()`,
+    `render_svg()` and `render_pdf()` all take it (#697).
 
     Example:
         ```mojo
-        from dataviz import jointplot_svg, save
+        from dataviz import jointplot, save
 
         def main() raises:
             # A correlated pair from a fixed linear congruential sequence,
@@ -270,7 +262,7 @@ def jointplot[
                 var b = Float64(seed % 10000) / 1000.0
                 x.append(a)
                 y.append(a * 0.6 + b * 0.4)
-            var c = jointplot_svg(
+            var c = jointplot(
                 x,
                 y,
                 title="Joint distribution",
@@ -296,7 +288,7 @@ def jointplot[
         y_title: The vertical axis caption, on the main panel.
 
     Returns:
-        The rendered figure.
+        The unrendered figure.
 
     Raises:
         Error: Empty or mismatched columns, a non-positive `bins`, or a
@@ -321,149 +313,12 @@ def jointplot[
     var rows = List[Float64]()
     var cols = List[Float64]()
     _jointplot_weights(ratio, rows, cols)
-    return render_grid(
-        plots,
-        cells,
+    return Figure(
+        plots^,
+        cells^,
         width,
         height,
-        row_weights=rows,
-        col_weights=cols,
-        align_axes=True,
-    )
-
-
-def jointplot_svg[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 640,
-    bins: Int = 20,
-    ratio: Float64 = 4.0,
-    title: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> SvgCanvas:
-    """`jointplot()`'s vector counterpart, over the same panels (#620).
-
-    Args:
-        x: The horizontal variable.
-        y: The vertical variable, one per `x` entry.
-        theme: Colors and fonts, shared by all three panels.
-        width: Figure width in points.
-        height: Figure height in points.
-        bins: Intervals in each marginal.
-        ratio: How many times the main panel's size the marginals are
-            divided into.
-        title: Shown above the top marginal.
-        x_title: The horizontal axis caption, on the main panel.
-        y_title: The vertical axis caption, on the main panel.
-
-    Returns:
-        The rendered figure.
-
-    Raises:
-        Error: As `jointplot()`.
-    """
-    var plots = List[Plot]()
-    var cells = List[GridCell]()
-    _jointplot_panels(
-        x,
-        y,
-        theme,
-        width,
-        height,
-        bins,
-        ratio,
-        title,
-        x_title,
-        y_title,
-        plots,
-        cells,
-    )
-    var rows = List[Float64]()
-    var cols = List[Float64]()
-    _jointplot_weights(ratio, rows, cols)
-    return render_grid_svg(
-        plots,
-        cells,
-        width,
-        height,
-        row_weights=rows,
-        col_weights=cols,
-        align_axes=True,
-    )
-
-
-def jointplot_pdf[
-    dtype: DType
-](
-    x: List[Scalar[dtype]],
-    y: List[Scalar[dtype]],
-    theme: Theme = Theme(),
-    width: Int = 640,
-    height: Int = 640,
-    bins: Int = 20,
-    ratio: Float64 = 4.0,
-    title: String = "",
-    x_title: String = "",
-    y_title: String = "",
-) raises -> PdfCanvas:
-    """`jointplot()`'s one-page PDF counterpart, over the same
-    panels (#372).
-
-    One layout unit is one PDF point, 1/72 inch, so `width` by
-    `height` is the page: a 640 by 640 figure is 8.89 inches square.
-    Paths stay paths and text stays text, embedded as a font subset,
-    so a panel's labels are selectable rather than a picture of
-    themselves.
-
-    Args:
-        x: The horizontal variable.
-        y: The vertical variable, one per `x` entry.
-        theme: Colors and fonts, shared by all three panels.
-        width: Figure width in points.
-        height: Figure height in points.
-        bins: Intervals in each marginal.
-        ratio: How many times the main panel's size the marginals are
-            divided into.
-        title: Shown above the top marginal.
-        x_title: The horizontal axis caption, on the main panel.
-        y_title: The vertical axis caption, on the main panel.
-
-    Returns:
-        The rendered figure.
-
-    Raises:
-        Error: As `jointplot()`.
-    """
-    var plots = List[Plot]()
-    var cells = List[GridCell]()
-    _jointplot_panels(
-        x,
-        y,
-        theme,
-        width,
-        height,
-        bins,
-        ratio,
-        title,
-        x_title,
-        y_title,
-        plots,
-        cells,
-    )
-    var rows = List[Float64]()
-    var cols = List[Float64]()
-    _jointplot_weights(ratio, rows, cols)
-    return render_grid_pdf(
-        plots,
-        cells,
-        width,
-        height,
-        row_weights=rows,
-        col_weights=cols,
+        row_weights=rows^,
+        col_weights=cols^,
         align_axes=True,
     )

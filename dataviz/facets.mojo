@@ -17,6 +17,7 @@ from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 
 from dataviz.layout import (
+    Figure,
     _figure_title_band,
     _render_cells_generic,
     uniform_cells,
@@ -113,6 +114,31 @@ def save_facets(
             write_png(canvas, path)
         else:
             write_bmp(canvas, path)
+
+
+def _facets_figure(
+    plots: List[Plot],
+    cols: Int,
+    shared_y_scale: Bool = False,
+    title: String = "",
+) raises -> Figure:
+    """A facet grid as an unrendered `Figure` (#697): one uniform cell
+    per plot, `cols` across, sized as `render_facets()` sizes it, so
+    rendering the figure draws what `render_facets()` draws."""
+    if cols <= 0:
+        raise Error(
+            "render_facets(): cols must be positive (got " + String(cols) + ")"
+        )
+    _require_uniform_size(plots, "render_facets")
+    var size = _facets_size(plots, cols, title)
+    return Figure(
+        plots.copy(),
+        uniform_cells(len(plots), cols),
+        size[0],
+        size[1],
+        shared_y_scale=shared_y_scale,
+        title=title,
+    )
 
 
 def _facets_size(
