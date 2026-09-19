@@ -36,7 +36,14 @@ from dataviz.core.arrow import (
 )
 from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 from dataviz.core.scale import _format_fixed
-from dataviz.core.stats import _OlsFit, _ols_fit
+from dataviz.core.frame import _push_plot_clip
+from dataviz.core.stats import (
+    SmoothMethod,
+    _OlsFit,
+    _loess_at,
+    _ols_fit,
+    _poly_fit,
+)
 from dataviz.core.theme import Theme
 
 # Circular by construction, and resolved within the package: `plot.mojo`
@@ -100,6 +107,13 @@ struct _AnnotationData(Copyable, Movable):
     var best_fit_ci: Float64
     """Two-sided confidence level of the band around the fitted line
     (`0.95` for 95%); `0.0` draws no band."""
+    var smooth: Bool
+    """Whether `annotate_smooth()` asked for a fitted curve (#147)."""
+    var smooth_method: SmoothMethod
+    var smooth_span: Float64
+    """LOESS's window, as a share of the points."""
+    var smooth_degree: Int
+    """LOESS's local degree, or the polynomial's degree."""
 
     def __init__(out self):
         self.line_values = List[Float64]()
@@ -126,6 +140,10 @@ struct _AnnotationData(Copyable, Movable):
         self.best_fit_show_r_squared = False
         self.best_fit_label = ""
         self.best_fit_ci = 0.0
+        self.smooth = False
+        self.smooth_method = SmoothMethod.LOESS
+        self.smooth_span = 0.75
+        self.smooth_degree = 2
 
 
 def _draw_annotation_areas[
@@ -712,6 +730,89 @@ def _draw_annotation_arrows[
                 ),
             )
     return text_requests^
+
+
+def _draw_annotation_smooth[
+    T: DrawTarget
+](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises:
+    """Draw `Plot.annotate_smooth()`'s fitted curve (#147).
+
+    Sampled at 128 evenly spaced x values across the data's own range --
+    not the padded axis, so a trend is never drawn out past the points
+    it was fitted to -- and stroked
+    as one path through the plot clip, since a curve's ends cannot be
+    clamped into the plot rect the way a straight line's can. Styled as
+    `annotate_best_fit()`'s line: `Theme.annotation_color` and
+    `Theme.annotation_line_style`.
+
+    Raises:
+        Error: The mark has no continuous x/y axes, or the fit cannot be
+            made from the data (see `_poly_fit`/`_loess_at`).
+    """
+    if not plot._annotations.smooth:
+        return
+    if not result.has_x_scale or not result.has_y_scale:
+        raise Error(
+            "Plot.annotate_smooth(): this mark has no continuous x/y axes to"
+            " fit a curve against. Supported today:"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
+        )
+    ref x = plot._continuous.x
+    ref y = plot._continuous.y
+    if len(x) != len(y) or len(x) < 2:
+        raise Error(
+            "Plot.annotate_smooth(): needs at least 2 points with one y per x"
+        )
+    var lo = x[0]
+    var hi = x[0]
+    for v in x:
+        lo = min(lo, v)
+        hi = max(hi, v)
+    if hi == lo:
+        raise Error(
+            "Plot.annotate_smooth(): every x value is the same, so no curve"
+            " fits"
+        )
+    var method = plot._annotations.smooth_method
+    var degree = plot._annotations.smooth_degree
+    var steps = 128
+    var xs = List[Float64](capacity=steps + 1)
+    var ys = List[Float64](capacity=steps + 1)
+    try:
+        if method == SmoothMethod.POLYNOMIAL:
+            var fit = _poly_fit(x, y, degree)
+            for i in range(steps + 1):
+                var xv = lo + (hi - lo) * Float64(i) / Float64(steps)
+                xs.append(xv)
+                ys.append(fit.predict(xv))
+        else:
+            for i in range(steps + 1):
+                var xv = lo + (hi - lo) * Float64(i) / Float64(steps)
+                xs.append(xv)
+                ys.append(
+                    _loess_at(x, y, xv, plot._annotations.smooth_span, degree)
+                )
+    except e:
+        raise Error("Plot.annotate_smooth(): " + String(e))
+    var sc = _Scaled(theme)
+    var curve = Path()
+    curve.move_to(
+        _axis_pixel_f(result.x_scale, xs[0]),
+        _axis_pixel_f(result.y_scale, ys[0]),
+    )
+    for i in range(1, len(xs)):
+        curve.line_to(
+            _axis_pixel_f(result.x_scale, xs[i]),
+            _axis_pixel_f(result.y_scale, ys[i]),
+        )
+    _push_plot_clip(target, result.x_scale, result.y_scale)
+    target.stroke_path_aa(
+        curve,
+        theme.annotation_color,
+        width=sc.scale,
+        dashes=theme.annotation_line_style.dashes(sc.scale),
+    )
+    target.pop_clip()
 
 
 def _draw_annotation_best_fit[
