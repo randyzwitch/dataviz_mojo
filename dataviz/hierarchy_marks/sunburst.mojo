@@ -96,7 +96,7 @@ def _draw_sunburst_node[
     background: Color,
     separator: Color,
     separator_width: Float64,
-    svg_tooltips: Bool,
+    tooltips_on: Bool,
 ) raises:
     """Draw a node sector and recursively divide it among its children.
 
@@ -111,7 +111,7 @@ def _draw_sunburst_node[
     var fade = 255 - _DEPTH_FADE * (depth - 1)
     if fade < _MIN_DEPTH_ALPHA:
         fade = _MIN_DEPTH_ALPHA
-    if svg_tooltips:
+    if tooltips_on:
         target.begin_annotated_group(_sunburst_node_label(ids, idx, node))
     _fill_ring_sector(
         target,
@@ -134,7 +134,7 @@ def _draw_sunburst_node[
         separator,
         width=separator_width,
     )
-    if svg_tooltips:
+    if tooltips_on:
         target.end_annotated_group()
 
     var total = idx.subtree_value[node]
@@ -158,7 +158,7 @@ def _draw_sunburst_node[
             background,
             separator,
             separator_width,
-            svg_tooltips,
+            tooltips_on,
         )
         a = a_end
 
@@ -261,7 +261,7 @@ def _render_sunburst[
             theme.background,
             theme.background,
             sc.scale,
-            theme.svg_tooltips,
+            plot._tooltips_on(len(plot._hierarchy.ids) - 1),
         )
         start = end
 

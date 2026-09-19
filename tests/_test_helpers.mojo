@@ -155,7 +155,7 @@ def _attr_values(svg: String, tag: String, attr: String) -> List[String]:
 
 def _group_titles(svg: String) -> List[String]:
     """The `<title>` text of every annotated group, in document order --
-    what `Theme.svg_tooltips` produces, and what a browser shows on
+    what `Theme.tooltips` produces, and what a browser shows on
     hover.
 
     Args:

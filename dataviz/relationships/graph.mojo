@@ -174,6 +174,7 @@ def _render_graph[
     var value_mm = _min_max(plot._edges.values)
     var max_value = value_mm.max
 
+    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
     for row in range(len(plot._edges.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
@@ -185,7 +186,7 @@ def _render_graph[
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         # Preserve exact node endpoints for diagonal edges.
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
                     plot._edges.from_categories[row],
@@ -201,7 +202,7 @@ def _render_graph[
             color,
             width,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     var text_requests = List[_TextRequest]()

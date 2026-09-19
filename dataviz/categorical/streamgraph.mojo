@@ -222,6 +222,7 @@ def _render_streamgraph[
         running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
     var palette = categorical_palette_for(theme)
+    var tooltips_on = plot._tooltips_on(n_series)
     for j in range(n_series):
         var top = List[Float64](capacity=n_categories)
         var bottom = List[Float64](capacity=n_categories)
@@ -267,12 +268,12 @@ def _render_streamgraph[
         path.close()  # the straight "cap" at the first category
         # Per series, as on bump: the band is the shape, and its
         # value changes at every category it spans.
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(plot._grouped_bar.series_names[j])
         target.fill_path_aa(
             path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     if show_legend:

@@ -103,13 +103,16 @@ def _draw_beeswarm_points[
     """
     var theme = plot._theme
     var spacing = 2 * radius
+    var n_points = 0
+    for series in plot._distribution.values:
+        n_points += len(series)
+    var tooltip = plot._tooltips_on(n_points)
     for i in range(len(plot._categorical.x)):
         var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
         for v in plot._distribution.values[i]:
             value_pixels.append(_axis_pixel(value_scale, v))
         var offsets = _beeswarm_offsets(value_pixels, spacing)
-        var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
         for j in range(len(value_pixels)):
             if tooltip:
                 target.begin_annotated_group(
@@ -228,7 +231,6 @@ def beeswarm[
 ](
     categories: List[String],
     values: List[List[Scalar[dtype]]],
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -251,9 +253,6 @@ def beeswarm[
         categories: One swarm per entry, in the given order.
         values: Each category's raw values (`values[i]`, not a
             summary statistic) -- one point drawn per value.
-        tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. `Theme.svg_tooltips`
-            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -299,7 +298,7 @@ def beeswarm[
     var values_f = _materialize_nested_scalar_list(values)
     var plot = (
         Plot()
-        .mark_beeswarm(horizontal=horizontal, tooltips=tooltips)
+        .mark_beeswarm(horizontal=horizontal)
         .encode_distribution(categories=categories, values=values_f)
     )
     return _finished(

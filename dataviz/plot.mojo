@@ -276,6 +276,7 @@ from dataviz.core.scale import (
 )
 from dataviz.core.stats import SmoothMethod
 from dataviz.core.theme import Theme
+from dataviz.core.tooltips import Tooltips
 
 from dataviz.radial.nightingale import _render_nightingale
 from dataviz.radial.polar import _render_polar
@@ -552,17 +553,13 @@ struct _MarkStyle(Copyable, Movable):
     one chart's proportions, so they live here rather than on `Theme`,
     which holds what a theme can restyle; per-mark colors stayed on
     `Theme` so a dark theme can fix contrast without every caller passing
-    a color. `point_tooltips` is behavioral rather than geometric but
-    belongs here for the same reason: whether a scatter can afford an SVG
-    `<title>` per point depends on how many points this chart has (see
-    `mark_point()`).
+    a color.
 
     Field names keep their mark prefix (`gauge_start_angle`) since several
     would otherwise collide (`polar_grid_rings`/`radar_grid_rings`); the
     parameters that set them drop it (`mark_gauge(start_angle=...)`).
     """
 
-    var point_tooltips: Bool
     var point_jitter_x: Float64
     """`Mark.POINT`/`EFFECT_SCATTER` only: half-width of the deterministic
     offset applied to each point's x, **in pixels**. 0.0 is off, which is
@@ -630,7 +627,6 @@ struct _MarkStyle(Copyable, Movable):
     """
 
     def __init__(out self):
-        self.point_tooltips = False
         self.point_jitter_x = 0.0
         self.point_jitter_y = 0.0
         self.donut_inner_radius_fraction = 0.0
@@ -842,6 +838,8 @@ struct Plot(Copyable, Movable):
     # `.horizontal()` builder method, so this is only ever `True` alongside
     # a `_mark` whose `mark_*()` reads it.
     var _horizontal: Bool
+    var _tooltips: Optional[Tooltips]
+    """Set via `tooltips()`; `None` leaves `Theme.tooltips` in charge."""
     var _mark: Mark
     var _theme: Theme
     var width: Int
@@ -913,6 +911,7 @@ struct Plot(Copyable, Movable):
         self._equal_aspect = False
         self._color_domain = _ColorDomainOverride()
         self._horizontal = False
+        self._tooltips = None
         self._mark = Mark.POINT
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
@@ -981,14 +980,13 @@ struct Plot(Copyable, Movable):
 
     def mark_point(
         var self,
-        tooltips: Bool = False,
         jitter_x: Float64 = 0.0,
         jitter_y: Float64 = 0.0,
     ) raises -> Self:
         """A scatter plot: one point per (x, y) pair.
 
-        When `tooltips` and `Theme.svg_tooltips` are enabled, each SVG point
-        includes a hover title using its encoded label or coordinates.
+        Each SVG point's hover title, when tooltips are on (see
+        `tooltips()`), is its encoded label or its coordinates.
 
         `jitter_x`/`jitter_y` offset each point by up to that many pixels,
         to separate points that would otherwise overplot. Both default
@@ -1007,7 +1005,6 @@ struct Plot(Copyable, Movable):
         a jittered chart, and it should not be used where they need to.
 
         Args:
-            tooltips: Whether each point carries a hover `<title>`.
             jitter_x: Half-width in pixels of the x offset; 0.0 is off.
             jitter_y: The same for y.
 
@@ -1030,7 +1027,6 @@ struct Plot(Copyable, Movable):
         self._render_svg_family = _callback_continuous[SvgCanvas]
         self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._render_bounds_family = _callback_continuous[BoundsTarget]
-        self._mark_style.point_tooltips = tooltips
         self._mark_style.point_jitter_x = jitter_x
         self._mark_style.point_jitter_y = jitter_y
         return self^
@@ -2040,41 +2036,31 @@ struct Plot(Copyable, Movable):
         self._mark_style.sankey_node_width = node_width
         return self^
 
-    def mark_single_axis(var self, tooltips: Bool = False) -> Self:
+    def mark_single_axis(var self) -> Self:
         """A single-axis chart: every value plotted along one horizontal axis
         with no y-axis. Encoded via `encode_single_axis()`, with the same
         optional `color`/`color_categories`/`size` channels as `Mark.POINT`.
-
-        `tooltips` works as in `mark_point()`, and for the same reason:
-        this mark draws through `_draw_point_layer`, so a title per
-        point doubles a dense chart's SVG and is opt-in (#683).
-
-        Args:
-            tooltips: Whether each point carries a hover `<title>`.
 
         Returns:
             Self, for further chaining.
         """
         self._mark = Mark.SINGLE_AXIS
-        self._mark_style.point_tooltips = tooltips
         self._render_canvas_family = _callback_basic[Canvas]
         self._render_svg_family = _callback_basic[SvgCanvas]
         self._render_pdf_family = _callback_basic[PdfCanvas]
         self._render_bounds_family = _callback_basic[BoundsTarget]
         return self^
 
-    def mark_effect_scatter(var self, tooltips: Bool = False) -> Self:
+    def mark_effect_scatter(var self) -> Self:
         """A scatter plot with a halo drawn under each point, the static
         equivalent of ECharts' effect scatter (see `_draw_point_layer`'s
-        `draw_halo`). Encoded like `Mark.POINT`, via `encode()`. `tooltips`
-        works as in `mark_point()`.
+        `draw_halo`). Encoded like `Mark.POINT`, via `encode()`.
         """
         self._mark = Mark.EFFECT_SCATTER
         self._render_canvas_family = _callback_continuous[Canvas]
         self._render_svg_family = _callback_continuous[SvgCanvas]
         self._render_pdf_family = _callback_continuous[PdfCanvas]
         self._render_bounds_family = _callback_continuous[BoundsTarget]
-        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_funnel(var self) -> Self:
@@ -2154,15 +2140,12 @@ struct Plot(Copyable, Movable):
         self._mark_style.step = step
         return self^
 
-    def mark_beeswarm(
-        var self, horizontal: Bool = False, tooltips: Bool = False
-    ) -> Self:
+    def mark_beeswarm(var self, horizontal: Bool = False) -> Self:
         """A beeswarm plot: one point per raw value, jittered sideways within
         its category's band. Encoded via `encode_distribution()`.
         `horizontal` (default `False`) draws categories top-to-bottom with
         each swarm jittered vertically; see
-        `_render_horizontal_beeswarm` (beeswarm.mojo). `tooltips` works as in
-        `mark_point()`.
+        `_render_horizontal_beeswarm` (beeswarm.mojo).
         """
         self._mark = Mark.BEESWARM
         self._render_canvas_family = _callback_distributions[Canvas]
@@ -2170,7 +2153,6 @@ struct Plot(Copyable, Movable):
         self._render_pdf_family = _callback_distributions[PdfCanvas]
         self._render_bounds_family = _callback_distributions[BoundsTarget]
         self._horizontal = horizontal
-        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_violin(
@@ -2677,7 +2659,6 @@ struct Plot(Copyable, Movable):
         var self,
         elev: Float64 = 30.0,
         azim: Float64 = -60.0,
-        tooltips: Bool = False,
     ) -> Self:
         """Select `Mark.SCATTER3D`: one marker per (x, y, z), drawn in
         an orthographic projection of a viewing cube (#345).
@@ -2693,8 +2674,6 @@ struct Plot(Copyable, Movable):
             elev: Degrees to look down on the scene from, above the
                 x-y plane.
             azim: Degrees to turn the scene through, about the z axis.
-            tooltips: Whether each point carries a hover `<title>`; it
-                also needs `Theme.svg_tooltips` on (#683).
 
         Returns:
             Self, for further chaining.
@@ -2706,7 +2685,6 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_spatial[BoundsTarget]
         self._xyz.elev = elev
         self._xyz.azim = azim
-        self._mark_style.point_tooltips = tooltips
         return self^
 
     def mark_plot3d(
@@ -5528,6 +5506,49 @@ struct Plot(Copyable, Movable):
         self._theme = t
         return self^
 
+    def tooltips(var self, policy: Tooltips) -> Self:
+        """Set whether this chart's data get SVG hover tooltips,
+        overriding `Theme.tooltips` for this plot only. `Tooltips.ON`
+        titles every datum, `Tooltips.OFF` none, and `Tooltips.AUTO`
+        titles them when there are at most `Theme.auto_tooltip_limit`
+        (tooltips.mojo). Precedence is this call, then the theme.
+
+        `Tooltips.ON` on a mark without tooltips raises when the chart
+        renders; which marks have them is
+        `Mark.supports(Feature.TOOLTIPS)`.
+
+        Args:
+            policy: `Tooltips.ON`, `Tooltips.OFF` or `Tooltips.AUTO`.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self._tooltips = policy
+        return self^
+
+    def _tooltip_policy(self) -> Tooltips:
+        """The policy in force: `tooltips()`'s if it was called, else
+        the theme's."""
+        if self._tooltips:
+            return self._tooltips.value()
+        return self._theme.tooltips
+
+    def _tooltips_on(self, count: Int) -> Bool:
+        """Whether this plot draws its tooltips, given that it would draw
+        `count` of them. Every mark's renderer asks this once, with the
+        number of data it titles, so `Tooltips.AUTO` means the same
+        thing on every mark.
+
+        Args:
+            count: How many tooltips this plot would draw.
+
+        Returns:
+            True to draw them.
+        """
+        return self._tooltip_policy().draws(
+            count, self._theme.auto_tooltip_limit
+        )
+
     def labels(
         var self,
         title: String = "",
@@ -6768,10 +6789,7 @@ def _cell_tooltip_label(
 
     A grid mark encodes its value as a color or a radius, so the cell
     is the one shape in the library a reader cannot get a number out of
-    by looking. The title is what makes it readable, which is why these
-    marks carry one under `Theme.svg_tooltips` alone rather than an
-    opt-in flag: there is one title per cell, not one per data point in
-    a dense scatter.
+    by looking. The title is what makes it readable.
     """
     return (
         first

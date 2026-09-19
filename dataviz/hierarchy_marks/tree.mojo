@@ -213,6 +213,7 @@ def _render_tree[
         var py1 = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
 
+    var tooltips_on = plot._tooltips_on(n)
     for row in range(n):
         var color = (
             palette[branch[row] % len(palette)] if branch[row]
@@ -223,14 +224,14 @@ def _render_tree[
         # whole chart.
         var px = _tree_node_x(leaf_x[row], num_leaves, plot_x0, plot_x1)
         var py = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tree_node_label(plot._hierarchy.ids, idx, row)
             )
         target.fill_circle_aa(
             px, py, Float64(round_to_int(sc.point_radius)), color
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         text_requests.append(
             _TextRequest(

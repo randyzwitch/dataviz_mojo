@@ -59,6 +59,7 @@ def _draw_violin_silhouettes[
         band_scale.bandwidth() * plot._mark_style.violin_width_fraction
     )
 
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var center = band_scale.center(i)
@@ -84,7 +85,7 @@ def _draw_violin_silhouettes[
             densities.append(d)
             max_density = max(max_density, d)
 
-        if theme.svg_tooltips:
+        if tooltips_on:
             # A silhouette encodes a distribution, not a value, so the hover text
             # is what shaped it: how many points and over what range.
             target.begin_annotated_group(
@@ -119,7 +120,7 @@ def _draw_violin_silhouettes[
             )
         path.close()
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
 

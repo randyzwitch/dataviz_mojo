@@ -163,9 +163,10 @@ def _render_eventplot[
     )
 
     var half = frame.y_scale.bandwidth() * line_length / 2.0
+    var tooltips_on = plot._tooltips_on(len(pooled))
     for i in range(len(rows)):
         var center = frame.y_scale.center(i)
-        if theme.svg_tooltips:
+        if tooltips_on:
             _draw_annotated_ticks(
                 target,
                 labels[i],

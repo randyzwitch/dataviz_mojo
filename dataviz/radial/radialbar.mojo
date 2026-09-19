@@ -77,6 +77,7 @@ def _render_radialbar[
     var ring_slot = max_radius / Float64(n)
     var gap = ring_slot * plot._mark_style.radialbar_ring_gap_fraction
     var start_angle = -pi / 2.0
+    var tooltips_on = plot._tooltips_on(n)
     for i in range(n):
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
@@ -84,7 +85,7 @@ def _render_radialbar[
         # The group spans the track as well as the value arc: the whole
         # ring row is that category, and a reader hovering the empty
         # part of a row is asking about the same datum.
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
             )
@@ -122,7 +123,7 @@ def _render_radialbar[
                 sc,
                 text_requests,
             )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     if show_legend:

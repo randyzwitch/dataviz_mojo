@@ -161,6 +161,9 @@ def _draw_box_glyphs[
     var half = band_size / 2.0
     var cap_half = band_size / 4.0
 
+    var tooltips_on = plot._tooltips_on(
+        len(plot._categorical.x) + len(plot._box.outlier_value)
+    )
     for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
         var q1 = value_scale.to_pixel(plot._box.q1[i])
@@ -169,7 +172,7 @@ def _draw_box_glyphs[
         var low = value_scale.to_pixel(plot._box.low[i])
         var high = value_scale.to_pixel(plot._box.high[i])
 
-        if theme.svg_tooltips:
+        if tooltips_on:
             # The five-number summary is what the shape encodes, so that's the
             # hover text. One per category, so the longer label is cheap.
             target.begin_annotated_group(
@@ -247,13 +250,13 @@ def _draw_box_glyphs[
             theme.axis_color,
             theme.scale,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     # Outliers sit outside the per-category groups: each is its own datum
     # with its own title.
     for j in range(len(plot._box.outlier_value)):
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(
                     plot._categorical.x[plot._box.outlier_cat[j]],
@@ -268,7 +271,7 @@ def _draw_box_glyphs[
             Float64(point_radius),
             theme.mark_color,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
 

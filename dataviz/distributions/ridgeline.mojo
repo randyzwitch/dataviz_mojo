@@ -70,6 +70,7 @@ def _render_ridgeline[
     var row_height = frame.y_scale.bandwidth()
     var max_rise = row_height * plot._mark_style.ridgeline_overlap
 
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
@@ -107,7 +108,7 @@ def _render_ridgeline[
             path.line_to(xs[s], baseline_y - densities[s] * scale)
         path.line_to(xs[_KDE_SAMPLES - 1], baseline_y)
         path.close()
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 plot._categorical.x[i] + ": n=" + String(len(values))
             )
@@ -124,7 +125,7 @@ def _render_ridgeline[
         for s in range(1, _KDE_SAMPLES):
             outline.line_to(xs[s], baseline_y - densities[s] * scale)
         target.stroke_path_aa(outline, theme.background, width=frame.sc.scale)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     return frame.result()

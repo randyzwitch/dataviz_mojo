@@ -23,6 +23,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
+from dataviz.core.tooltips import Tooltips
 
 
 def _require_non_empty(count: Int, context: String) raises:
@@ -713,8 +714,8 @@ def _check_grid_coordinates(
 
 
 def _check_unsupported_flags(plot: Plot) raises:
-    """Raise when `Theme.show_data_labels` or `horizontal=True` is set on
-    a mark that ignores it (#676).
+    """Raise when `Theme.show_data_labels`, `horizontal=True` or
+    `Tooltips.ON` is set on a mark that ignores it (#676, #700).
 
     Of the flags in the feature-support table, the annotation passes, the
     log scales and the color/size channels already raised on a mark that
@@ -722,11 +723,10 @@ def _check_unsupported_flags(plot: Plot) raises:
     drew no labels and said nothing, which reads as a bug in the chart
     rather than in the call.
 
-    `Theme.svg_tooltips` is deliberately not checked. It defaults to
-    `True`, so a raise could not tell a caller's explicit request from
-    the default without `Theme` recording which fields were set, and how
-    tooltips are switched on at all is open in #700. Deciding it here
-    would decide #700 first.
+    Only `Tooltips.ON` is checked, from `Plot.tooltips()` or the
+    theme: it is always a caller's request, since the default is
+    `Tooltips.AUTO`. `AUTO` and `OFF` promise nothing a mark without
+    tooltips breaks, so they never raise.
 
     Only `Plot._horizontal` is read. HISTOGRAM and DENDROGRAM carry
     orientation in their own encoders' data, and both support it.
@@ -735,7 +735,7 @@ def _check_unsupported_flags(plot: Plot) raises:
         plot: The chart about to render.
 
     Raises:
-        Error: Either flag set on a mark that does not support it, naming
+        Error: Any of the three set on a mark that does not support it, naming
             the mark and the marks that do.
     """
     if plot._theme.show_data_labels and not plot._mark.supports(
@@ -754,5 +754,15 @@ def _check_unsupported_flags(plot: Plot) raises:
             + plot._mark.name()
             + " has no horizontal form. It is supported for "
             + _supporting_names(Feature.HORIZONTAL)
+            + " today"
+        )
+    if plot._tooltip_policy() == Tooltips.ON and not plot._mark.supports(
+        Feature.TOOLTIPS
+    ):
+        raise Error(
+            "Tooltips.ON: "
+            + plot._mark.name()
+            + " draws no tooltips. They are supported for "
+            + _supporting_names(Feature.TOOLTIPS)
             + " today"
         )

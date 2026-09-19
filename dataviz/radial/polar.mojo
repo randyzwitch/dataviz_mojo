@@ -255,6 +255,11 @@ def _render_polar[
             plot._mark_style.polar_grid_spokes,
         )
 
+    # One title per drawn point: every series' points when there are
+    # several, the one series' otherwise.
+    var tooltips_on = plot._tooltips_on(
+        len(plot._polar.angle) * max(1, len(plot._polar.series_radius))
+    )
     if is_multi:
         var max_r = 0.0
         for values in plot._polar.series_radius:
@@ -282,14 +287,14 @@ def _render_polar[
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
                 var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
-                if theme.svg_tooltips:
+                if tooltips_on:
                     target.begin_annotated_group(
                         _tooltip_label(plot._polar.series_names[s], values[i])
                     )
                 target.fill_circle_aa(
                     Int(pt.x), Int(pt.y), Int(sc.point_radius), color
                 )
-                if theme.svg_tooltips:
+                if tooltips_on:
                     target.end_annotated_group()
 
         if show_legend:
@@ -333,7 +338,7 @@ def _render_polar[
             var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
             # The single-series path: the radius is the whole datum, so
             # the title is the value with no series name to qualify it.
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _format_fixed(
                         plot._polar.radius[i],
@@ -343,7 +348,7 @@ def _render_polar[
             target.fill_circle_aa(
                 Int(pt.x), Int(pt.y), Int(sc.point_radius), theme.mark_color
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

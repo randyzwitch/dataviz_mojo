@@ -21,6 +21,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.tooltips import Tooltips
 from dataviz import (
     StepStyle,
     ecdf,
@@ -2149,9 +2150,9 @@ def test_ridgeline_tooltips_follow_the_theme_flag() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0, 3.0]]
     var off = render_svg(
-        ridgeline(cats, vals, theme=Theme(svg_tooltips=False))
+        ridgeline(cats, vals, theme=Theme(tooltips=Tooltips.OFF))
     ).to_string()
-    assert_true("<title>" not in off, "svg_tooltips=False removes them")
+    assert_true("<title>" not in off, "Tooltips.OFF removes them")
 
 
 def main() raises:

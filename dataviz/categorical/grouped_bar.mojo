@@ -222,6 +222,7 @@ def _draw_grouped_bars[
     var has_errors = len(plot._grouped_bar.errors) > 0
     var cap_half = sc.error_bar_cap_width
 
+    var tooltips_on = plot._tooltips_on(n_series * len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
@@ -234,7 +235,7 @@ def _draw_grouped_bars[
                 Float64(baseline_edge),
             )
             var color = palette[j % len(palette)]
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
@@ -267,7 +268,7 @@ def _draw_grouped_bars[
                     sc.scale,
                 )
             orient.fill_band_rect(target, extent, near, far - near, color)
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var at = orient.outside_band_label(

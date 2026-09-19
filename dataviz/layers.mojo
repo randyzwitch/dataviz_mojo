@@ -642,8 +642,8 @@ def _render_bar_combo_layers[
         # them cannot go missing here.
         #
         # That had already happened three times: mark_line(step=...)
-        # (#336), mark_line(style=...) (#383) and
-        # mark_point(tooltips=True) (#422), each found only after it
+        # (#336), mark_line(style=...) (#383) and point tooltips
+        # (#422), each found only after it
         # shipped, because a dropped argument renders a different claim
         # about the data rather than an error.
         var band_px = List[Float64](capacity=len(plots[i]._continuous.y))
@@ -1531,9 +1531,8 @@ def _render_layers_generic[
     # Every branch here hands the shared `frame.x_scale`/`layer_y_scale`
     # to the same `_draw_*_layer` the mark's own `_render_*` calls, never
     # to a second copy of its geometry -- the mistake
-    # `_render_bar_combo_layers` made, which silently dropped `step=`
-    # then `dashes=`, and still drops
-    # `mark_point(tooltips=True)` today.
+    # `_render_bar_combo_layers` made, which silently dropped `step=`,
+    # `dashes=` and point tooltips until #422 routed it here too.
     #
     # `layer_sc` is the layer's own `_Scaled`, not the frame's: the frame
     # belongs to plots[0], while `line_width`, `point_radius` and

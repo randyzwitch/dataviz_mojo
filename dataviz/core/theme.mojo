@@ -69,6 +69,7 @@ from dataviz.core.scale import TickFormat
 from dataviz.core.axis_position import AxisPosition
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle
+from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz.core.x_label_rotation import XAxisLabelRotation
 
 
@@ -381,9 +382,13 @@ struct Theme(ImplicitlyCopyable, Movable):
     path; defaults to `OutputFormat.SVG`. `render()`/`render_svg()`
     ignore this field.
     """
-    var svg_tooltips: Bool
+    var tooltips: Tooltips
     """Whether each datum gets an SVG `<title>`, which a browser shows as a
-    hover tooltip; `True` by default, and a no-op on the raster backend.
+    hover tooltip: `Tooltips.AUTO` by default, which draws them on a plot
+    that would draw at most `auto_tooltip_limit` and none above
+    (tooltips.mojo).
+    `Plot.tooltips()` overrides it for one chart. A no-op on the raster
+    and PDF backends.
 
     Emitted through `DrawTarget.begin_annotated_group`/
     `end_annotated_group` (canvas_mojo >= 0.13.0), so one datum's
@@ -396,11 +401,15 @@ struct Theme(ImplicitlyCopyable, Movable):
     Where a mark encodes more than one number, the title carries all
     of them rather than picking one -- a bullet row's measure and
     target, a candle's four prices, a span's two ends -- since that
-    combination is what the shape says. The point-per-datum marks
-    (`POINT`, `EFFECT_SCATTER`, `BEESWARM`) also need their mark's
-    `tooltips=True`, since a title roughly doubles a dense scatter's
-    SVG.
+    combination is what the shape says. `Tooltips.ON` on a mark
+    without tooltips raises when the chart renders.
     """
+    var auto_tooltip_limit: Int
+    """The most tooltips `Tooltips.AUTO` draws on one plot; above it,
+    AUTO draws none. `AUTO_TOOLTIP_LIMIT` (1,000) by default, which
+    tooltips.mojo explains. Raise it for a large chart whose points a
+    reader still needs to hover one at a time; `Tooltips.ON` ignores
+    it altogether."""
     var show_data_labels: Bool
     """Whether a mark draws each value as text, in `text_color` at
     `font_size`; defaults to `False`. Which marks honor it is
@@ -532,7 +541,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         margin_buffer: Int = 8,
         error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
-        svg_tooltips: Bool = True,
+        tooltips: Tooltips = Tooltips.AUTO,
+        auto_tooltip_limit: Int = AUTO_TOOLTIP_LIMIT,
         show_data_labels: Bool = False,
         gridline_style: LineStyle = LineStyle.SOLID,
         annotation_arrow_width: Float64 = 1.5,
@@ -610,7 +620,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.margin_buffer = margin_buffer
         self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
-        self.svg_tooltips = svg_tooltips
+        self.tooltips = tooltips
+        self.auto_tooltip_limit = auto_tooltip_limit
         self.show_data_labels = show_data_labels
         self.gridline_style = gridline_style
         self.annotation_arrow_width = annotation_arrow_width

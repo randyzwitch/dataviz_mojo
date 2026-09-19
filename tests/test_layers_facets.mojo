@@ -38,6 +38,7 @@ from _test_helpers import (
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
+from dataviz.core.tooltips import Tooltips
 from dataviz import LineStyle, StepStyle
 from dataviz.core.color_scale import (
     _ColorDomainOverride,
@@ -2843,7 +2844,7 @@ def _title_count(svg: String) -> Int:
 
 def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
     """#422: `_render_bar_combo_layers` drew its `Mark.POINT` layer with
-    a bare `fill_circle_aa`, so `mark_point(tooltips=True)` produced no
+    a bare `fill_circle_aa`, so a point layer's tooltips produced no
     `<title>` at all -- the third styling feature this path dropped by
     reimplementing geometry the shared functions already had.
 
@@ -2855,7 +2856,7 @@ def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
     var bar_y: List[Float64] = [10.0, 20.0, 15.0]
     var idx: List[Float64] = [0.0, 1.0, 2.0]
     var pt_y: List[Float64] = [12.0, 18.0, 14.0]
-    var t = Theme(svg_tooltips=True, show_gridlines=False)
+    var t = Theme(tooltips=Tooltips.ON, show_gridlines=False)
 
     var bars_only = (
         Plot()
@@ -2874,13 +2875,7 @@ def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
         .theme(t)
         .size(400, 300)
     )
-    var p2 = (
-        Plot()
-        .mark_point(tooltips=True)
-        .encode(x=idx, y=pt_y)
-        .theme(t)
-        .size(400, 300)
-    )
+    var p2 = Plot().mark_point().encode(x=idx, y=pt_y).theme(t).size(400, 300)
     var combo: List[Plot] = [b2^, p2^]
     var with_points = _title_count(render_layers_svg(combo).to_string())
 

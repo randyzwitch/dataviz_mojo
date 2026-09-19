@@ -135,6 +135,7 @@ def _render_marimekko[
     # hairline gap or overlap. Same pattern as `_render_stacked_bar`'s
     # `_axis_pixel` on each running total.
     var x_cum = 0.0
+    var tooltips_on = plot._tooltips_on(n_subs * n_cats)
     for j in range(n_cats):
         var col_x0 = round_to_int(Float64(plot_x0) + x_cum)
         x_cum += plot_width * (col_totals[j] / grand_total)
@@ -148,7 +149,7 @@ def _render_marimekko[
                     plot._marimekko.values[i][j] / col_totals[j]
                 )
                 var seg_top = round_to_int(Float64(plot_y1) - y_cum)
-                if theme.svg_tooltips:
+                if tooltips_on:
                     target.begin_annotated_group(
                         _cell_tooltip_label(
                             plot._marimekko.categories[j],
@@ -163,7 +164,7 @@ def _render_marimekko[
                     seg_bottom - seg_top,
                     palette[i % len(palette)],
                 )
-                if theme.svg_tooltips:
+                if tooltips_on:
                     target.end_annotated_group()
 
         text_requests.append(

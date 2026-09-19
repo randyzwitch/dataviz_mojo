@@ -99,6 +99,7 @@ def _draw_bar_rects[
     var band_size = band_scale.bandwidth()
     var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         var value = plot._continuous.y[i]
@@ -106,7 +107,7 @@ def _draw_bar_rects[
             baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
         )
         var color = _bar_fill_color(theme, value)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(plot._categorical.x[i], value)
             )
@@ -141,7 +142,7 @@ def _draw_bar_rects[
                 sc.scale,
             )
         orient.fill_band_rect(target, extent, band_pos, band_size, color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var at = orient.outside_band_label(

@@ -47,6 +47,7 @@ from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.path import PathOp
+from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz import (
     sankey,
     LegendPosition,
@@ -2516,7 +2517,7 @@ def test_svg_output_string_explicit_description_wins_over_subtitle() raises:
     )
 
 
-def test_svg_tooltips_wrap_each_datum_in_a_titled_group() raises:
+def test_tooltips_wrap_each_datum_in_a_titled_group() raises:
     """Each bar gets a `<g><title>` a browser shows on hover, with the
     title XML-escaped by canvas_mojo (so a category containing `&` or
     `<` is safe to pass through raw) and the value formatted the same
@@ -2541,27 +2542,33 @@ def test_svg_tooltips_wrap_each_datum_in_a_titled_group() raises:
     assert_equal(svg.count("</g>"), 3, "every group closed")
 
 
-def test_svg_tooltips_off_emits_no_groups_at_all() raises:
+def test_tooltips_off_emits_no_groups_at_all() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var svg = render_svg(
-        bar(cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150)
+        bar(
+            cats,
+            vals,
+            theme=Theme(tooltips=Tooltips.OFF),
+            width=200,
+            height=150,
+        )
     ).to_string()
     assert_true("<g>" not in svg, "no groups when tooltips are off")
     assert_true("<title>" not in svg, "no titles when tooltips are off")
 
 
-def test_svg_tooltips_leave_the_raster_backend_byte_identical() raises:
+def test_tooltips_leave_the_raster_backend_byte_identical() raises:
     """`Canvas` no-ops both group calls, so a raster render is
     unaffected by the flag -- the asymmetry is the point, since a
     bitmap has nowhere to put a title."""
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [3.0, 1.0, 2.0]
     var on = bar(
-        cats, vals, theme=Theme(svg_tooltips=True), width=200, height=150
+        cats, vals, theme=Theme(tooltips=Tooltips.ON), width=200, height=150
     )
     var off = bar(
-        cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150
+        cats, vals, theme=Theme(tooltips=Tooltips.OFF), width=200, height=150
     )
     var c_on = render(on)
     var c_off = render(off)
@@ -2577,7 +2584,7 @@ def test_svg_tooltips_leave_the_raster_backend_byte_identical() raises:
                 )
 
 
-def test_svg_tooltips_are_purely_additive_markup() raises:
+def test_tooltips_are_purely_additive_markup() raises:
     """Turning tooltips on adds `<g>`/`<title>`/`</g>` lines and
     changes nothing else -- the property that makes this safe to
     default on. Strip those lines back out and the two documents are
@@ -2586,7 +2593,13 @@ def test_svg_tooltips_are_purely_additive_markup() raises:
     var vals: List[Float64] = [4.0, 9.0]
     var on = render_svg(bar(cats, vals, width=200, height=150)).to_string()
     var off = render_svg(
-        bar(cats, vals, theme=Theme(svg_tooltips=False), width=200, height=150)
+        bar(
+            cats,
+            vals,
+            theme=Theme(tooltips=Tooltips.OFF),
+            width=200,
+            height=150,
+        )
     ).to_string()
 
     var stripped = String("")
@@ -2632,28 +2645,127 @@ def test_svg_tooltip_for_a_box_is_its_five_number_summary() raises:
     )
 
 
-def test_point_tooltips_are_off_by_default_and_opt_in_per_chart() raises:
-    """Unlike the categorical marks, a scatter's tooltips are off until
-    the chart asks for them -- a title costs about as much as the
-    `<circle>` it annotates, so turning them on roughly doubles a dense
-    scatter's SVG."""
+def _scatter_of(n: Int) raises -> Plot:
+    """`n` distinct points, for the tooltip-count tests."""
+    var xs = List[Float64](capacity=n)
+    var ys = List[Float64](capacity=n)
+    for i in range(n):
+        xs.append(Float64(i))
+        ys.append(Float64((i * 7) % 13))
+    return Plot().mark_point().encode(x=xs, y=ys).size(250, 180)
+
+
+def test_a_small_scatter_has_tooltips_by_default() raises:
+    """`Tooltips.AUTO` is the default, and three points are far under its
+    limit, so a scatter is titled with no flag at all (#700)."""
     var xs: List[Float64] = [1.0, 2.5, 3.0]
     var ys: List[Float64] = [10.0, 20.5, 30.0]
-
-    var off = render_svg(scatter(xs, ys, width=250, height=180)).to_string()
-    assert_equal(off.count("<title>"), 0, "no titles by default")
-
-    var on = render_svg(
-        scatter(xs, ys, tooltips=True, width=250, height=180)
-    ).to_string()
+    var svg = render_svg(scatter(xs, ys, width=250, height=180)).to_string()
     assert_true(
-        "<title>1, 10</title>" in on,
+        "<title>1, 10</title>" in svg,
         "coordinates, formatted like every other label",
     )
     assert_true(
-        "<title>2.5, 20.5</title>" in on, "decimals kept only where they matter"
+        "<title>2.5, 20.5</title>" in svg,
+        "decimals kept only where they matter",
     )
-    assert_equal(on.count("<title>"), 3, "one per point")
+    assert_equal(svg.count("<title>"), 3, "one per point")
+
+
+def test_auto_tooltips_stop_just_above_the_limit() raises:
+    """At `AUTO_TOOLTIP_LIMIT` points every point is titled; one more and
+    none is. Both sides of the boundary, so an off-by-one in either
+    direction fails."""
+    var at = render_svg(_scatter_of(AUTO_TOOLTIP_LIMIT)).to_string()
+    assert_equal(at.count("<title>"), AUTO_TOOLTIP_LIMIT, "at the limit")
+    var over = render_svg(_scatter_of(AUTO_TOOLTIP_LIMIT + 1)).to_string()
+    assert_equal(over.count("<title>"), 0, "one past the limit")
+
+
+def test_auto_tooltips_count_a_beeswarm_s_points_not_its_categories() raises:
+    """The limit is on titles drawn. A beeswarm titles each point, so one
+    category of `AUTO_TOOLTIP_LIMIT + 1` values is over it."""
+    var cats: List[String] = ["A"]
+    var values = List[Float64]()
+    for i in range(AUTO_TOOLTIP_LIMIT + 1):
+        values.append(Float64(i % 50))
+    var vals = List[List[Float64]]()
+    vals.append(values^)
+    var svg = render_svg(
+        beeswarm(cats, vals, width=250, height=180)
+    ).to_string()
+    assert_equal(svg.count("<title>"), 0, "over the limit, by points")
+
+
+def test_tooltips_on_titles_every_point_past_the_limit() raises:
+    var n = AUTO_TOOLTIP_LIMIT + 1
+    var svg = render_svg(_scatter_of(n).tooltips(Tooltips.ON)).to_string()
+    assert_equal(svg.count("<title>"), n, "ON ignores the limit")
+
+
+def test_on_and_off_mean_the_same_on_a_scatter_and_a_bar() raises:
+    """The inconsistency #700 removed: the same theme used to title a
+    bar chart and leave a scatter bare."""
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [3.0, 4.0]
+    var cats: List[String] = ["a", "b"]
+    for policy in [Tooltips.ON, Tooltips.OFF]:
+        var t = Theme(tooltips=policy)
+        var sc = render_svg(
+            scatter(xs, ys, theme=t, width=200, height=150)
+        ).to_string()
+        var br = render_svg(
+            bar(cats, ys, theme=t, width=200, height=150)
+        ).to_string()
+        var want = 2 if policy == Tooltips.ON else 0
+        assert_equal(sc.count("<title>"), want, "scatter")
+        assert_equal(br.count("<title>"), want, "bar")
+
+
+def test_plot_tooltips_overrides_the_theme_both_ways() raises:
+    """Precedence is `Plot.tooltips()`, then `Theme.tooltips`."""
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var on = render_svg(
+        bar(cats, vals, theme=Theme(tooltips=Tooltips.OFF)).tooltips(
+            Tooltips.ON
+        )
+    ).to_string()
+    assert_equal(on.count("<title>"), 2, "plot ON beats theme OFF")
+    var off = render_svg(
+        bar(cats, vals, theme=Theme(tooltips=Tooltips.ON)).tooltips(
+            Tooltips.OFF
+        )
+    ).to_string()
+    assert_equal(off.count("<title>"), 0, "plot OFF beats theme ON")
+
+
+def test_tooltips_on_raises_on_a_mark_without_tooltips() raises:
+    """`Mark.LINE` draws no tooltips, so asking for them is refused from
+    either place it can be asked; AUTO and OFF render as before."""
+    var xs: List[Float64] = [1.0, 2.0, 3.0]
+    var ys: List[Float64] = [3.0, 1.0, 2.0]
+    with assert_raises(contains="Tooltips.ON: Mark.LINE draws no tooltips"):
+        _ = render_svg(line(xs, ys).tooltips(Tooltips.ON))
+    with assert_raises(contains="Tooltips.ON: Mark.LINE draws no tooltips"):
+        _ = render_svg(line(xs, ys, theme=Theme(tooltips=Tooltips.ON)))
+    _ = render_svg(line(xs, ys))
+    _ = render_svg(line(xs, ys).tooltips(Tooltips.OFF))
+
+
+def test_tooltips_draws_follows_the_policy() raises:
+    assert_true(Tooltips.ON.draws(10**6, 5), "ON at any count")
+    assert_true(not Tooltips.OFF.draws(1, 5), "OFF at any count")
+    assert_true(Tooltips.AUTO.draws(5, 5), "AUTO at the limit")
+    assert_true(not Tooltips.AUTO.draws(6, 5), "AUTO past it")
+
+
+def test_the_theme_moves_the_auto_limit() raises:
+    var t = Theme(auto_tooltip_limit=2)
+    var two = render_svg(_scatter_of(2).theme(t)).to_string()
+    assert_equal(two.count("<title>"), 2, "at a limit of 2")
+    var three = render_svg(_scatter_of(3).theme(t)).to_string()
+    assert_equal(three.count("<title>"), 0, "past a limit of 2")
 
 
 def test_point_tooltip_prefers_the_row_s_own_label_over_coordinates() raises:
@@ -2664,10 +2776,7 @@ def test_point_tooltip_prefers_the_row_s_own_label_over_coordinates() raises:
     var ys: List[Float64] = [10.0, 20.5, 30.0]
     var labs: List[String] = ["alpha", "", "gamma"]
     var plot = (
-        Plot()
-        .mark_point(tooltips=True)
-        .encode(x=xs, y=ys, labels=labs)
-        .size(250, 180)
+        Plot().mark_point().encode(x=xs, y=ys, labels=labs).size(250, 180)
     )
     var svg = render_svg(plot).to_string()
 
@@ -2679,38 +2788,14 @@ def test_point_tooltip_prefers_the_row_s_own_label_over_coordinates() raises:
     )
 
 
-def test_theme_svg_tooltips_off_overrides_the_per_chart_opt_in() raises:
-    """The two controls are ANDed: Theme.svg_tooltips turns tooltips
-    off globally, mark_point(tooltips=) turns them on for a chart that
-    can afford them. Asking for both is what emits a title."""
-    var xs: List[Float64] = [1.0, 2.0]
-    var ys: List[Float64] = [3.0, 4.0]
-    var svg = render_svg(
-        scatter(
-            xs,
-            ys,
-            tooltips=True,
-            theme=Theme(svg_tooltips=False),
-            width=200,
-            height=150,
-        )
-    ).to_string()
-    assert_equal(svg.count("<title>"), 0, "theme off beats the chart's opt-in")
-
-
 def test_beeswarm_tooltips_name_the_category_and_value() raises:
     var cats: List[String] = ["A"]
     var vals: List[List[Float64]] = [[1.0, 2.0]]
-    var off = render_svg(
+    var svg = render_svg(
         beeswarm(cats, vals, width=250, height=180)
     ).to_string()
-    assert_equal(off.count("<title>"), 0, "off by default, same as scatter")
-
-    var on = render_svg(
-        beeswarm(cats, vals, tooltips=True, width=250, height=180)
-    ).to_string()
-    assert_true("<title>A: 1</title>" in on, "category and value")
-    assert_true("<title>A: 2</title>" in on, "one per point, not per category")
+    assert_true("<title>A: 1</title>" in svg, "category and value")
+    assert_true("<title>A: 2</title>" in svg, "one per point, not per category")
 
 
 def test_svg_tooltip_for_a_waterfall_names_what_the_bar_height_encodes() raises:
@@ -2844,13 +2929,13 @@ def test_svg_tooltip_for_a_candlestick_is_its_four_prices() raises:
     assert_equal(svg.count("<title>"), 1, "wick and body share one group")
 
 
-def test_svg_tooltips_off_on_the_newly_covered_marks() raises:
-    """Theme.svg_tooltips=False leaves each of them with no groups at
+def test_tooltips_off_on_the_newly_covered_marks() raises:
+    """Theme.tooltips=Tooltips.OFF leaves each of them with no groups at
     all, the same contract Mark.BAR has."""
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var highs: List[Float64] = [3.0, 4.0]
-    var t = Theme(svg_tooltips=False)
+    var t = Theme(tooltips=Tooltips.OFF)
 
     var wf = render_svg(
         waterfall(cats, vals, theme=t, width=250, height=180)

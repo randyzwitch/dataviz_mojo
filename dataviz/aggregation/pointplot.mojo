@@ -87,6 +87,8 @@ def _draw_pointplot_marks[
     var sc = _Scaled(theme)
     var n = len(plot._categorical.x)
     var has_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
+    # Each point is titled, and so is each error bar.
+    var tooltips_on = plot._tooltips_on(2 * n if has_err else n)
     var cap_half = sc.error_bar_cap_width
 
     var bands = List[Float64](capacity=n)
@@ -108,7 +110,7 @@ def _draw_pointplot_marks[
                 hi = value + plot._y_err.upper[i]
             var at_lo = _axis_pixel_f(value_scale, lo)
             var at_hi = _axis_pixel_f(value_scale, hi)
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _pointplot_interval_label(plot, i, lo, hi)
                 )
@@ -139,7 +141,7 @@ def _draw_pointplot_marks[
                 theme.mark_color,
                 sc.scale,
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
 
     for i in range(1, n):
@@ -155,10 +157,10 @@ def _draw_pointplot_marks[
 
     var radius = Float64(round_to_int(sc.point_radius))
     for i in range(n):
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(_pointplot_value_label(plot, i))
         orient.band_point(target, values[i], bands[i], radius, theme.mark_color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
 

@@ -121,6 +121,7 @@ def _render_corrplot[
     )
     var n = len(plot._corrplot.variables)
 
+    var tooltips_on = plot._tooltips_on(n * n)
     for row in range(n):
         for col in range(n):
             if row == col and not plot._corrplot.diag:
@@ -142,7 +143,7 @@ def _render_corrplot[
             var cx = frame.x_scale.center(col)
             var cy = frame.y_scale.center(row)
             var radius = max_radius * abs(value)
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _cell_tooltip_label(
                         plot._corrplot.variables[row],
@@ -151,7 +152,7 @@ def _render_corrplot[
                     )
                 )
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
             if plot._corrplot.labels:
                 frame.text_requests.append(

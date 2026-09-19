@@ -68,6 +68,7 @@ def _render_arc_diagram[
 
     var text_requests = List[_TextRequest]()
 
+    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
     for row in range(len(plot._edges.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
@@ -86,7 +87,7 @@ def _render_arc_diagram[
         var path = Path()
         path.move_to(left_x, baseline)
         path.arc_to(cx, baseline, radius, pi, 2.0 * pi)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
                     plot._edges.from_categories[row],
@@ -95,7 +96,7 @@ def _render_arc_diagram[
                 )
             )
         target.stroke_path_aa(path, color, width)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     for i in range(n):

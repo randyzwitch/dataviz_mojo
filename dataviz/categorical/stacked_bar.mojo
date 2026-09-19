@@ -106,6 +106,7 @@ def _draw_stacked_segments[
     var n_series = len(plot._grouped_bar.series_names)
     var band_size = band_scale.bandwidth()
 
+    var tooltips_on = plot._tooltips_on(n_series * len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         # percent=True rescales each category against its own total. An
@@ -139,7 +140,7 @@ def _draw_stacked_segments[
                 _axis_pixel_f(value_scale, seg_near),
                 Float64(baseline_edge),
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
                         plot._categorical.x[i],
@@ -150,7 +151,7 @@ def _draw_stacked_segments[
             orient.fill_band_rect(
                 target, extent, band_pos, band_size, palette[j % len(palette)]
             )
-            if theme.svg_tooltips:
+            if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
                 var at = orient.band_label_point(

@@ -57,6 +57,7 @@ def _draw_treemap_node[
     branch: List[Int],
     palette: List[Color],
     theme: Theme,
+    tooltips_on: Bool,
     sc: _Scaled,
     mut text_requests: List[_TextRequest],
 ) raises:
@@ -70,10 +71,10 @@ def _draw_treemap_node[
             palette[branch[node] % len(palette)] if branch[node]
             >= 0 else theme.mark_color
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(_treemap_leaf_label(ids, idx, node))
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
         text_requests.append(
             _TextRequest(
@@ -114,6 +115,7 @@ def _draw_treemap_node[
                 branch,
                 palette,
                 theme,
+                tooltips_on,
                 sc,
                 text_requests,
             )
@@ -131,6 +133,7 @@ def _draw_treemap_node[
                 branch,
                 palette,
                 theme,
+                tooltips_on,
                 sc,
                 text_requests,
             )
@@ -210,6 +213,11 @@ def _render_treemap[
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var palette = categorical_palette_for(theme)
+    # Only leaves are titled; an inner node is covered by its children.
+    var leaves = 0
+    for kids in idx.children:
+        if len(kids) == 0:
+            leaves += 1
     _draw_treemap_node(
         target,
         idx.root,
@@ -223,6 +231,7 @@ def _render_treemap[
         branch,
         palette,
         theme,
+        plot._tooltips_on(leaves),
         sc,
         text_requests,
     )

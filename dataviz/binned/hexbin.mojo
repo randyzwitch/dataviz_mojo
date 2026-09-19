@@ -4,6 +4,7 @@ drawn as colored hexagons. The lattice tiles the plane without the
 axis-aligned artifacts a rectangular grid shows on diagonal structure,
 which is the reason it exists alongside `hist2d()`."""
 
+from std.collections import Set
 from std.math import floor, log10, pi, sqrt
 
 from canvas.color import Color
@@ -279,6 +280,16 @@ def _cell_transform(
     )
 
 
+def _distinct_count(counts: List[Int]) -> Int:
+    """How many different values `counts` holds: the number of paths, and
+    so of tooltips, `_draw_hexbin_layer` draws, since it merges every
+    cell with the same count into one path."""
+    var seen = Set[Int]()
+    for c in counts:
+        seen.add(c)
+    return len(seen)
+
+
 def _draw_hexbin_layer[
     T: DrawTarget
 ](
@@ -288,7 +299,7 @@ def _draw_hexbin_layer[
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
-    svg_tooltips: Bool,
+    tooltips_on: Bool,
 ) raises:
     """Fill every nonempty hexagon, one path per distinct count.
 
@@ -358,11 +369,11 @@ def _draw_hexbin_layer[
             )
             at += 1
         var color = color_scale.color_at(Float64(c))
-        if svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group("count: " + String(c))
         target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
         target.stroke_path_aa(path, color, width=sc.line_width)
-        if svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
 
@@ -501,7 +512,7 @@ def _render_hexbin[
         draw_x,
         frame.y_scale,
         sc,
-        theme.svg_tooltips,
+        plot._tooltips_on(_distinct_count(bins.count)),
     )
     _draw_continuous_color_legend_at(
         target,

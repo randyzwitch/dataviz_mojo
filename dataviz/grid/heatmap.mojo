@@ -309,6 +309,7 @@ def _render_heatmap[
     # and a column's geometry starts half a pixel before its index, so
     # the grid's outer edge lines up with the plot rect instead of
     # sitting a pixel inside it.
+    var tooltips_on = plot._tooltips_on(len(plot._heatmap.x))
     for i in range(len(plot._heatmap.x)):
         var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
@@ -317,7 +318,7 @@ def _render_heatmap[
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._heatmap.value[i])
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _cell_tooltip_label(
                     plot._heatmap.x[i],
@@ -332,7 +333,7 @@ def _render_heatmap[
             snap_to_pixel_edge(y_stop) - cell_y,
             color,
         )
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.end_annotated_group()
 
     _draw_continuous_color_legend_at(

@@ -297,6 +297,7 @@ def _render_calendar_heatmap[
         )
         month += stride
 
+    var tooltips_on = plot._tooltips_on(len(parsed))
     for i in range(len(parsed)):
         var days = _days_from_civil(parsed[i]) - jan1_days
         var col = (days + jan1_dow) // 7
@@ -328,7 +329,7 @@ def _render_calendar_heatmap[
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
         var color = color_scale.color_at(plot._calendar.values[i])
-        if theme.svg_tooltips:
+        if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(
                     plot._calendar.dates[i], plot._calendar.values[i]

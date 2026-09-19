@@ -385,7 +385,7 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
     var has_shapes = (
         len(plot._channels.color_categories) > 0 and theme.shape_by_category
     )
-    var tooltips_on = theme.svg_tooltips and plot._mark_style.point_tooltips
+    var tooltips_on = plot._tooltips_on(len(plot._continuous.y))
     var has_error_bars = (
         len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     )
@@ -539,7 +539,7 @@ def _draw_point_layer[
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
-        var tooltip = theme.svg_tooltips and plot._mark_style.point_tooltips
+        var tooltip = plot._tooltips_on(len(plot._continuous.y))
         if tooltip:
             target.begin_annotated_group(_point_tooltip_label(plot, i))
         if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
@@ -921,7 +921,6 @@ def _draw_area_layer[
 def scatter(
     x: List[Float64],
     y: List[Float64],
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -937,9 +936,6 @@ def scatter(
     Args:
         x: The continuous x column, one entry per point.
         y: The continuous y column, one entry per point.
-        tooltips: Whether each point carries an SVG `<title>` a browser
-            shows on hover; defaults to `False`. `Theme.svg_tooltips`
-            must also be enabled.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -970,7 +966,6 @@ def scatter(
             var c = scatter(
                 battery_kwh,
                 highway_range_km,
-                tooltips=True,
                 title="Illustrative EV Battery Capacity vs. Highway Range",
                 x_title="Usable battery capacity (kWh)",
                 y_title="Highway range (km)",
@@ -978,7 +973,7 @@ def scatter(
             save(c, "docs/src/examples/out_scatter.svg")
         ```
     """
-    var plot = Plot().mark_point(tooltips=tooltips).encode(x=x, y=y)
+    var plot = Plot().mark_point().encode(x=x, y=y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
@@ -987,7 +982,6 @@ def scatter[
 ](
     x: List[Scalar[x_dtype]],
     y: List[Scalar[y_dtype]],
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1003,7 +997,6 @@ def scatter[
     return scatter(
         _materialize_scalar_list(x),
         _materialize_scalar_list(y),
-        tooltips=tooltips,
         theme=theme,
         width=width,
         height=height,
@@ -1388,7 +1381,6 @@ def line(
 def scatter(
     x: List[Morrow],
     y: List[Float64],
-    tooltips: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
@@ -1401,7 +1393,6 @@ def scatter(
     Args:
         x: The timestamps, one per point.
         y: The continuous y column, one entry per point.
-        tooltips: Whether each point carries an SVG `<title>`.
         theme: Visual theme.
         width: Canvas width in pixels.
         height: Canvas height in pixels.
@@ -1415,7 +1406,7 @@ def scatter(
     Raises:
         Error: `morrow` could not convert a value to a timestamp.
     """
-    var plot = Plot().mark_point(tooltips=tooltips).encode_time(x, y)
+    var plot = Plot().mark_point().encode_time(x, y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
