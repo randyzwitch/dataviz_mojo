@@ -48,7 +48,7 @@ from dataviz.plot import (
     _zero_baseline_y_extent,
     render,
 )
-from dataviz.core.scale import LinearScale
+from dataviz.core.scale import LinearScale, TickFormat, Ticks
 from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
 from dataviz.core.theme import Theme
 from dataviz.core.x_label_rotation import XAxisLabelRotation
@@ -695,6 +695,105 @@ def _draw_axis_spines[
             )
 
 
+def _ticks_fit(
+    scale: LinearScale,
+    ticks: Ticks,
+    span_px: Float64,
+    along_x: Bool,
+    format: TickFormat,
+    sc: _Scaled,
+    family: String,
+    mut cache: FontCache,
+) raises -> Bool:
+    """Whether `ticks`' labels, placed where `scale` draws them on an
+    axis `span_px` long, stay clear of their neighbors: along x, two
+    adjacent labels' centers must be at least their half-widths plus
+    half a font size apart; along y, one and a quarter font heights.
+
+    Positions go through `scale.to_pixel` on a copy ranged over the
+    span, so a log or symlog axis is measured as it is drawn.
+    """
+    var n = len(ticks.values)
+    if n < 2:
+        return True
+    var placed = scale
+    placed.range_min = 0.0
+    placed.range_max = span_px
+    var labels = ticks.labels(format)
+    var widths = List[Float64](capacity=n)
+    if along_x:
+        for label in labels:
+            var one: List[String] = [label]
+            widths.append(
+                _max_label_width(one, sc.font_size, family=family, cache=cache)
+            )
+    for i in range(1, n):
+        var sep = abs(
+            placed.to_pixel(ticks.values[i])
+            - placed.to_pixel(ticks.values[i - 1])
+        )
+        var need: Float64
+        if along_x:
+            need = (widths[i - 1] + widths[i]) / 2.0 + sc.font_size * 0.5
+        else:
+            need = sc.font_size * 1.25
+        if sep < need:
+            return False
+    return True
+
+
+def _fitting_ticks(
+    scale: LinearScale,
+    span_px: Float64,
+    along_x: Bool,
+    format: TickFormat,
+    sc: _Scaled,
+    family: String,
+    mut cache: FontCache,
+) raises -> Ticks:
+    """`scale.ticks()`, thinned until its labels fit an axis `span_px`
+    pixels long (#727).
+
+    Fitting is measured where the labels actually land (`_ticks_fit`).
+    Tries targets from the usual 5 down to 1 and takes, in order of
+    preference: the most ticks that fit with at least two, since two
+    show a scale; else one tick that fits, since a single labeled
+    gridline is still a reference and overlapping text is not; else,
+    when nothing fits at all, the fewest ticks. A full-size chart fits
+    5 on the first try, so this returns exactly what `ticks()` does
+    there; only a small grid cell, facet or marginal ever gets fewer.
+
+    A coarser step over the same domain never has more digits -- 0.5,
+    1.0, 1.5 becomes 0, 1, 2 -- so a margin measured for the default
+    ticks' labels still holds the thinned ones. That is what lets a
+    frame size its margin before its span is final and fit the ticks
+    afterward.
+    """
+    var first = scale.ticks(5)
+    if _ticks_fit(scale, first, span_px, along_x, format, sc, family, cache):
+        return first^
+    var single_target = 0
+    var fewest_target = 5
+    var fewest_count = len(first.values)
+    for target in range(4, 0, -1):
+        var t = scale.ticks(target)
+        var count = len(t.values)
+        if count >= 1 and count < fewest_count:
+            fewest_count = count
+            fewest_target = target
+        if not _ticks_fit(
+            scale, t, span_px, along_x, format, sc, family, cache
+        ):
+            continue
+        if count >= 2:
+            return t^
+        if count == 1 and single_target == 0:
+            single_target = target
+    if single_target > 0:
+        return scale.ticks(single_target)
+    return scale.ticks(fewest_target)
+
+
 def _push_plot_clip[
     T: DrawTarget
 ](mut target: T, x_scale: LinearScale, y_scale: LinearScale):
@@ -1052,9 +1151,30 @@ def _draw_continuous_axis_frame[
         plot_y0
     )
 
+    # The margin above was sized from the default ticks' labels; now the
+    # rect is final, fit the drawn ticks to the axis's real length.
+    if not controls.y_ticks.has:
+        y_ticks = _fitting_ticks(
+            y_scale,
+            Float64(abs(plot_y1 - plot_y0)),
+            False,
+            theme.y_tick_format,
+            sc,
+            theme.font_family,
+            cache,
+        )
+        y_labels = y_ticks.labels(theme.y_tick_format)
     var x_ticks = _override_ticks(
         controls.x_ticks, out_x_scale
-    ) if controls.x_ticks.has else out_x_scale.ticks()
+    ) if controls.x_ticks.has else _fitting_ticks(
+        out_x_scale,
+        Float64(abs(plot_x1 - plot_x0)),
+        True,
+        theme.x_tick_format,
+        sc,
+        theme.font_family,
+        cache,
+    )
     var x_labels = x_ticks.labels(theme.x_tick_format)
 
     # Gridlines, the axis lines and every tick are recorded and drawn in
@@ -1426,6 +1546,18 @@ def _draw_categorical_axis_frame[
 
     var plot_y0 = oy0 + sc.margin_top
     var plot_y1 = oy1 - sc.margin_bottom - x_label_extra_bottom
+    # Sized the left margin from the default ticks above; fit the drawn
+    # ones to the final height (#727).
+    y_ticks = _fitting_ticks(
+        y_scale,
+        Float64(plot_y1 - plot_y0),
+        False,
+        theme.y_tick_format,
+        sc,
+        theme.font_family,
+        cache,
+    )
+    y_labels = y_ticks.labels(theme.y_tick_format)
 
     # y range is reversed: domain_min lands at the *bottom* of the
     # plot area (the larger pixel y), domain_max at the top -- see

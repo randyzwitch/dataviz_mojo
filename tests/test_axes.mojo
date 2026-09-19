@@ -10,7 +10,20 @@ from std.testing import (
     assert_raises,
     assert_true,
 )
-from dataviz import AxisPosition, Theme, bar, line, rugplot, save, scatter
+from canvas.text.font_cache import FontCache
+from dataviz import (
+    AxisPosition,
+    Theme,
+    bar,
+    line,
+    pairplot,
+    rugplot,
+    save,
+    scatter,
+)
+from dataviz.core.frame import _fitting_ticks, _ticks_fit
+from dataviz.core.scale import TickFormat
+from dataviz.core.text import _Scaled, _max_label_width
 from dataviz.core.scale import (
     LinearScale,
     _symlog_forward,
@@ -1079,6 +1092,162 @@ def test_a_symlog_chart_renders_data_that_crosses_zero() raises:
         scatter(x, y, width=400, height=300).scale_y_symlog(linthresh=1.0)
     )
     assert_equal(c.width, 400, "the chart did not render")
+
+
+# ---------------------------------------------------------------
+# Tick counts that fit the axis (#727)
+
+
+def test_a_full_size_axis_keeps_the_default_ticks() raises:
+    # The fitting only ever removes ticks when they would collide, so a
+    # normal chart's axis gets exactly what ticks() gives it.
+    var scale = LinearScale(0.0, 100.0, 0.0, 1.0)
+    var cache = FontCache()
+    var sc = _Scaled(Theme())
+    var fitted = _fitting_ticks(
+        scale, 560.0, True, TickFormat.AUTO, sc, "sans-serif", cache
+    )
+    assert_equal(fitted.values, scale.ticks().values)
+    var tall = _fitting_ticks(
+        scale, 350.0, False, TickFormat.AUTO, sc, "sans-serif", cache
+    )
+    assert_equal(tall.values, scale.ticks().values)
+
+
+def test_a_narrow_axis_gets_ticks_that_fit_and_keeps_two_when_two_fit() raises:
+    var cache = FontCache()
+    var sc = _Scaled(Theme())
+    # 0..1000 across 70 px: the default 0, 200, ... 1000 collide -- the
+    # precondition, checked, so this case really exercises the thinning
+    # -- and the fitted set is coarser, fits, and still has two ticks.
+    var narrow = LinearScale(0.0, 1000.0, 0.0, 1.0)
+    var default = narrow.ticks()
+    assert_true(
+        not _ticks_fit(
+            narrow,
+            default,
+            70.0,
+            True,
+            TickFormat.AUTO,
+            sc,
+            "sans-serif",
+            cache,
+        ),
+        "precondition: the default ticks collide at this width",
+    )
+    var t = _fitting_ticks(
+        narrow, 70.0, True, TickFormat.AUTO, sc, "sans-serif", cache
+    )
+    assert_true(
+        _ticks_fit(
+            narrow, t, 70.0, True, TickFormat.AUTO, sc, "sans-serif", cache
+        )
+    )
+    assert_true(len(t.values) >= 2, "two ticks still fit, so two are kept")
+    assert_true(len(t.values) < len(default.values))
+    # 0..2.2 over 12 px: 0 and 2 would sit 11 px apart, closer than the
+    # 15 px two 12 px labels need, so one label, not two on top of each
+    # other.
+    var short = LinearScale(0.0, 2.2, 0.0, 1.0)
+    var one = _fitting_ticks(
+        short, 12.0, False, TickFormat.AUTO, sc, "sans-serif", cache
+    )
+    assert_equal(
+        len(one.values),
+        1,
+        "one clean label rather than two on top of each other",
+    )
+
+
+def test_no_tick_labels_overlap_in_a_small_pairplot() raises:
+    # The case #727 was found in: 140 x 120 cells. Every bottom-axis
+    # label row -- middle-anchored text sharing one y -- is read back
+    # from the SVG and each neighbor pair checked for a gap, with the
+    # same text metrics the renderer uses.
+    var a: List[Float64] = [
+        1.2,
+        2.5,
+        3.1,
+        4.8,
+        5.0,
+        6.7,
+        7.3,
+        8.1,
+        9.9,
+        10.4,
+        11.8,
+        12.2,
+    ]
+    var b: List[Float64] = [
+        110,
+        150,
+        180,
+        175,
+        240,
+        260,
+        290,
+        300,
+        340,
+        360,
+        380,
+        420,
+    ]
+    var c: List[Float64] = [
+        0.31,
+        0.29,
+        0.27,
+        0.25,
+        0.22,
+        0.2,
+        0.19,
+        0.17,
+        0.14,
+        0.13,
+        0.11,
+        0.08,
+    ]
+    var cols: List[List[Float64]] = [a^, b^, c^]
+    var names: List[String] = ["Engine (L)", "Horsepower", "Efficiency"]
+    var svg = render_svg(
+        pairplot(cols, names, cell_width=140, cell_height=120)
+    ).to_string()
+    var xs = _attr_values(svg, "text", "x")
+    var ys = _attr_values(svg, "text", "y")
+    var anchors = _attr_values(svg, "text", "text-anchor")
+    var texts = List[String]()
+    var at = 0
+    while True:
+        var open = svg.find("<text", at)
+        if open < 0:
+            break
+        var start = svg.find(">", open) + 1
+        var close = svg.find("</text>", start)
+        texts.append(String(svg[byte=start:close]))
+        at = close
+    var cache = FontCache()
+    var font = Theme().font_size
+    var checked = 0
+    for i in range(len(xs)):
+        if anchors[i] != "middle":
+            continue
+        for j in range(i + 1, len(xs)):
+            if anchors[j] != "middle" or ys[j] != ys[i]:
+                continue
+            var gap = abs(Float64(xs[j]) - Float64(xs[i]))
+            var one: List[String] = [texts[i]]
+            var two: List[String] = [texts[j]]
+            var half = (
+                _max_label_width(one, font, family="sans-serif", cache=cache)
+                + _max_label_width(two, font, family="sans-serif", cache=cache)
+            ) / 2.0
+            # Only neighbors within one cell's width can collide.
+            if gap < 100.0:
+                checked += 1
+                assert_true(
+                    gap >= half,
+                    "labels " + texts[i] + " and " + texts[j] + " overlap",
+                )
+    assert_true(checked > 0, "the test read some neighboring labels")
 
 
 def main() raises:
