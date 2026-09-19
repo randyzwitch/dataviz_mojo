@@ -43,7 +43,7 @@ on:
         description: "Concurrent copies per round"
         default: "4"
       mode:
-        description: "jit (mojo run, matches CI), aot (built binary), probe (per-test stderr), or all"
+        description: "jit, aot, probe, repro (the reduced case), or all"
         default: "all"
 
 permissions:
@@ -102,6 +102,11 @@ jobs:
                     > "crashes/probe_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/probe_${i}_${c}.code" ) &
               fi
+              if [ "$MODE" = "repro" ] || [ "$MODE" = "all" ]; then
+                ( pixi run mojo run -I . zz_repro_732.mojo \
+                    > "crashes/repro_${i}_${c}.out" 2>&1 \
+                  || echo "$?" > "crashes/repro_${i}_${c}.code" ) &
+              fi
               if [ "$MODE" = "aot" ] || [ "$MODE" = "all" ]; then
                 ( ./build/test_marks_polar \
                     > "crashes/aot_${i}_${c}.out" 2>&1 \
@@ -126,6 +131,7 @@ jobs:
               # started, and whether it ever finished.
               echo "--- last START: $(grep '^START ' "$f" | tail -1)"
               echo "--- last DONE:  $(grep '^DONE ' "$f" | tail -1)"
+              echo "--- last iter:  $(grep '^iter ' "$f" | tail -1)"
             else
               rm -f "$f"
             fi
