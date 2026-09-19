@@ -316,7 +316,7 @@ from dataviz.core.cluster import Dendrogram
 from dataviz.hierarchy_marks.dendrogram import _DendrogramData
 from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
-from dataviz.relationships.edges import _EdgeData
+from dataviz.relationships.edges import GraphLayout, _EdgeData
 from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 from dataviz.distributions.box import _box_stats, _render_horizontal_box
 
@@ -613,6 +613,7 @@ struct _MarkStyle(Copyable, Movable):
     var polar_grid_rings: Int
     var polar_grid_spokes: Int
     var sankey_node_width: Float64
+    var graph_layout: GraphLayout
     var streamgraph_baseline: StackBaseline
     """Where `Mark.STREAMGRAPH` stacks from, via
     `mark_streamgraph(baseline=...)`. `WIGGLE` unless asked otherwise;
@@ -649,6 +650,7 @@ struct _MarkStyle(Copyable, Movable):
         self.polar_grid_rings = 4
         self.polar_grid_spokes = 12
         self.sankey_node_width = 12.0
+        self.graph_layout = GraphLayout.CIRCLE
         self.streamgraph_baseline = StackBaseline.WIGGLE
         self.eventplot_line_length = 1.0
 
@@ -2001,12 +2003,21 @@ struct Plot(Copyable, Movable):
         self._render_bounds_family = _callback_relationships[BoundsTarget]
         return self^
 
-    def mark_graph(var self) -> Self:
-        """A network graph: `mark_chord()`'s edge list drawn as nodes evenly
-        spaced around a circle connected by straight lines. Encoded via
+    def mark_graph(var self, layout: GraphLayout = GraphLayout.CIRCLE) -> Self:
+        """A network graph: `mark_chord()`'s edge list drawn as nodes
+        connected by straight lines, placed around a circle or by a
+        force-directed layout (see `GraphLayout`). Encoded via
         `encode_chord()`.
+
+        Args:
+            layout: `GraphLayout.CIRCLE` (the default) or
+                `GraphLayout.FORCE` (#157).
+
+        Returns:
+            Self, for further chaining.
         """
         self._mark = Mark.GRAPH
+        self._mark_style.graph_layout = layout
         self._render_canvas_family = _callback_relationships[Canvas]
         self._render_svg_family = _callback_relationships[SvgCanvas]
         self._render_pdf_family = _callback_relationships[PdfCanvas]

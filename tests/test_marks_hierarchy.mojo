@@ -5,11 +5,18 @@ Mark.CHORD, Mark.ARC_DIAGRAM, Mark.GRAPH, and Mark.SANKEY (with
 encode_chord()'s shared validation), each raster + SVG.
 """
 
-from _test_helpers import BG, _assert_color, _bbox_of_color, _count_tag
+from _test_helpers import (
+    BG,
+    _attr_values,
+    _assert_color,
+    _bbox_of_color,
+    _count_tag,
+)
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz import (
+    GraphLayout,
     arc_diagram,
     chord,
     dendrogram,
@@ -20,6 +27,8 @@ from dataviz import (
     treemap,
 )
 from dataviz.core.cluster import linkage
+from dataviz.relationships.graph import _force_layout
+from std.math import sqrt
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.basic.continuous import _lighten
 from dataviz.plot import Plot, render, render_svg
@@ -1190,6 +1199,74 @@ def test_hierarchy_mark_tooltips_follow_the_theme_flag() raises:
         )
     ).to_string()
     assert_true("<title>" not in off, "svg_tooltips=False removes them")
+
+
+# ---------------------------------------------------------------
+# Force-directed GRAPH layout (#157)
+
+
+def _bridged_triangles() -> Tuple[List[String], List[String], List[Float64]]:
+    """Two triangles, a-b-c and d-e-f, joined by one edge c-d."""
+    var src: List[String] = ["a", "b", "c", "d", "e", "f", "c"]
+    var dst: List[String] = ["b", "c", "a", "e", "f", "d", "d"]
+    var vals: List[Float64] = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    return (src^, dst^, vals^)
+
+
+def test_the_force_layout_gathers_each_cluster() raises:
+    # The point of the layout: connected nodes end up together. Nodes
+    # 0-2 and 3-5 are the two triangles, bridged by 2-3.
+    var f: List[Int] = [0, 1, 2, 3, 4, 5, 2]
+    var t: List[Int] = [1, 2, 0, 4, 5, 3, 3]
+    var p = _force_layout(6, f, t)
+    var xs = p[0].copy()
+    var ys = p[1].copy()
+    var intra = 0.0
+    var inter = 0.0
+    for i in range(6):
+        for j in range(i + 1, 6):
+            var d = sqrt((xs[i] - xs[j]) ** 2 + (ys[i] - ys[j]) ** 2)
+            if (i < 3) == (j < 3):
+                intra += d / 6.0
+            else:
+                inter += d / 9.0
+    assert_true(
+        intra < 0.5 * inter,
+        "clusters did not separate: within "
+        + String(intra)
+        + ", across "
+        + String(inter),
+    )
+
+
+def test_a_force_graph_renders_the_same_every_time_inside_its_frame() raises:
+    # Seeded from the circle, not from random positions, so two renders
+    # are the same bytes; and the layout is fitted to the plot area, so
+    # every node is drawn inside the canvas with its label once.
+    var e = _bridged_triangles()
+    var once = render_svg(
+        graph(e[0], e[1], e[2], layout=GraphLayout.FORCE, width=400, height=300)
+    ).to_string()
+    var again = render_svg(
+        graph(e[0], e[1], e[2], layout=GraphLayout.FORCE, width=400, height=300)
+    ).to_string()
+    assert_equal(once, again)
+    var cx = _attr_values(once, "circle", "cx")
+    var cy = _attr_values(once, "circle", "cy")
+    assert_equal(len(cx), 6, "one node per name")
+    for i in range(len(cx)):
+        var x = Float64(cx[i])
+        var y = Float64(cy[i])
+        assert_true(x > 0.0 and x < 400.0 and y > 0.0 and y < 300.0)
+    for name in ["a", "b", "c", "d", "e", "f"]:
+        assert_equal(once.count(">" + name + "</text>"), 1, "label " + name)
+    var circle = render_svg(
+        graph(e[0], e[1], e[2], width=400, height=300)
+    ).to_string()
+    assert_true(
+        _attr_values(circle, "circle", "cx") != cx,
+        "the force layout places nodes differently from the circle",
+    )
 
 
 def main() raises:
