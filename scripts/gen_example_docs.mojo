@@ -594,8 +594,12 @@ def _cookbook_categories() -> List[Category]:
     cats.append(
         Category(
             "External and custom data",
-            "Use numeric types, Python arrays, and custom Mojo containers.",
+            (
+                "Use dataframes, numeric types, Python arrays, and custom"
+                " Mojo containers."
+            ),
             [
+                "dataframe_columns",
                 "numeric_types",
                 "numpy_pandas_data",
                 "array_like_data",
