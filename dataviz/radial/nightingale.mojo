@@ -3,6 +3,9 @@ from std.math import pi, sqrt
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
@@ -119,6 +122,62 @@ def _render_nightingale[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def nightingale(
+    df: DataFrame,
+    categories: String,
+    values: String,
+    area: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`nightingale()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values. The axis titles default to the `categories` and `values` column names.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        categories: The string column for this channel.
+        values: The numeric column for this channel.
+        area: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var categories_values = _frame_strings(df, categories, "nightingale()")
+    var values_values = _frame_floats(df, values, "nightingale()")
+    return nightingale(
+        categories=categories_values,
+        values=values_values,
+        area=area,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else categories,
+        y_title=y_title if y_title.byte_length() > 0 else values,
+    )
 
 
 def nightingale[

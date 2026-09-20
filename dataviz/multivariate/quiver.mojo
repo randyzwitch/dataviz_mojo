@@ -9,6 +9,9 @@ from canvas.fill_rule import FillRule
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.arrow import (
     _ARROW_HEAD_HALF_WIDTH,
@@ -225,6 +228,73 @@ def _render_quiver[
         cache=cache,
     )
     return frame.result()
+
+
+def quiver(
+    df: DataFrame,
+    x: String,
+    y: String,
+    u: String,
+    v: String,
+    scale: Float64 = 0.0,
+    color_by_magnitude: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`quiver()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        u: The numeric column for this channel.
+        v: The numeric column for this channel.
+        scale: See the list overload.
+        color_by_magnitude: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "quiver()")
+    var y_values = _frame_floats(df, y, "quiver()")
+    var u_values = _frame_floats(df, u, "quiver()")
+    var v_values = _frame_floats(df, v, "quiver()")
+    return quiver(
+        x=x_values,
+        y=y_values,
+        u=u_values,
+        v=v_values,
+        scale=scale,
+        color_by_magnitude=color_by_magnitude,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def quiver[

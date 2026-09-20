@@ -3,6 +3,9 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
@@ -325,6 +328,63 @@ def _render_gantt[
             )
 
     return frame.result()
+
+
+def gantt(
+    df: DataFrame,
+    categories: String,
+    start: String,
+    end: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`gantt()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        categories: The string column for this channel.
+        start: The numeric column for this channel.
+        end: The numeric column for this channel.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var categories_values = _frame_strings(df, categories, "gantt()")
+    var start_values = _frame_floats(df, start, "gantt()")
+    var end_values = _frame_floats(df, end, "gantt()")
+    return gantt(
+        categories=categories_values,
+        start=start_values,
+        end=end_values,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def gantt[

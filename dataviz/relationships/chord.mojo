@@ -6,6 +6,9 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
@@ -214,6 +217,66 @@ def _render_chord[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def chord(
+    df: DataFrame,
+    from_categories: String,
+    to_categories: String,
+    values: String,
+    ring_fraction: Float64 = 0.08,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`chord()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        from_categories: The string column for this channel.
+        to_categories: The string column for this channel.
+        values: The numeric column for this channel.
+        ring_fraction: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var from_categories_values = _frame_strings(df, from_categories, "chord()")
+    var to_categories_values = _frame_strings(df, to_categories, "chord()")
+    var values_values = _frame_floats(df, values, "chord()")
+    return chord(
+        from_categories=from_categories_values,
+        to_categories=to_categories_values,
+        values=values_values,
+        ring_fraction=ring_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def chord[

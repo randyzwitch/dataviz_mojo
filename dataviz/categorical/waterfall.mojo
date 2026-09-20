@@ -2,6 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_bools, _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
@@ -362,6 +365,71 @@ def _render_horizontal_waterfall[
         frame.text_requests,
     )
     return frame.result()
+
+
+def waterfall(
+    df: DataFrame,
+    categories: String,
+    deltas: String,
+    is_total: String = "",
+    delta_width_fraction: Float64 = 0.6,
+    horizontal: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`waterfall()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        categories: The string column for this channel.
+        deltas: The numeric column for this channel.
+        is_total: The boolean column for this channel; left empty, the channel is unused.
+        delta_width_fraction: See the list overload.
+        horizontal: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var categories_values = _frame_strings(df, categories, "waterfall()")
+    var deltas_values = _frame_floats(df, deltas, "waterfall()")
+    var is_total_values = List[Bool]()
+    if is_total.byte_length() > 0:
+        is_total_values = _frame_bools(df, is_total, "waterfall()")
+    return waterfall(
+        categories=categories_values,
+        deltas=deltas_values,
+        is_total=is_total_values,
+        delta_width_fraction=delta_width_fraction,
+        horizontal=horizontal,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def waterfall[

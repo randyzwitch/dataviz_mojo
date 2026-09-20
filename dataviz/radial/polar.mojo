@@ -4,6 +4,9 @@ from canvas.text.font_cache import FontCache
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -469,6 +472,59 @@ def polar(
     var plot = Plot().mark_polar().encode_polar(angle=angle, radius=radius)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def polar(
+    df: DataFrame,
+    angle: String,
+    radius: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`polar()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values. The axis titles default to the `angle` and `radius` column names.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        angle: The numeric column for this channel.
+        radius: The numeric column for this channel.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var angle_values = _frame_floats(df, angle, "polar()")
+    var radius_values = _frame_floats(df, radius, "polar()")
+    return polar(
+        angle=angle_values,
+        radius=radius_values,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else angle,
+        y_title=y_title if y_title.byte_length() > 0 else radius,
     )
 
 

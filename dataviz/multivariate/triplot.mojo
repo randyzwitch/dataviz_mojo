@@ -17,6 +17,9 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.delaunay import Triangulation, _edge_key, delaunay
@@ -547,6 +550,62 @@ def _draw_tripcolor_layer[
     target.fill_mesh(points, tri.triangles, colors)
 
 
+def triplot(
+    df: DataFrame,
+    x: String,
+    y: String,
+    show_points: Bool = True,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`triplot()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values. The axis titles default to the `x` and `y` column names.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        show_points: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "triplot()")
+    var y_values = _frame_floats(df, y, "triplot()")
+    return triplot(
+        x=x_values,
+        y=y_values,
+        show_points=show_points,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else x,
+        y_title=y_title if y_title.byte_length() > 0 else y,
+    )
+
+
 def triplot[
     dtype: DType
 ](
@@ -633,6 +692,66 @@ def triplot[
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def tripcolor(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    gouraud: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`tripcolor()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        gouraud: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "tripcolor()")
+    var y_values = _frame_floats(df, y, "tripcolor()")
+    var z_values = _frame_floats(df, z, "tripcolor()")
+    return tripcolor(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        gouraud=gouraud,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
 
 

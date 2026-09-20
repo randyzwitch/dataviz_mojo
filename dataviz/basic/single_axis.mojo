@@ -2,6 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.frame import _fitting_ticks
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
@@ -217,6 +220,72 @@ def _render_single_axis[
     )
 
     return frame.result()
+
+
+def single_axis(
+    df: DataFrame,
+    x: String,
+    color: String = "",
+    color_categories: String = "",
+    size: String = "",
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`single_axis()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        color: The numeric column for this channel; left empty, the channel is unused.
+        color_categories: The string column for this channel; left empty, the channel is unused.
+        size: The numeric column for this channel; left empty, the channel is unused.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "single_axis()")
+    var color_values = List[Float64]()
+    if color.byte_length() > 0:
+        color_values = _frame_floats(df, color, "single_axis()")
+    var color_categories_values = List[String]()
+    if color_categories.byte_length() > 0:
+        color_categories_values = _frame_strings(
+            df, color_categories, "single_axis()"
+        )
+    var size_values = List[Float64]()
+    if size.byte_length() > 0:
+        size_values = _frame_floats(df, size, "single_axis()")
+    return single_axis(
+        x=x_values,
+        color=color_values,
+        color_categories=color_categories_values,
+        size=size_values,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+    )
 
 
 def single_axis[
