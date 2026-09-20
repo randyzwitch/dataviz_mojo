@@ -43,8 +43,8 @@ on:
         description: "Concurrent copies per round"
         default: "4"
       mode:
-        description: "jit, aot, probe, repro, only16 (compile all, run one), or all"
-        default: "all"
+        description: "jit, aot, probe, repro, ranges (the bisect), or all"
+        default: "ranges"
 
 permissions:
   contents: read
@@ -84,15 +84,16 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           # A push carries no inputs, so the defaults live here too.
-          ITERATIONS="${ITERATIONS:-20}"
+          ITERATIONS="${ITERATIONS:-10}"
           COPIES="${COPIES:-4}"
-          MODE="${MODE:-all}"
+          MODE="${MODE:-ranges}"
           mkdir -p crashes
           crashed=0
           ran=0
           for i in $(seq 1 "$ITERATIONS"); do
             for c in $(seq 1 "$COPIES"); do
-              if [ "$MODE" = "jit" ] || [ "$MODE" = "all" ]; then
+              if [ "$MODE" = "jit" ] || [ "$MODE" = "all" ] \
+                || [ "$MODE" = "ranges" ]; then
                 ( pixi run mojo run -I . -I tests tests/test_marks_polar.mojo \
                     > "crashes/jit_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/jit_${i}_${c}.code" ) &
@@ -107,10 +108,12 @@ jobs:
                     > "crashes/repro_${i}_${c}.out" 2>&1 \
                   || echo "$?" > "crashes/repro_${i}_${c}.code" ) &
               fi
-              if [ "$MODE" = "only16" ] || [ "$MODE" = "all" ]; then
-                ( pixi run mojo run -I . -I tests tests/zz_only16.mojo \
-                    > "crashes/only16_${i}_${c}.out" 2>&1 \
-                  || echo "$?" > "crashes/only16_${i}_${c}.code" ) &
+              if [ "$MODE" = "ranges" ] || [ "$MODE" = "all" ]; then
+                for r in 0 8 12 15; do
+                  ( pixi run mojo run -I . -I tests "tests/zz_range_${r}.mojo" \
+                      > "crashes/range${r}_${i}_${c}.out" 2>&1 \
+                    || echo "$?" > "crashes/range${r}_${i}_${c}.code" ) &
+                done
               fi
               if [ "$MODE" = "aot" ] || [ "$MODE" = "all" ]; then
                 ( ./build/test_marks_polar \
