@@ -19,6 +19,16 @@ go = ">=1.26.7,<2"
 numpy = ">=2.0,<3"
 pandas = ">=2.0,<3"
 
+[activation.env]
+# mblack caches its parsed grammar under a directory keyed only by its
+# own version string and the Python version, which every environment on
+# a machine shares. Mojo toolchains ship different `mblib2to3/Grammar.txt`
+# under the same mblack version, so whichever environment writes the
+# pickle first breaks the others: `mojo format` then fails on every file
+# with "'_python_symbols' object has no attribute 'old_comptime_assert_stmt'"
+# (#733). A cache inside this workspace's own .pixi cannot collide.
+MBLACK_CACHE_DIR = "$PIXI_PROJECT_ROOT/.pixi/mblack-cache"
+
 [tasks]
 # Extract docstring examples, combine them into verification batches, and run
 # the batches in parallel. Quickstart examples use `example-quickstart`.
