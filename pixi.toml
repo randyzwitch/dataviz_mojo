@@ -10,9 +10,10 @@ preview = ["pixi-build"]
 version = "0.12.0"
 
 [dependencies]
-mojo = ">=1.0.0,<1.1"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.38.1" }
-morrow = ">=0.7.0,<0.8"
+mojo = ">=1.1.0,<1.2"
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.0" }
+# Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
+morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
 hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
 # Dev/test dependencies for numpy_interop.mojo.
@@ -73,11 +74,13 @@ name = "dataviz"
 path = "dataviz"
 
 [package.host-dependencies]
-mojo = ">=1.0.0,<1.1"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.38.1" }
-morrow = ">=0.7.0,<0.8"
+mojo = ">=1.1.0,<1.2"
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.0" }
+# Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
+morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
 
 [package.run-dependencies]
-mojo = ">=1.0.0,<1.1"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.38.1" }
-morrow = ">=0.7.0,<0.8"
+mojo = ">=1.1.0,<1.2"
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.0" }
+# Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
+morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }

@@ -20,6 +20,37 @@ from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 
 
+@fieldwise_init
+struct _SwarmKey(Comparable, Copyable, Movable):
+    """One beeswarm point as a sort key: pixel row first, original index
+    to break ties. Carries the order `_beeswarm_offsets` needs, since
+    Mojo 1.1 removed the comparator form of `sort` (#673).
+    """
+
+    var y: Int
+    var index: Int
+
+    def __lt__(self, other: Self) -> Bool:
+        if self.y != other.y:
+            return self.y < other.y
+        return self.index < other.index
+
+    def __le__(self, other: Self) -> Bool:
+        return not other.__lt__(self)
+
+    def __gt__(self, other: Self) -> Bool:
+        return other.__lt__(self)
+
+    def __ge__(self, other: Self) -> Bool:
+        return not self.__lt__(other)
+
+    def __eq__(self, other: Self) -> Bool:
+        return self.y == other.y and self.index == other.index
+
+    def __ne__(self, other: Self) -> Bool:
+        return not self.__eq__(other)
+
+
 def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     """One x-offset per entry of `y_pixels` (same order in, same order out),
     spreading points that would otherwise overlap vertically out
@@ -45,13 +76,16 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     # so the result is identical whether or not the sort is stable. The tie
     # rule decides which of two points on the same pixel row gets the `0`
     # offset, so changing it moves real pixels.
-    @parameter
-    def _before(a: Int, b: Int) -> Bool:
-        if y_pixels[a] != y_pixels[b]:
-            return y_pixels[a] < y_pixels[b]
-        return a < b
-
-    sort[_before](order)
+    #
+    # The order rides on `_SwarmKey` rather than a comparator function:
+    # Mojo 1.1 dropped `sort`'s parametric-comparator form, and its
+    # `cmp_fn` overload takes neither a capturing `def` nor `fn` (#673).
+    var keys = List[_SwarmKey](capacity=n)
+    for i in range(n):
+        keys.append(_SwarmKey(y_pixels[i], i))
+    sort(keys)
+    for i in range(n):
+        order[i] = keys[i].index
 
     var offset = List[Int]()
     for _ in range(n):
