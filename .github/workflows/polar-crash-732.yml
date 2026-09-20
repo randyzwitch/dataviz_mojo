@@ -30,10 +30,10 @@ name: Polar crash diagnostic (#732)
 # Delete this file once #732 is understood.
 
 on:
-  # Dispatch only works for a workflow on the default branch, and this
-  # one is deliberately not there, so pushing the branch is the trigger.
-  push:
-    branches: [diag/polar-crash-732]
+  # Nothing triggers this any more. The CI hunt is over (#732 is a JIT
+  # fault, not ours to fix from here); the branch stays because the
+  # probe modules below are what to run on a macOS machine when one is
+  # available. Re-add a push trigger to use it from CI again.
   workflow_dispatch:
     inputs:
       iterations:
