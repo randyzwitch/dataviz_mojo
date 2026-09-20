@@ -22,6 +22,8 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
+from std.utils.numerics import isnan
+
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from canvas.geometry import round_to_int, snap_to_pixel_edge
@@ -1166,6 +1168,10 @@ def histogram_bins(
         mass.append(0.0)
     var total = 0.0
     for i in range(len(data)):
+        # A missing observation belongs to no bin, so it is counted
+        # nowhere -- the bin heights are of what was measured (#367).
+        if isnan(data[i]):
+            continue
         var b = _bin_index(data[i], edges)
         if b < 0:
             continue

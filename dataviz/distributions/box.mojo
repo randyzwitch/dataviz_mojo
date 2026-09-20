@@ -4,6 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
+from dataviz.core.stats import _present
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
@@ -105,7 +106,9 @@ def _box_stats(values: List[Float64]) -> _BoxStats:
     `>= low_fence` is the low whisker, and the last value `<= high_fence`
     before the first that exceeds it is the high whisker.
     """
-    var sorted_values = values.copy()
+    # The five-number summary describes the observations that are
+    # there; a missing one is not a value at either end (#367).
+    var sorted_values = _present(values)
     sort(sorted_values)
     var n = len(sorted_values)
 

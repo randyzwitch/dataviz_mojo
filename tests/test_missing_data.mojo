@@ -12,9 +12,23 @@ either policy -- it is not a missing measurement.
 
 from dataframe import Column, DataFrame, Series
 
-from dataviz import area, bar, calendar_heatmap, heatmap, imshow, line, scatter
+from dataviz import (
+    area,
+    bar,
+    barplot,
+    box,
+    calendar_heatmap,
+    heatmap,
+    histogram,
+    imshow,
+    kdeplot,
+    line,
+    lineplot,
+    scatter,
+)
 from dataviz.core.missing import Missing
 from dataviz.core.scale import _min_max
+from dataviz.core.stats import Estimator, ErrorBar, _aggregate, _estimate
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, render, render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -304,6 +318,118 @@ def test_a_missing_calendar_day_is_left_blank() raises:
     assert_equal(
         gapped.count("<rect") + 1, solid.count("<rect"), "one day fewer"
     )
+
+
+def test_an_estimate_uses_the_observations_that_are_there() raises:
+    var values: List[Float64] = [2.0, _nan(), 4.0]
+    assert_equal(
+        _estimate(values, Estimator.MEAN),
+        3.0,
+        "the mean of what was measured, not of a zero-filled column",
+    )
+
+
+def test_count_reports_the_effective_sample_size() raises:
+    """The issue asks for the effective sample count to be visible.
+    `Estimator.COUNT` is where it shows: it counts observations, not
+    rows."""
+    var values: List[Float64] = [2.0, _nan(), 4.0, _nan()]
+    assert_equal(_estimate(values, Estimator.COUNT), 2.0, "two, not four")
+
+
+def test_a_group_with_nothing_present_leaves_the_axis() raises:
+    """A bar of no height reads as a measured zero, so a group with no
+    observations is not drawn at all."""
+    var groups: List[String] = ["a", "a", "b", "c"]
+    var values: List[Float64] = [1.0, 3.0, _nan(), 5.0]
+    var agg = _aggregate(
+        groups, values, Estimator.MEAN, ErrorBar.none(), UInt64(7)
+    )
+    assert_equal(len(agg.categories), 2, "b has nothing to estimate")
+    assert_equal(agg.categories[0], "a")
+    assert_equal(agg.categories[1], "c")
+    assert_equal(agg.estimates[0], 2.0, "a's mean is of its two values")
+
+
+def test_an_interval_is_computed_from_what_is_there() raises:
+    """A bootstrap that could draw a missing value would put a NaN in
+    the interval, which is drawn as a whisker to nowhere."""
+    var groups: List[String] = ["a", "a", "a", "a"]
+    var with_hole: List[Float64] = [1.0, 2.0, 3.0, _nan()]
+    var agg = _aggregate(
+        groups, with_hole, Estimator.MEAN, ErrorBar.ci(0.95), UInt64(7)
+    )
+    assert_true(agg.lows[0] == agg.lows[0], "the low end is a number")
+    assert_true(agg.highs[0] == agg.highs[0], "and so is the high end")
+    assert_true(agg.lows[0] <= agg.estimates[0], "and it brackets the mean")
+    assert_true(agg.highs[0] >= agg.estimates[0])
+
+
+def test_a_barplot_with_a_hole_matches_the_column_without_it() raises:
+    """End to end: the estimate a chart draws is the estimate of the
+    observations that are there."""
+    var groups: List[String] = ["a", "a", "a"]
+    var holed: List[Float64] = [2.0, _nan(), 4.0]
+    var kept_groups: List[String] = ["a", "a"]
+    var kept: List[Float64] = [2.0, 4.0]
+    var with_hole = render_svg(
+        barplot(groups, holed, width=320, height=240)
+    ).to_string()
+    var without = render_svg(
+        barplot(kept_groups, kept, width=320, height=240)
+    ).to_string()
+    assert_equal(with_hole, without, "same chart, byte for byte")
+
+
+def test_a_histogram_counts_only_what_was_measured() raises:
+    var holed: List[Float64] = [1.0, 2.0, _nan(), 8.0]
+    var kept: List[Float64] = [1.0, 2.0, 8.0]
+    var with_hole = render_svg(
+        histogram(holed, bins=4, width=320, height=240)
+    ).to_string()
+    var without = render_svg(
+        histogram(kept, bins=4, width=320, height=240)
+    ).to_string()
+    assert_equal(with_hole, without, "the hole is counted nowhere")
+
+
+def test_a_box_summarizes_the_observations_that_are_there() raises:
+    var cats: List[String] = ["a"]
+    var holed = List[List[Float64]]()
+    var one: List[Float64] = [1.0, 2.0, _nan(), 3.0, 4.0]
+    holed.append(one^)
+    var kept = List[List[Float64]]()
+    var two: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    kept.append(two^)
+    var with_hole = render_svg(
+        box(cats, holed, width=320, height=240)
+    ).to_string()
+    var without = render_svg(box(cats, kept, width=320, height=240)).to_string()
+    assert_equal(with_hole, without, "same five-number summary")
+
+
+def test_a_density_curve_is_estimated_from_what_is_there() raises:
+    var holed: List[Float64] = [1.0, 2.0, _nan(), 3.0, 4.0]
+    var kept: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var with_hole = render_svg(
+        kdeplot(holed, width=320, height=240)
+    ).to_string()
+    var without = render_svg(kdeplot(kept, width=320, height=240)).to_string()
+    assert_equal(with_hole, without, "one missing kernel, not a NaN curve")
+
+
+def test_an_estimate_line_skips_an_x_with_nothing_present() raises:
+    var xs: List[Float64] = [1.0, 1.0, 2.0, 3.0]
+    var ys: List[Float64] = [4.0, 6.0, _nan(), 8.0]
+    var kept_x: List[Float64] = [1.0, 1.0, 3.0]
+    var kept_y: List[Float64] = [4.0, 6.0, 8.0]
+    var with_hole = render_svg(
+        lineplot(xs, ys, width=320, height=240)
+    ).to_string()
+    var without = render_svg(
+        lineplot(kept_x, kept_y, width=320, height=240)
+    ).to_string()
+    assert_equal(with_hole, without, "x=2 has no estimate and no point")
 
 
 def main() raises:
