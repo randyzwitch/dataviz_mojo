@@ -156,9 +156,15 @@ def span_chart(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "span_chart()")
-    var low_values = _frame_floats(df, low, "span_chart()")
-    var high_values = _frame_floats(df, high, "span_chart()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "span_chart()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var low_values = _frame_floats(df, low, "span_chart()", theme.missing)
+    var high_values = _frame_floats(df, high, "span_chart()", theme.missing)
     return span_chart(
         categories=categories_values,
         low=low_values,

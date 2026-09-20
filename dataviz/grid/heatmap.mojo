@@ -395,9 +395,13 @@ def heatmap(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_strings(df, x, "heatmap()")
-    var y_values = _frame_strings(df, y, "heatmap()")
-    var value_values = _frame_floats(df, value, "heatmap()")
+    var x_values = _frame_strings(
+        df, x, "heatmap()", theme.missing, theme.missing_category_label
+    )
+    var y_values = _frame_strings(
+        df, y, "heatmap()", theme.missing, theme.missing_category_label
+    )
+    var value_values = _frame_floats(df, value, "heatmap()", theme.missing)
     return heatmap(
         x=x_values,
         y=y_values,

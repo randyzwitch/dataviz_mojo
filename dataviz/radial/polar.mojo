@@ -513,8 +513,8 @@ def polar(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var angle_values = _frame_floats(df, angle, "polar()")
-    var radius_values = _frame_floats(df, radius, "polar()")
+    var angle_values = _frame_floats(df, angle, "polar()", theme.missing)
+    var radius_values = _frame_floats(df, radius, "polar()", theme.missing)
     return polar(
         angle=angle_values,
         radius=radius_values,

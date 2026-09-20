@@ -297,9 +297,13 @@ def treemap(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var ids_values = _frame_strings(df, ids, "treemap()")
-    var parent_ids_values = _frame_strings(df, parent_ids, "treemap()")
-    var values_values = _frame_floats(df, values, "treemap()")
+    var ids_values = _frame_strings(
+        df, ids, "treemap()", theme.missing, theme.missing_category_label
+    )
+    var parent_ids_values = _frame_strings(
+        df, parent_ids, "treemap()", theme.missing, theme.missing_category_label
+    )
+    var values_values = _frame_floats(df, values, "treemap()", theme.missing)
     return treemap(
         ids=ids_values,
         parent_ids=parent_ids_values,

@@ -162,9 +162,13 @@ def punchcard(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_strings(df, x, "punchcard()")
-    var y_values = _frame_strings(df, y, "punchcard()")
-    var sizes_values = _frame_floats(df, sizes, "punchcard()")
+    var x_values = _frame_strings(
+        df, x, "punchcard()", theme.missing, theme.missing_category_label
+    )
+    var y_values = _frame_strings(
+        df, y, "punchcard()", theme.missing, theme.missing_category_label
+    )
+    var sizes_values = _frame_floats(df, sizes, "punchcard()", theme.missing)
     return punchcard(
         x=x_values,
         y=y_values,

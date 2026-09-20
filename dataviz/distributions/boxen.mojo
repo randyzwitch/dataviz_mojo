@@ -347,7 +347,14 @@ def boxenplot(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var groups = _frame_groups(df, category, value, "boxenplot()")
+    var groups = _frame_groups(
+        df,
+        category,
+        value,
+        "boxenplot()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return boxenplot(
         groups[0],
         groups[1],

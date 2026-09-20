@@ -764,12 +764,12 @@ def tricontour(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "tricontour()")
-    var y_values = _frame_floats(df, y, "tricontour()")
-    var z_values = _frame_floats(df, z, "tricontour()")
+    var x_values = _frame_floats(df, x, "tricontour()", theme.missing)
+    var y_values = _frame_floats(df, y, "tricontour()", theme.missing)
+    var z_values = _frame_floats(df, z, "tricontour()", theme.missing)
     var levels_values = List[Float64]()
     if levels.byte_length() > 0:
-        levels_values = _frame_floats(df, levels, "tricontour()")
+        levels_values = _frame_floats(df, levels, "tricontour()", theme.missing)
     return tricontour(
         x=x_values,
         y=y_values,

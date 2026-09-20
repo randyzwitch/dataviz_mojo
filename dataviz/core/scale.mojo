@@ -15,7 +15,7 @@ times a power of ten, so labels read as 0.2/0.4/0.6 rather than
 from std.math import ceil, floor, log10, pow
 
 from morrow import Morrow, TimeZone
-from std.utils.numerics import isfinite
+from std.utils.numerics import inf, isfinite, isnan
 
 from canvas.geometry import round_to_int
 
@@ -44,8 +44,9 @@ struct MinMax(ImplicitlyCopyable, Movable):
 
 
 def _min_max(data: List[Float64]) raises -> MinMax:
-    """Return `data`'s minimum and maximum. Raises on an empty list or non-finite
-    (`NaN`/`inf`) value.
+    """Return `data`'s minimum and maximum, skipping missing (`NaN`)
+    values. Raises on an empty list, an infinity, or a column that is
+    missing throughout.
 
     Every list this package computes a spatial or color/size domain from
     passes through here first (`_data_extent`, `_zero_baseline_y_extent`,
@@ -69,10 +70,17 @@ def _min_max(data: List[Float64]) raises -> MinMax:
     """
     if len(data) == 0:
         raise Error("_min_max(): can't take the min/max of an empty column")
-    var lo = data[0]
-    var hi = data[0]
+    var lo = inf[DType.float64]()
+    var hi = -inf[DType.float64]()
+    var seen = 0
     for i in range(len(data)):
         var v = data[i]
+        # A missing value has no place in a domain, but it is not an
+        # error: `Missing.RAISE` refuses it earlier, at encode time
+        # (validate.mojo), so anything reaching here under the default
+        # policy is a gap the marks draw around (#367).
+        if isnan(v):
+            continue
         if not isfinite(v):
             raise Error(
                 "_min_max(): every value must be finite -- got "
@@ -84,6 +92,12 @@ def _min_max(data: List[Float64]) raises -> MinMax:
             lo = v
         if v > hi:
             hi = v
+        seen += 1
+    if seen == 0:
+        raise Error(
+            "_min_max(): every value in this column is missing, so it has"
+            " no minimum or maximum to scale against"
+        )
     return MinMax(lo, hi)
 
 

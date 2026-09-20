@@ -305,7 +305,14 @@ def beeswarm(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var groups = _frame_groups(df, category, value, "beeswarm()")
+    var groups = _frame_groups(
+        df,
+        category,
+        value,
+        "beeswarm()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return beeswarm(
         groups[0],
         groups[1],

@@ -164,8 +164,16 @@ def nightingale(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "nightingale()")
-    var values_values = _frame_floats(df, values, "nightingale()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "nightingale()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(
+        df, values, "nightingale()", theme.missing
+    )
     return nightingale(
         categories=categories_values,
         values=values_values,

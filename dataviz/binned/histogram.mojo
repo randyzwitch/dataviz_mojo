@@ -1876,10 +1876,12 @@ def histogram(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var data_values = _frame_floats(df, data, "histogram()")
+    var data_values = _frame_floats(df, data, "histogram()", theme.missing)
     var weights_values = List[Float64]()
     if weights.byte_length() > 0:
-        weights_values = _frame_floats(df, weights, "histogram()")
+        weights_values = _frame_floats(
+            df, weights, "histogram()", theme.missing
+        )
     return histogram(
         data=data_values,
         weights=weights_values,

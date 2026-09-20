@@ -1,6 +1,7 @@
 """Shared encoding and render-time validation."""
 
-from std.math import isfinite, log10
+from std.math import log10
+from std.utils.numerics import isfinite, isnan
 
 from dataviz.basic.continuous import (
     _draw_area_layer,
@@ -22,6 +23,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
+from dataviz.core.missing import Missing
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
 
@@ -710,6 +712,54 @@ def _check_grid_coordinates(
                 + " before it. Use Plot.scale_"
                 + ("x" if name == "x" else "y")
                 + "_reverse() to reverse the axis."
+            )
+
+
+def _check_missing_policy(plot: Plot) raises:
+    """Refuse missing values when the theme asks for strictness (#367).
+
+    `Missing.DRAW`, the default, lets a `NaN` through to the marks,
+    which draw around it: a line breaks, a point is not drawn. This is
+    the other policy, which the issue asked to keep available: every
+    numeric channel is checked and the first missing value is named.
+
+    Infinity is not checked here. It is refused under either policy, by
+    `_min_max` (scale.mojo), because it is not a missing measurement but
+    a number no axis can place.
+
+    Args:
+        plot: The chart about to render.
+
+    Raises:
+        Error: `Theme.missing` is `Missing.RAISE` and a numeric channel
+            holds a missing value.
+    """
+    if plot._theme.missing != Missing.RAISE:
+        return
+    _reject_missing(plot._continuous.x, "x")
+    _reject_missing(plot._continuous.y, "y")
+    _reject_missing(plot._channels.color, "color")
+    _reject_missing(plot._channels.size, "size")
+
+
+def _reject_missing(values: List[Float64], channel: String) raises:
+    """Raise on the first missing value in one channel.
+
+    Args:
+        values: The channel's column.
+        channel: Its name, for the message.
+
+    Raises:
+        Error: A value is missing.
+    """
+    for i in range(len(values)):
+        if isnan(values[i]):
+            raise Error(
+                "Theme(missing=Missing.RAISE): the "
+                + channel
+                + " channel has a missing value at index "
+                + String(i)
+                + ". Missing.DRAW, the default, draws around it instead"
             )
 
 

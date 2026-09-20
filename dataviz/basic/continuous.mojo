@@ -1,5 +1,6 @@
 """Point, line, and area rendering and their one-call constructors."""
 
+from std.utils.numerics import isnan
 from std.math import floor, sin
 
 from canvas.color import Color
@@ -57,6 +58,59 @@ from dataviz.core.step_style import StepStyle
 from dataviz.core.text import _Scaled, _TextRequest, _text_advance
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _check_line_smoothing, _check_step_smoothing
+
+
+def _is_missing(value: Float64) -> Bool:
+    """Whether a value is missing. `NaN` is the marker every column
+    carries once it is inside a `Plot` (missing.mojo, #367)."""
+    return isnan(value)
+
+
+struct _Run(Movable):
+    """One stretch of consecutive present points."""
+
+    var px: List[Float64]
+    var py: List[Float64]
+
+    def __init__(out self, var px: List[Float64], var py: List[Float64]):
+        self.px = px^
+        self.py = py^
+
+
+def _present_runs(px: List[Float64], py: List[Float64]) -> List[_Run]:
+    """Split parallel coordinate lists into the stretches with no
+    missing value in them.
+
+    A line is drawn one run at a time, so a hole in the data leaves a
+    hole in the line. Joining across it would draw a segment nobody
+    measured, which is the one thing #367 says no mark may do.
+
+    A run of a single point draws nothing: a line needs two ends. That
+    point is still in the data, and a scatter over the same column
+    draws it.
+
+    Args:
+        px: Projected x pixels, with `NaN` where a value is missing.
+        py: Projected y pixels, likewise.
+
+    Returns:
+        The runs, in order; empty when every point is missing.
+    """
+    var runs = List[_Run]()
+    var cur_x = List[Float64]()
+    var cur_y = List[Float64]()
+    for i in range(len(px)):
+        if _is_missing(px[i]) or _is_missing(py[i]):
+            if len(cur_x) > 0:
+                runs.append(_Run(cur_x^, cur_y^))
+                cur_x = List[Float64]()
+                cur_y = List[Float64]()
+            continue
+        cur_x.append(px[i])
+        cur_y.append(py[i])
+    if len(cur_x) > 0:
+        runs.append(_Run(cur_x^, cur_y^))
+    return runs^
 
 
 def _build_line_path(
@@ -505,6 +559,14 @@ def _draw_point_layer[
     var batch_colors = List[Color]()
 
     for i in range(len(plot._continuous.y)):
+        # A point with a missing coordinate is not drawn at all: there is
+        # no position to draw it at, and every channel that would
+        # decorate it -- color, size, error bar, label, tooltip -- goes
+        # with it, which is what keeps the channels aligned (#367).
+        if _is_missing(plot._continuous.y[i]) or (
+            len(band_px) == 0 and _is_missing(plot._continuous.x[i])
+        ):
+            continue
         var px = band_px[i] if len(band_px) > 0 else _axis_pixel_f(
             x_scale, plot._continuous.x[i]
         )
@@ -845,19 +907,26 @@ def _draw_line_layer[
             > 0 else x_scale.to_pixel(plot._continuous.x[i])
         )
         py.append(y_scale.to_pixel(plot._continuous.y[i]))
-    # Thin the expanded geometry so step risers retain their true positions.
-    var stepped = _step_points(px, py, plot._mark_style.step)
-    # Drop sub-pixel detail before the rasterizer has to pay for it --
-    # a no-op for any series small enough that its points are
-    # individually resolvable (see _decimate_to_pixel_columns).
-    var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
-    var path = _build_line_path(thinned.px, thinned.py, theme.line_smoothing)
-    target.stroke_path_aa(
-        path,
-        theme.mark_color,
-        width=sc.line_width,
-        dashes=plot._mark_style.line_style.dashes(sc.scale),
-    )
+    # One path per run of present points, so a missing observation
+    # leaves a gap rather than a segment across it (#367). A series with
+    # nothing missing is one run, and nothing changes for it.
+    for run in _present_runs(px, py):
+        # Thin the expanded geometry so step risers retain their true
+        # positions.
+        var stepped = _step_points(run.px, run.py, plot._mark_style.step)
+        # Drop sub-pixel detail before the rasterizer has to pay for it
+        # -- a no-op for any series small enough that its points are
+        # individually resolvable (see _decimate_to_pixel_columns).
+        var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
+        var path = _build_line_path(
+            thinned.px, thinned.py, theme.line_smoothing
+        )
+        target.stroke_path_aa(
+            path,
+            theme.mark_color,
+            width=sc.line_width,
+            dashes=plot._mark_style.line_style.dashes(sc.scale),
+        )
     target.pop_clip()
 
 
@@ -908,15 +977,24 @@ def _draw_area_layer[
     # _draw_line_layer's own comment spells out: thin the geometry that
     # is actually drawn, so the two-points-per-column cap applies to the
     # staircase rather than being half undone by expanding after it.
-    var stepped = _step_points(px, py, plot._mark_style.step)
-    # Same sub-pixel thinning the stroked path gets; the fill's top edge is
-    # that curve.
-    var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
-    var path = _build_line_path(thinned.px, thinned.py, theme.line_smoothing)
-    path.line_to(thinned.px[len(thinned.px) - 1], baseline_py)
-    path.line_to(thinned.px[0], baseline_py)
-    path.close()
-    target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
+    # One filled region per run of present points: a gap in the data is
+    # a gap in the band, not a panel filled across it (#367). A run of a
+    # single point has no width to fill and is skipped, as the stroked
+    # line skips it.
+    for run in _present_runs(px, py):
+        var stepped = _step_points(run.px, run.py, plot._mark_style.step)
+        # Same sub-pixel thinning the stroked path gets; the fill's top
+        # edge is that curve.
+        var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
+        if len(thinned.px) < 2:
+            continue
+        var path = _build_line_path(
+            thinned.px, thinned.py, theme.line_smoothing
+        )
+        path.line_to(thinned.px[len(thinned.px) - 1], baseline_py)
+        path.line_to(thinned.px[0], baseline_py)
+        path.close()
+        target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
     target.pop_clip()
 
 
@@ -964,9 +1042,12 @@ def scatter(
             channel, or has missing values.
 
     """
+    # The theme goes on first: `encode_frame` reads `Theme.missing` and
+    # `Theme.missing_category_label` as it reads the columns (#367).
     var plot = (
         Plot()
         .mark_point()
+        .theme(theme)
         .encode_frame(df, x=x, y=y, color=color, size=size, labels=labels)
     )
     return _finished(
@@ -1014,7 +1095,9 @@ def line(
         Error: A named column is missing, is not numeric, or has
             missing values.
     """
-    var plot = Plot().mark_line(step=step).encode_frame(df, x=x, y=y)
+    var plot = (
+        Plot().mark_line(step=step).theme(theme).encode_frame(df, x=x, y=y)
+    )
     return _finished(
         plot^,
         theme,

@@ -448,11 +448,20 @@ def test_min_max_raises_on_an_empty_column() raises:
         _ = _min_max(List[Float64]())
 
 
-def test_min_max_raises_on_nan_anywhere_not_only_at_the_extremes() raises:
-    with assert_raises():
-        _ = _min_max([nan[DType.float64](), 2.0, 3.0])
-    with assert_raises():
-        _ = _min_max([1.0, nan[DType.float64](), 3.0])
+def test_min_max_skips_nan_anywhere_not_only_at_the_extremes() raises:
+    # #367 made NaN the marker for a missing observation, so a domain is
+    # taken from what is there. It was an error before that.
+    var leading = _min_max([nan[DType.float64](), 2.0, 3.0])
+    assert_equal(leading.min, 2.0, "a missing first value is skipped")
+    assert_equal(leading.max, 3.0)
+    var middle = _min_max([1.0, nan[DType.float64](), 3.0])
+    assert_equal(middle.min, 1.0, "and a missing middle one")
+    assert_equal(middle.max, 3.0)
+
+
+def test_min_max_raises_when_every_value_is_missing() raises:
+    with assert_raises(contains="every value in this column is missing"):
+        _ = _min_max([nan[DType.float64](), nan[DType.float64]()])
 
 
 def test_min_max_raises_on_inf() raises:
@@ -462,18 +471,19 @@ def test_min_max_raises_on_inf() raises:
         _ = _min_max([1.0, 2.0, -inf[DType.float64]()])
 
 
-def test_render_raises_on_nan_or_inf_in_encoded_data() raises:
-    # End-to-end: a non-finite value reaching encode()/render() must
-    # raise, not silently emit Int64::MIN as an SVG coordinate.
+def test_render_draws_around_nan_but_still_raises_on_inf() raises:
+    # End-to-end: an infinity reaching encode()/render() must raise
+    # rather than silently emit Int64::MIN as an SVG coordinate. A NaN
+    # is a missing observation since #367 and is drawn around, which
+    # `tests/test_missing_data.mojo` covers in full.
     var xs: List[Float64] = [1.0, 2.0, 3.0]
-    with assert_raises():
-        var plot = (
-            Plot()
-            .mark_point()
-            .encode(x=xs, y=[1.0, nan[DType.float64](), 3.0])
-            .size(200, 150)
-        )
-        _ = render(plot)
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode(x=xs, y=[1.0, nan[DType.float64](), 3.0])
+        .size(200, 150)
+    )
+    _ = render(plot)
     with assert_raises():
         var plot = (
             Plot()

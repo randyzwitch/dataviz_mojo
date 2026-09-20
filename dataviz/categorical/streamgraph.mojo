@@ -341,7 +341,15 @@ def streamgraph(
             channel, has missing values, or the (series, category) pairs
             are not exactly one per cell.
     """
-    var pivot = _frame_series(df, category, series, value, "streamgraph()")
+    var pivot = _frame_series(
+        df,
+        category,
+        series,
+        value,
+        "streamgraph()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return streamgraph(
         pivot[0],
         pivot[1],
@@ -507,7 +515,15 @@ def stacked_area(
             channel, has missing values, or the (series, category) pairs
             are not exactly one per cell.
     """
-    var pivot = _frame_series(df, category, series, value, "stacked_area()")
+    var pivot = _frame_series(
+        df,
+        category,
+        series,
+        value,
+        "stacked_area()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return stacked_area(
         pivot[0],
         pivot[1],

@@ -328,9 +328,21 @@ def sankey(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var from_categories_values = _frame_strings(df, from_categories, "sankey()")
-    var to_categories_values = _frame_strings(df, to_categories, "sankey()")
-    var values_values = _frame_floats(df, values, "sankey()")
+    var from_categories_values = _frame_strings(
+        df,
+        from_categories,
+        "sankey()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var to_categories_values = _frame_strings(
+        df,
+        to_categories,
+        "sankey()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "sankey()", theme.missing)
     return sankey(
         from_categories=from_categories_values,
         to_categories=to_categories_values,

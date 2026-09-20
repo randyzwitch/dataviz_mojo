@@ -23,7 +23,10 @@ from dataviz import (
     violin,
 )
 from dataviz.core.frame_input import _frame_groups, _frame_series
+from dataviz.core.missing import Missing
+from dataviz.core.theme import Theme
 from dataviz.plot import render_svg
+from std.utils.numerics import isnan
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -187,7 +190,29 @@ def test_a_long_frame_mark_takes_its_own_options() raises:
     assert_true(wide != narrow, "width_fraction reaches the mark")
 
 
-def test_a_hole_in_either_column_raises() raises:
+def test_a_hole_in_the_value_column_drops_that_observation() raises:
+    """#367: the value is missing, so that one observation leaves the
+    group; the other two stay, and their category still has a box."""
+    var df = DataFrame(
+        [
+            Series("species", Column[String](["a", "a", "a"])),
+            Series(
+                "mass_kg",
+                Column[Float64]([1.0, 2.0, 3.0], [True, False, True]),
+            ),
+        ]
+    )
+    var groups = _frame_groups(df, "species", "mass_kg", "t")
+    ref values = groups[1]
+    assert_equal(len(values[0]), 3, "the row is still in the group")
+    assert_true(isnan(values[0][1]), "carried as a missing value")
+    var svg = render_svg(
+        box(df, category="species", value="mass_kg", width=320, height=240)
+    ).to_string()
+    assert_true(">a<" in svg, "the category is still drawn")
+
+
+def test_strict_mode_still_refuses_a_hole_in_the_value_column() raises:
     var df = DataFrame(
         [
             Series("species", Column[String](["a", "b", "c"])),
@@ -198,7 +223,12 @@ def test_a_hole_in_either_column_raises() raises:
         ]
     )
     with assert_raises(contains='column "mass_kg" has 1 missing value(s)'):
-        _ = box(df, category="species", value="mass_kg")
+        _ = box(
+            df,
+            category="species",
+            value="mass_kg",
+            theme=Theme(missing=Missing.RAISE),
+        )
 
 
 def test_a_numeric_category_column_is_refused() raises:

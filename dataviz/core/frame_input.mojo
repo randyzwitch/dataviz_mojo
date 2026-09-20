@@ -3,12 +3,18 @@
 
 A dataframe column is a payload buffer plus an Arrow-style validity
 bitmap, so two things have to come out of it: the values, and which of
-them are there at all. These helpers read both and refuse a column that
-carries a missing value, naming it, because what a mark *draws* for a
-gap -- a break in a line, a skipped point, a value left out of an
-estimate -- is #367 and is not decided yet. Refusing is the honest
-placeholder: it cannot silently drop a row or plot a zero where the
-data says nothing.
+them are there at all. Both come out, and what happens to a gap follows
+`Theme.missing` (#367):
+
+- A **value** column's invalid slots become `NaN`, the marker every
+  column carries inside a `Plot`. The marks draw around it -- a line
+  breaks, a point is not drawn.
+- A **category** column's invalid slots become
+  `Theme.missing_category_label`, because "not recorded" is a label a
+  reader can use, and dropping those rows would throw away
+  observations whose value is perfectly good.
+- Under `Missing.RAISE` both are refused at the boundary, naming the
+  column and the first row.
 
 Values are read straight out of Arrow's buffers -- `Column.
 unsafe_values()` for the payload, `is_valid` for the bit -- rather than
@@ -27,9 +33,13 @@ in each function for as long as its pointer is read, which is what the
 buffer accessors require.
 """
 
+from std.utils.numerics import nan
+
 from dataframe import DataFrame
 from dataframe.dtype import DataType
 from dataframe.series import Series
+
+from dataviz.core.missing import Missing
 
 
 def _frame_column(df: DataFrame, name: String, caller: String) raises -> Series:
@@ -60,23 +70,27 @@ def _frame_column(df: DataFrame, name: String, caller: String) raises -> Series:
         )
 
 
-def _reject_nulls(series: Series, name: String, caller: String) raises:
-    """Refuse a column with missing values, naming the first row that is
-    missing one.
+def _reject_nulls(
+    series: Series, name: String, caller: String, missing: Missing
+) raises:
+    """Refuse a column with missing values under `Missing.RAISE`, naming
+    the first row that is missing one.
 
-    What each mark draws for a gap is #367. Until that is decided, a
-    column with holes cannot be plotted without inventing an answer
-    here, so this raises instead.
+    Under `Missing.DRAW` this returns and the caller carries the gap
+    through -- as `NaN` for a value column, as
+    `Theme.missing_category_label` for a category column.
 
     Args:
         series: The column to check.
         name: Its name, for the message.
         caller: The public function to name in an error.
+        missing: The policy in force.
 
     Raises:
-        Error: The column has at least one missing value.
+        Error: The policy is `Missing.RAISE` and the column has at least
+            one missing value.
     """
-    if series.null_count() == 0:
+    if missing != Missing.RAISE or series.null_count() == 0:
         return
     var first = 0
     for i in range(len(series)):
@@ -91,14 +105,17 @@ def _reject_nulls(series: Series, name: String, caller: String) raises:
         + String(series.null_count())
         + " missing value(s), the first at row "
         + String(first)
-        + ". What a mark draws for a gap is not decided yet"
-        " (dataviz_mojo#367); drop or fill them first, with"
-        " DataFrame.drop_nulls() or DataFrame.fill_null()"
+        + ". Theme(missing=Missing.DRAW), the default, draws around"
+        " them instead; DataFrame.drop_nulls() and fill_null() are the"
+        " other way"
     )
 
 
 def _frame_floats(
-    df: DataFrame, name: String, caller: String
+    df: DataFrame,
+    name: String,
+    caller: String,
+    missing: Missing = Missing.DRAW,
 ) raises -> List[Float64]:
     """A numeric column as `List[Float64]`.
 
@@ -129,7 +146,7 @@ def _frame_floats(
             + ", which is not a numeric column. A continuous channel"
             " needs numbers"
         )
-    _reject_nulls(series, name, caller)
+    _reject_nulls(series, name, caller, missing)
     # `numeric` needs the exact dtype, and every axis here is Float64,
     # so the column is cast first. The cast is explicit on purpose:
     # dataframe_mojo does not promote on read, and a Float64 column's
@@ -137,9 +154,15 @@ def _frame_floats(
     var typed = series.cast(DataType.FLOAT64)
     var column = typed.numeric[DType.float64]()
     var values = column.unsafe_values()
+    # An invalid slot holds whatever the buffer holds, as in Arrow, so
+    # the validity bit decides -- never the payload.
+    var holes = column.null_count() > 0
     var out = List[Float64](capacity=len(typed))
     for i in range(len(typed)):
-        out.append(values[i])
+        if holes and not column.is_valid(i):
+            out.append(nan[DType.float64]())
+        else:
+            out.append(values[i])
     # `typed` owns the buffer `values` points into, so it has to outlive
     # the loop above; this keeps it alive past the last read.
     _ = typed.null_count()
@@ -147,7 +170,11 @@ def _frame_floats(
 
 
 def _frame_strings(
-    df: DataFrame, name: String, caller: String
+    df: DataFrame,
+    name: String,
+    caller: String,
+    missing: Missing = Missing.DRAW,
+    label: String = "(missing)",
 ) raises -> List[String]:
     """A string column as `List[String]`, for a categorical channel.
 
@@ -174,15 +201,28 @@ def _frame_strings(
             + ", not a string column. A categorical channel needs"
             " strings; cast it first if the categories are numbers"
         )
-    _reject_nulls(series, name, caller)
+    _reject_nulls(series, name, caller, missing)
     # `string()` hands over the shared `StringColumn`, whose `to_list`
     # walks the `large_utf8` bytes and offsets directly -- no `AnyValue`
     # per row, the same shape as the numeric path above.
-    return series.string().to_list()
+    var column = series.string()
+    var out = column.to_list()
+    if column.null_count() > 0:
+        # A missing category is a label, not a hole: the rows stay, under
+        # a name of their own (#367). `to_list` reads a null as "", which
+        # is a real category a frame can also hold, so the validity bit
+        # decides, not the value.
+        for i in range(len(out)):
+            if not column.is_valid(i):
+                out[i] = label
+    return out^
 
 
 def _frame_bools(
-    df: DataFrame, name: String, caller: String
+    df: DataFrame,
+    name: String,
+    caller: String,
+    missing: Missing = Missing.DRAW,
 ) raises -> List[Bool]:
     """A boolean column as `List[Bool]`, for the flag channels
     (`waterfall()`'s `is_total`).
@@ -209,7 +249,10 @@ def _frame_bools(
             + series.dtype().name()
             + ", not a boolean column"
         )
-    _reject_nulls(series, name, caller)
+    # A flag is neither a measurement nor a label: there is no third
+    # state for it to take, so a missing one is refused under either
+    # policy.
+    _reject_nulls(series, name, caller, Missing.RAISE)
     var out = List[Bool](capacity=len(series))
     for i in range(len(series)):
         out.append(series.get(i).bool())
@@ -217,7 +260,12 @@ def _frame_bools(
 
 
 def _frame_groups(
-    df: DataFrame, category: String, value: String, caller: String
+    df: DataFrame,
+    category: String,
+    value: String,
+    caller: String,
+    missing: Missing = Missing.DRAW,
+    label: String = "(missing)",
 ) raises -> Tuple[List[String], List[List[Float64]]]:
     """A long-form frame as the `(categories, values)` pair the
     distribution and multi-series marks take.
@@ -233,6 +281,9 @@ def _frame_groups(
         category: The string column naming each observation's group.
         value: The numeric column holding the observations.
         caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
+        label: What an absent category is called
+            (`Theme.missing_category_label`).
 
     Returns:
         The categories in first-appearance order, and one list of
@@ -242,8 +293,8 @@ def _frame_groups(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var keys = _frame_strings(df, category, caller)
-    var values = _frame_floats(df, value, caller)
+    var keys = _frame_strings(df, category, caller, missing, label)
+    var values = _frame_floats(df, value, caller, missing)
     if len(keys) != len(values):
         raise Error(
             caller
@@ -278,6 +329,8 @@ def _frame_series(
     series: String,
     value: String,
     caller: String,
+    missing: Missing = Missing.DRAW,
+    label: String = "(missing)",
 ) raises -> Tuple[List[String], List[String], List[List[Float64]]]:
     """A long-form frame as the `(categories, series_names, values)`
     triple the multi-series marks take, where `values[j]` is series
@@ -294,6 +347,9 @@ def _frame_series(
         series: The string column naming each series.
         value: The numeric column holding each cell.
         caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
+        label: What an absent category is called
+            (`Theme.missing_category_label`).
 
     Returns:
         The categories, the series names, and one row of values per
@@ -303,9 +359,9 @@ def _frame_series(
         Error: A named column is missing, has the wrong dtype, has
             missing values, or the pairs are not exactly one per cell.
     """
-    var cats = _frame_strings(df, category, caller)
-    var names = _frame_strings(df, series, caller)
-    var numbers = _frame_floats(df, value, caller)
+    var cats = _frame_strings(df, category, caller, missing, label)
+    var names = _frame_strings(df, series, caller, missing, label)
+    var numbers = _frame_floats(df, value, caller, missing)
     if len(cats) != len(names) or len(cats) != len(numbers):
         raise Error(
             caller

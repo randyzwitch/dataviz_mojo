@@ -309,9 +309,13 @@ def tree(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var ids_values = _frame_strings(df, ids, "tree()")
-    var parent_ids_values = _frame_strings(df, parent_ids, "tree()")
-    var values_values = _frame_floats(df, values, "tree()")
+    var ids_values = _frame_strings(
+        df, ids, "tree()", theme.missing, theme.missing_category_label
+    )
+    var parent_ids_values = _frame_strings(
+        df, parent_ids, "tree()", theme.missing, theme.missing_category_label
+    )
+    var values_values = _frame_floats(df, values, "tree()", theme.missing)
     return tree(
         ids=ids_values,
         parent_ids=parent_ids_values,

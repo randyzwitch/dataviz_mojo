@@ -10,6 +10,7 @@ adapter, and that one is the claim that it adapts and nothing else.
 from dataframe import Column, DataFrame, Series
 
 from dataviz import Plot, bar, line, scatter
+from dataviz.core.missing import Missing
 from dataviz.core.theme import Theme
 from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -187,15 +188,30 @@ def test_a_numeric_column_is_refused_for_a_categorical_channel() raises:
         )
 
 
-def test_a_column_with_holes_raises_and_points_at_the_open_question() raises:
-    """What a mark draws for a gap is #367. Until that is decided the
-    adapter refuses rather than dropping the row or drawing a zero."""
+def test_a_column_with_holes_draws_around_them() raises:
+    """#367 decided this: a missing value is a gap, not an error. The
+    row's point is not drawn, and the rest of the column is."""
+    var svg = render_svg(
+        scatter(_frame(), x="amount", y="holes", width=320, height=240)
+    ).to_string()
+    assert_equal(svg.count("<circle"), 2, "two of three points")
+
+
+def test_strict_mode_still_refuses_a_column_with_holes() raises:
     with assert_raises(contains='column "holes" has 1 missing value(s)'):
-        _ = scatter(_frame(), x="amount", y="holes")
+        _ = scatter(
+            _frame(),
+            x="amount",
+            y="holes",
+            theme=Theme(missing=Missing.RAISE),
+        )
     with assert_raises(contains="the first at row 1"):
-        _ = scatter(_frame(), x="amount", y="holes")
-    with assert_raises(contains="dataviz_mojo#367"):
-        _ = scatter(_frame(), x="amount", y="holes")
+        _ = scatter(
+            _frame(),
+            x="amount",
+            y="holes",
+            theme=Theme(missing=Missing.RAISE),
+        )
 
 
 def test_a_categorical_x_refuses_the_point_only_channels() raises:

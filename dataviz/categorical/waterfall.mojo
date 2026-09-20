@@ -411,11 +411,19 @@ def waterfall(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "waterfall()")
-    var deltas_values = _frame_floats(df, deltas, "waterfall()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "waterfall()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var deltas_values = _frame_floats(df, deltas, "waterfall()", theme.missing)
     var is_total_values = List[Bool]()
     if is_total.byte_length() > 0:
-        is_total_values = _frame_bools(df, is_total, "waterfall()")
+        is_total_values = _frame_bools(
+            df, is_total, "waterfall()", theme.missing
+        )
     return waterfall(
         categories=categories_values,
         deltas=deltas_values,

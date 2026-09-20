@@ -224,8 +224,10 @@ def funnel(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "funnel()")
-    var values_values = _frame_floats(df, values, "funnel()")
+    var categories_values = _frame_strings(
+        df, categories, "funnel()", theme.missing, theme.missing_category_label
+    )
+    var values_values = _frame_floats(df, values, "funnel()", theme.missing)
     return funnel(
         categories=categories_values,
         values=values_values,

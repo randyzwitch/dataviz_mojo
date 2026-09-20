@@ -385,8 +385,8 @@ def hist2d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "hist2d()")
-    var y_values = _frame_floats(df, y, "hist2d()")
+    var x_values = _frame_floats(df, x, "hist2d()", theme.missing)
+    var y_values = _frame_floats(df, y, "hist2d()", theme.missing)
     return hist2d(
         x=x_values,
         y=y_values,

@@ -419,10 +419,10 @@ def barbs(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "barbs()")
-    var y_values = _frame_floats(df, y, "barbs()")
-    var u_values = _frame_floats(df, u, "barbs()")
-    var v_values = _frame_floats(df, v, "barbs()")
+    var x_values = _frame_floats(df, x, "barbs()", theme.missing)
+    var y_values = _frame_floats(df, y, "barbs()", theme.missing)
+    var u_values = _frame_floats(df, u, "barbs()", theme.missing)
+    var v_values = _frame_floats(df, v, "barbs()", theme.missing)
     return barbs(
         x=x_values,
         y=y_values,
