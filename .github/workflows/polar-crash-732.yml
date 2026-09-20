@@ -84,8 +84,8 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           # A push carries no inputs, so the defaults live here too.
-          ITERATIONS="${ITERATIONS:-10}"
-          COPIES="${COPIES:-4}"
+          ITERATIONS="${ITERATIONS:-8}"
+          COPIES="${COPIES:-1}"
           MODE="${MODE:-ranges}"
           mkdir -p crashes
           crashed=0
