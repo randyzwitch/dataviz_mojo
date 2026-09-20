@@ -3,6 +3,8 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from std.utils.numerics import isnan
+
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.grid.heatmap import _draw_grid_axis_frame
@@ -151,6 +153,10 @@ def _render_corrplot[
                         value,
                     )
                 )
+            # A missing correlation is left blank rather than drawn at
+            # one end of the ramp (#367).
+            if isnan(value):
+                continue
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
             if tooltips_on:
                 target.end_annotated_group()

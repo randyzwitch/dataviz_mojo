@@ -2096,9 +2096,16 @@ def test_imshow_and_pcolormesh_validation_raises_name_what_is_wrong() raises:
     with assert_raises(contains="Plot.encode_imshow()"):
         _ = render(imshow(empty, theme=t, width=200, height=150))
 
-    var nan_grid: List[List[Float64]] = [[0.0, Float64("nan")]]
+    # A missing cell is drawn as background since #367; an infinity is
+    # still refused, and a grid that is missing throughout has no
+    # limits. `tests/test_missing_data.mojo` covers the drawing.
+    var inf_grid: List[List[Float64]] = [[0.0, Float64("inf")]]
     with assert_raises(contains="must be finite"):
-        _ = render(imshow(nan_grid, theme=t, width=200, height=150))
+        _ = render(imshow(inf_grid, theme=t, width=200, height=150))
+
+    var all_missing: List[List[Float64]] = [[Float64("nan"), Float64("nan")]]
+    with assert_raises(contains="every cell in this grid is missing"):
+        _ = render(imshow(all_missing, theme=t, width=200, height=150))
 
     var z: List[List[Float64]] = [[0.0, 1.0], [1.0, 0.0]]
     var short_edges: List[Float64] = [0.0, 1.0]

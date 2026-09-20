@@ -16,6 +16,8 @@ from canvas.geometry import FPoint
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from std.utils.numerics import inf, isnan
+
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -166,13 +168,19 @@ def _grid_min_max(z: List[List[Float64]]) raises -> Tuple[Float64, Float64]:
         (min, max).
 
     Raises:
-        Error: Any value is `NaN` or infinite.
+        Error: Any value is infinite, or every cell is missing.
     """
-    var lo = z[0][0]
-    var hi = z[0][0]
+    var lo = inf[DType.float64]()
+    var hi = -inf[DType.float64]()
+    var seen = 0
     for r in range(len(z)):
         for c in range(len(z[r])):
             var v = z[r][c]
+            # A missing cell is drawn as background and takes no part in
+            # the color limits, so the ramp still spans the data that is
+            # there (#367). An infinity is refused as before.
+            if isnan(v):
+                continue
             if not isfinite(v):
                 raise Error(
                     "Plot.encode_imshow(): every value must be finite -- got "
@@ -187,6 +195,12 @@ def _grid_min_max(z: List[List[Float64]]) raises -> Tuple[Float64, Float64]:
                 lo = v
             if v > hi:
                 hi = v
+            seen += 1
+    if seen == 0:
+        raise Error(
+            "Plot.encode_imshow(): every cell in this grid is missing, so"
+            " it has no color limits to scale against"
+        )
     return (lo, hi)
 
 
@@ -339,6 +353,20 @@ def _fill_cells[
             var right = max(xa, xb)
             if right <= left:
                 continue
+            # A missing cell draws nothing, exactly as a skipped zero
+            # does, so the background shows through (#367).
+            if isnan(z[r][c]):
+                if run_open:
+                    target.fill_rect(
+                        run_left,
+                        top,
+                        run_right - run_left,
+                        bottom - top,
+                        run_color,
+                    )
+                    filled += 1
+                    run_open = False
+                continue
             if skip_zero and z[r][c] == 0.0:
                 if run_open:
                     target.fill_rect(
@@ -449,6 +477,14 @@ def _draw_cells_as_image[
         for i in range(img_w):
             var c = ((2 * i + 1) * cols) // (2 * img_w)
             var ci = cols - 1 - c if flip_cols else c
+            # The bulk path writes every pixel, so a missing cell is
+            # written transparent rather than skipped (#367).
+            if isnan(z[ri][ci]):
+                pixels.append(0)
+                pixels.append(0)
+                pixels.append(0)
+                pixels.append(0)
+                continue
             var color = color_scale.color_at(z[ri][ci])
             pixels.append(color.r)
             pixels.append(color.g)
@@ -609,7 +645,7 @@ def _fill_quad_cells[
     for r in range(rows):
         for c in range(len(z[r])):
             var value = z[r][c]
-            if skip_zero and value == 0.0:
+            if isnan(value) or (skip_zero and value == 0.0):
                 continue
             var top_left = r * stride + c
             var top_right = top_left + 1

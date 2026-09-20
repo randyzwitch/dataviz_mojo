@@ -6,6 +6,8 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
+from std.utils.numerics import isnan
+
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
@@ -320,6 +322,11 @@ def _render_heatmap[
         var y_stop = frame.y_scale.band_end(y_idx.indices[i]) - 0.5
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
+        # A cell with no value is left as background rather than given a
+        # color off the ramp, which would read as a measurement at one
+        # end of the scale (#367).
+        if isnan(plot._heatmap.value[i]):
+            continue
         var color = color_scale.color_at(plot._heatmap.value[i])
         if tooltips_on:
             target.begin_annotated_group(
