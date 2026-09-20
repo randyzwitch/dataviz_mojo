@@ -22,6 +22,9 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import (
@@ -330,6 +333,63 @@ def _render_plot3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
+def scatter3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`scatter3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "scatter3d()")
+    var y_values = _frame_floats(df, y, "scatter3d()")
+    var z_values = _frame_floats(df, z, "scatter3d()")
+    return scatter3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+    )
+
+
 def scatter3d[
     dtype: DType
 ](
@@ -410,6 +470,63 @@ def scatter3d[
     )
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def plot3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`plot3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "plot3d()")
+    var y_values = _frame_floats(df, y, "plot3d()")
+    var z_values = _frame_floats(df, z, "plot3d()")
+    return plot3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )
 
 

@@ -32,6 +32,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import FPoint
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.basic.continuous import _lighten
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
@@ -623,6 +626,69 @@ def _render_voxels[
     var mesh = _voxel_mesh(plot, frame, shape, theme)
     mesh.draw(target)
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def bar3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    bar_width: Float64 = 0.8,
+    bar_depth: Float64 = 0.8,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`bar3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        bar_width: See the list overload.
+        bar_depth: See the list overload.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "bar3d()")
+    var y_values = _frame_floats(df, y, "bar3d()")
+    var z_values = _frame_floats(df, z, "bar3d()")
+    return bar3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        bar_width=bar_width,
+        bar_depth=bar_depth,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+    )
 
 
 def bar3d[

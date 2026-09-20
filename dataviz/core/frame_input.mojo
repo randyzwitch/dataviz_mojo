@@ -181,6 +181,41 @@ def _frame_strings(
     return series.string().to_list()
 
 
+def _frame_bools(
+    df: DataFrame, name: String, caller: String
+) raises -> List[Bool]:
+    """A boolean column as `List[Bool]`, for the flag channels
+    (`waterfall()`'s `is_total`).
+
+    Args:
+        df: The frame to read.
+        name: The column's name.
+        caller: The public function to name in an error.
+
+    Returns:
+        The column's values, in row order.
+
+    Raises:
+        Error: No such column, it is not boolean, or it has missing
+            values.
+    """
+    var series = _frame_column(df, name, caller)
+    if series.dtype() != DataType.BOOL:
+        raise Error(
+            caller
+            + ': column "'
+            + name
+            + '" is '
+            + series.dtype().name()
+            + ", not a boolean column"
+        )
+    _reject_nulls(series, name, caller)
+    var out = List[Bool](capacity=len(series))
+    for i in range(len(series)):
+        out.append(series.get(i).bool())
+    return out^
+
+
 def _frame_groups(
     df: DataFrame, category: String, value: String, caller: String
 ) raises -> Tuple[List[String], List[List[Float64]]]:

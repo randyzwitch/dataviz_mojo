@@ -32,6 +32,9 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import _Extent3D, _fit_frame3d
@@ -487,6 +490,63 @@ def _render_fill_between3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
+def stem3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`stem3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "stem3d()")
+    var y_values = _frame_floats(df, y, "stem3d()")
+    var z_values = _frame_floats(df, z, "stem3d()")
+    return stem3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+    )
+
+
 def stem3d[
     dtype: DType
 ](
@@ -564,6 +624,75 @@ def stem3d[
     )
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def quiver3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    u: String,
+    v: String,
+    w: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`quiver3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        u: The numeric column for this channel.
+        v: The numeric column for this channel.
+        w: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "quiver3d()")
+    var y_values = _frame_floats(df, y, "quiver3d()")
+    var z_values = _frame_floats(df, z, "quiver3d()")
+    var u_values = _frame_floats(df, u, "quiver3d()")
+    var v_values = _frame_floats(df, v, "quiver3d()")
+    var w_values = _frame_floats(df, w, "quiver3d()")
+    return quiver3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        u=u_values,
+        v=v_values,
+        w=w_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )
 
 
@@ -668,6 +797,75 @@ def quiver3d[
     )
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def fill_between3d(
+    df: DataFrame,
+    x1: String,
+    y1: String,
+    z1: String,
+    x2: String,
+    y2: String,
+    z2: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`fill_between3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x1: The numeric column for this channel.
+        y1: The numeric column for this channel.
+        z1: The numeric column for this channel.
+        x2: The numeric column for this channel.
+        y2: The numeric column for this channel.
+        z2: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x1_values = _frame_floats(df, x1, "fill_between3d()")
+    var y1_values = _frame_floats(df, y1, "fill_between3d()")
+    var z1_values = _frame_floats(df, z1, "fill_between3d()")
+    var x2_values = _frame_floats(df, x2, "fill_between3d()")
+    var y2_values = _frame_floats(df, y2, "fill_between3d()")
+    var z2_values = _frame_floats(df, z2, "fill_between3d()")
+    return fill_between3d(
+        x1=x1_values,
+        y1=y1_values,
+        z1=z1_values,
+        x2=x2_values,
+        y2=y2_values,
+        z2=z2_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )
 
 

@@ -29,6 +29,9 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -620,6 +623,63 @@ def wire3d[
     )
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def trisurf3d(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`trisurf3d()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        elev: See the list overload.
+        azim: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "trisurf3d()")
+    var y_values = _frame_floats(df, y, "trisurf3d()")
+    var z_values = _frame_floats(df, z, "trisurf3d()")
+    return trisurf3d(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )
 
 

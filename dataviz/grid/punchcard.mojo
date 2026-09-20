@@ -2,6 +2,9 @@ from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.grid.heatmap import _draw_grid_axis_frame
 from dataviz.core.mark import Mark
@@ -115,6 +118,66 @@ def _render_punchcard[
             target.end_annotated_group()
 
     return frame.result()
+
+
+def punchcard(
+    df: DataFrame,
+    x: String,
+    y: String,
+    sizes: String,
+    scale: Float64 = 10.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`punchcard()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The string column for this channel.
+        y: The string column for this channel.
+        sizes: The numeric column for this channel.
+        scale: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_strings(df, x, "punchcard()")
+    var y_values = _frame_strings(df, y, "punchcard()")
+    var sizes_values = _frame_floats(df, sizes, "punchcard()")
+    return punchcard(
+        x=x_values,
+        y=y_values,
+        sizes=sizes_values,
+        scale=scale,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def punchcard[

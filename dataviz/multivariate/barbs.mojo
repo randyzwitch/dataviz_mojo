@@ -4,6 +4,9 @@ from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, round_to_int
 from canvas.path import Path
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.plot import FontCache, _LegendLayout
 from canvas.vector.draw_target import DrawTarget
 
@@ -368,6 +371,73 @@ def _draw_barbs_layer[
                 theme.mark_color,
                 fill_rule=FillRule.NONZERO,
             )
+
+
+def barbs(
+    df: DataFrame,
+    x: String,
+    y: String,
+    u: String,
+    v: String,
+    length: Float64 = 28.0,
+    flip: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`barbs()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        u: The numeric column for this channel.
+        v: The numeric column for this channel.
+        length: See the list overload.
+        flip: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "barbs()")
+    var y_values = _frame_floats(df, y, "barbs()")
+    var u_values = _frame_floats(df, u, "barbs()")
+    var v_values = _frame_floats(df, v, "barbs()")
+    return barbs(
+        x=x_values,
+        y=y_values,
+        u=u_values,
+        v=v_values,
+        length=length,
+        flip=flip,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def barbs[

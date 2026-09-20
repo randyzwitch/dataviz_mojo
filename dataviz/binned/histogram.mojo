@@ -20,6 +20,9 @@ from canvas.color import Color
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from canvas.geometry import round_to_int, snap_to_pixel_edge
 from dataviz.core.scale import LinearScale
@@ -1822,6 +1825,76 @@ def histogram(
         subtitle=subtitle,
         x_title=x_title,
         y_title=y_title,
+    )
+
+
+def histogram(
+    df: DataFrame,
+    data: String,
+    bins: Int,
+    weights: String = "",
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    stepfilled: Bool = False,
+    horizontal: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`histogram()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values. The axis titles default to the `data` and `weights` column names.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        data: The numeric column for this channel.
+        weights: The numeric column for this channel; left empty, the channel is unused.
+        bins: See the list overload.
+        stat: See the list overload.
+        cumulative: See the list overload.
+        stepfilled: See the list overload.
+        horizontal: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var data_values = _frame_floats(df, data, "histogram()")
+    var weights_values = List[Float64]()
+    if weights.byte_length() > 0:
+        weights_values = _frame_floats(df, weights, "histogram()")
+    return histogram(
+        data=data_values,
+        weights=weights_values,
+        bins=bins,
+        stat=stat,
+        cumulative=cumulative,
+        stepfilled=stepfilled,
+        horizontal=horizontal,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else data,
+        y_title=y_title if y_title.byte_length() > 0 else weights,
     )
 
 

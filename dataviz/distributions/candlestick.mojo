@@ -3,6 +3,9 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
@@ -193,6 +196,71 @@ def _render_candlestick[
             )
 
     return frame.result()
+
+
+def candlestick(
+    df: DataFrame,
+    categories: String,
+    open: String,
+    high: String,
+    low: String,
+    close: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`candlestick()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        categories: The string column for this channel.
+        open: The numeric column for this channel.
+        high: The numeric column for this channel.
+        low: The numeric column for this channel.
+        close: The numeric column for this channel.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var categories_values = _frame_strings(df, categories, "candlestick()")
+    var open_values = _frame_floats(df, open, "candlestick()")
+    var high_values = _frame_floats(df, high, "candlestick()")
+    var low_values = _frame_floats(df, low, "candlestick()")
+    var close_values = _frame_floats(df, close, "candlestick()")
+    return candlestick(
+        categories=categories_values,
+        open=open_values,
+        high=high_values,
+        low=low_values,
+        close=close_values,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def candlestick[

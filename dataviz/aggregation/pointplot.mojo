@@ -6,6 +6,9 @@ from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.basic.bar import _bar_y_domain_data
 from dataviz.plot import (
@@ -235,6 +238,71 @@ def _render_horizontal_pointplot[
         target, plot, frame.x_scale, frame.y_scale, _Orientation(True)
     )
     return frame.result()
+
+
+def pointplot(
+    df: DataFrame,
+    categories: String,
+    values: String,
+    estimator: Estimator = Estimator.MEAN,
+    errorbar: ErrorBar = ErrorBar.ci(0.95),
+    seed: Int = 12345,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    horizontal: Bool = False,
+) raises -> Plot:
+    """`pointplot()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values. The axis titles default to the `categories` and `values` column names.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        categories: The string column for this channel.
+        values: The numeric column for this channel.
+        estimator: See the list overload.
+        errorbar: See the list overload.
+        seed: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+        horizontal: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var categories_values = _frame_strings(df, categories, "pointplot()")
+    var values_values = _frame_floats(df, values, "pointplot()")
+    return pointplot(
+        categories=categories_values,
+        values=values_values,
+        estimator=estimator,
+        errorbar=errorbar,
+        seed=seed,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else categories,
+        y_title=y_title if y_title.byte_length() > 0 else values,
+        horizontal=horizontal,
+    )
 
 
 def pointplot[
