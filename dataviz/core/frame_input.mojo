@@ -181,6 +181,173 @@ def _frame_strings(
     return series.string().to_list()
 
 
+def _frame_groups(
+    df: DataFrame, category: String, value: String, caller: String
+) raises -> Tuple[List[String], List[List[Float64]]]:
+    """A long-form frame as the `(categories, values)` pair the
+    distribution and multi-series marks take.
+
+    A dataframe holds these long -- one row per observation, with a
+    category beside it -- while the marks want one list of values per
+    category. This buckets the value column by the category column,
+    keeping each category's first appearance as its order, which is the
+    order `encode_categorical()` already gives a category list.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each observation's group.
+        value: The numeric column holding the observations.
+        caller: The public function to name in an error.
+
+    Returns:
+        The categories in first-appearance order, and one list of
+        values per category, in the same order.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, or has missing values.
+    """
+    var keys = _frame_strings(df, category, caller)
+    var values = _frame_floats(df, value, caller)
+    if len(keys) != len(values):
+        raise Error(
+            caller
+            + ': columns "'
+            + category
+            + '" and "'
+            + value
+            + '" have different lengths, '
+            + String(len(keys))
+            + " and "
+            + String(len(values))
+        )
+    var order = List[String]()
+    var grouped = List[List[Float64]]()
+    for i in range(len(keys)):
+        var at = -1
+        for k in range(len(order)):
+            if order[k] == keys[i]:
+                at = k
+                break
+        if at < 0:
+            order.append(keys[i])
+            grouped.append(List[Float64]())
+            at = len(order) - 1
+        grouped[at].append(values[i])
+    return (order^, grouped^)
+
+
+def _frame_series(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    caller: String,
+) raises -> Tuple[List[String], List[String], List[List[Float64]]]:
+    """A long-form frame as the `(categories, series_names, values)`
+    triple the multi-series marks take, where `values[j]` is series
+    `j`'s value for each category in turn.
+
+    Both orders are first appearance, as `_frame_groups` does. Every
+    (series, category) pair must appear exactly once: a missing pair
+    would have to be invented as a zero, which is a claim about the
+    data, and a repeated one is ambiguous. Both raise, naming the pair.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each column of the grid.
+        series: The string column naming each series.
+        value: The numeric column holding each cell.
+        caller: The public function to name in an error.
+
+    Returns:
+        The categories, the series names, and one row of values per
+        series.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype, has
+            missing values, or the pairs are not exactly one per cell.
+    """
+    var cats = _frame_strings(df, category, caller)
+    var names = _frame_strings(df, series, caller)
+    var numbers = _frame_floats(df, value, caller)
+    if len(cats) != len(names) or len(cats) != len(numbers):
+        raise Error(
+            caller
+            + ": the three columns have different lengths, "
+            + String(len(cats))
+            + ", "
+            + String(len(names))
+            + " and "
+            + String(len(numbers))
+        )
+
+    var cat_order = List[String]()
+    var series_order = List[String]()
+    for i in range(len(cats)):
+        var seen = False
+        for c in cat_order:
+            if c == cats[i]:
+                seen = True
+        if not seen:
+            cat_order.append(cats[i])
+        seen = False
+        for n in series_order:
+            if n == names[i]:
+                seen = True
+        if not seen:
+            series_order.append(names[i])
+
+    var values = List[List[Float64]]()
+    var filled = List[List[Bool]]()
+    for _ in range(len(series_order)):
+        var row = List[Float64]()
+        var seen_row = List[Bool]()
+        for _ in range(len(cat_order)):
+            row.append(0.0)
+            seen_row.append(False)
+        values.append(row^)
+        filled.append(seen_row^)
+
+    for i in range(len(cats)):
+        var ci = 0
+        for k in range(len(cat_order)):
+            if cat_order[k] == cats[i]:
+                ci = k
+                break
+        var si = 0
+        for k in range(len(series_order)):
+            if series_order[k] == names[i]:
+                si = k
+                break
+        if filled[si][ci]:
+            raise Error(
+                caller
+                + ': more than one row for series "'
+                + names[i]
+                + '" in category "'
+                + cats[i]
+                + '". Aggregate first, with DataFrame.group_by(...).agg(...)'
+            )
+        values[si][ci] = numbers[i]
+        filled[si][ci] = True
+
+    for si in range(len(series_order)):
+        for ci in range(len(cat_order)):
+            if not filled[si][ci]:
+                raise Error(
+                    caller
+                    + ': no row for series "'
+                    + series_order[si]
+                    + '" in category "'
+                    + cat_order[ci]
+                    + '". Every series needs a value in every category;'
+                    " fill the gaps first, since a missing cell is not"
+                    " the same claim as a zero"
+                )
+    return (cat_order^, series_order^, values^)
+
+
 def _is_string_column(df: DataFrame, name: String) raises -> Bool:
     """Whether `name` is a string column, which is what decides between
     a categorical and a continuous x channel.
