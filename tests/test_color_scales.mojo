@@ -489,7 +489,7 @@ def test_shared_color_domain_pools_grids() raises:
     assert_equal(domain.max, 4.0, "largest value in either grid")
 
 
-def test_shared_color_domain_rejects_empty_and_non_finite() raises:
+def test_shared_color_domain_rejects_empty_and_infinite() raises:
     var none = List[List[Float64]]()
     with assert_raises(contains="at least one value"):
         _ = shared_color_domain(none)
@@ -505,9 +505,16 @@ def test_shared_color_domain_rejects_empty_and_non_finite() raises:
     with assert_raises(contains="at least one value"):
         _ = shared_color_domain(no_grids)
 
-    var nan: List[List[Float64]] = [[0.0, 1.0], [2.0, Float64("nan")]]
+    # A missing cell is skipped since #367, so the pooled limits come
+    # from the cells that are there; an infinity still raises.
+    var holes: List[List[Float64]] = [[0.0, 1.0], [2.0, Float64("nan")]]
+    var pooled = shared_color_domain(holes)
+    assert_equal(pooled.min, 0.0, "the hole does not drag the low end")
+    assert_equal(pooled.max, 2.0, "nor the high end")
+
+    var infinite: List[List[Float64]] = [[0.0, 1.0], [2.0, Float64("inf")]]
     with assert_raises(contains="must be finite"):
-        _ = shared_color_domain(nan)
+        _ = shared_color_domain(infinite)
 
 
 def test_shared_color_domain_drives_two_heatmaps() raises:

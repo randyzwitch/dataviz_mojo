@@ -262,10 +262,10 @@ def single_axis(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "single_axis()")
+    var x_values = _frame_floats(df, x, "single_axis()", theme.missing)
     var color_values = List[Float64]()
     if color.byte_length() > 0:
-        color_values = _frame_floats(df, color, "single_axis()")
+        color_values = _frame_floats(df, color, "single_axis()", theme.missing)
     var color_categories_values = List[String]()
     if color_categories.byte_length() > 0:
         color_categories_values = _frame_strings(
@@ -273,7 +273,7 @@ def single_axis(
         )
     var size_values = List[Float64]()
     if size.byte_length() > 0:
-        size_values = _frame_floats(df, size, "single_axis()")
+        size_values = _frame_floats(df, size, "single_axis()", theme.missing)
     return single_axis(
         x=x_values,
         color=color_values,

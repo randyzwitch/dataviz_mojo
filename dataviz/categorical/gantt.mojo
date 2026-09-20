@@ -370,9 +370,11 @@ def gantt(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "gantt()")
-    var start_values = _frame_floats(df, start, "gantt()")
-    var end_values = _frame_floats(df, end, "gantt()")
+    var categories_values = _frame_strings(
+        df, categories, "gantt()", theme.missing, theme.missing_category_label
+    )
+    var start_values = _frame_floats(df, start, "gantt()", theme.missing)
+    var end_values = _frame_floats(df, end, "gantt()", theme.missing)
     return gantt(
         categories=categories_values,
         start=start_values,

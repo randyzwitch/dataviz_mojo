@@ -60,8 +60,8 @@ def lineplot(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "lineplot()")
-    var y_values = _frame_floats(df, y, "lineplot()")
+    var x_values = _frame_floats(df, x, "lineplot()", theme.missing)
+    var y_values = _frame_floats(df, y, "lineplot()", theme.missing)
     return lineplot(
         x=x_values,
         y=y_values,

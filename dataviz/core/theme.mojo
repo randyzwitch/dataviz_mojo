@@ -64,6 +64,7 @@ from canvas.color import Color
 from dataviz.core.color_palette import ColorPalette
 from dataviz.core.color_ramp import ColorRamp
 from dataviz.core.colors import WHITE
+from dataviz.core.missing import Missing
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.scale import TickFormat
 from dataviz.core.axis_position import AxisPosition
@@ -410,6 +411,21 @@ struct Theme(ImplicitlyCopyable, Movable):
     tooltips.mojo explains. Raise it for a large chart whose points a
     reader still needs to hover one at a time; `Tooltips.ON` ignores
     it altogether."""
+    var missing: Missing
+    """What a mark does with a missing observation, carried as `NaN`
+    (missing.mojo). `Missing.DRAW` by default: a line breaks at the gap,
+    a point is not drawn, a statistic uses what is there.
+    `Missing.RAISE` refuses any missing value at encode time, which is
+    what this package did before #367. Infinity is refused either way.
+    """
+    var missing_category_label: String
+    """What an absent **category** is called when `missing` is
+    `Missing.DRAW`; "(missing)" by default.
+
+    A missing category is a label, not a measurement: the rows are kept
+    and gathered under this name, in the position where the first of
+    them appeared. A missing *value* has no such reading and drops out
+    instead -- see `Missing` (missing.mojo)."""
     var show_data_labels: Bool
     """Whether a mark draws each value as text, in `text_color` at
     `font_size`; defaults to `False`. Which marks honor it is
@@ -542,6 +558,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         error_bar_cap_width: Float64 = 4.0,
         output_format: OutputFormat = OutputFormat.SVG,
         tooltips: Tooltips = Tooltips.AUTO,
+        missing: Missing = Missing.DRAW,
+        missing_category_label: String = "(missing)",
         auto_tooltip_limit: Int = AUTO_TOOLTIP_LIMIT,
         show_data_labels: Bool = False,
         gridline_style: LineStyle = LineStyle.SOLID,
@@ -621,6 +639,8 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.error_bar_cap_width = error_bar_cap_width
         self.output_format = output_format
         self.tooltips = tooltips
+        self.missing = missing
+        self.missing_category_label = missing_category_label
         self.auto_tooltip_limit = auto_tooltip_limit
         self.show_data_labels = show_data_labels
         self.gridline_style = gridline_style

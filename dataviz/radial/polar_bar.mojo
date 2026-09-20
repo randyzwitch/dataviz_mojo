@@ -163,8 +163,14 @@ def polarbar(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "polarbar()")
-    var values_values = _frame_floats(df, values, "polarbar()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "polarbar()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "polarbar()", theme.missing)
     return polarbar(
         categories=categories_values,
         values=values_values,

@@ -590,8 +590,8 @@ def triplot(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "triplot()")
-    var y_values = _frame_floats(df, y, "triplot()")
+    var x_values = _frame_floats(df, x, "triplot()", theme.missing)
+    var y_values = _frame_floats(df, y, "triplot()", theme.missing)
     return triplot(
         x=x_values,
         y=y_values,
@@ -737,9 +737,9 @@ def tripcolor(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "tripcolor()")
-    var y_values = _frame_floats(df, y, "tripcolor()")
-    var z_values = _frame_floats(df, z, "tripcolor()")
+    var x_values = _frame_floats(df, x, "tripcolor()", theme.missing)
+    var y_values = _frame_floats(df, y, "tripcolor()", theme.missing)
+    var z_values = _frame_floats(df, z, "tripcolor()", theme.missing)
     return tripcolor(
         x=x_values,
         y=y_values,

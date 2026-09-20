@@ -666,9 +666,9 @@ def trisurf3d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "trisurf3d()")
-    var y_values = _frame_floats(df, y, "trisurf3d()")
-    var z_values = _frame_floats(df, z, "trisurf3d()")
+    var x_values = _frame_floats(df, x, "trisurf3d()", theme.missing)
+    var y_values = _frame_floats(df, y, "trisurf3d()", theme.missing)
+    var z_values = _frame_floats(df, z, "trisurf3d()", theme.missing)
     return trisurf3d(
         x=x_values,
         y=y_values,

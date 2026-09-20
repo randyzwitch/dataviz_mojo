@@ -242,11 +242,17 @@ def candlestick(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "candlestick()")
-    var open_values = _frame_floats(df, open, "candlestick()")
-    var high_values = _frame_floats(df, high, "candlestick()")
-    var low_values = _frame_floats(df, low, "candlestick()")
-    var close_values = _frame_floats(df, close, "candlestick()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "candlestick()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var open_values = _frame_floats(df, open, "candlestick()", theme.missing)
+    var high_values = _frame_floats(df, high, "candlestick()", theme.missing)
+    var low_values = _frame_floats(df, low, "candlestick()", theme.missing)
+    var close_values = _frame_floats(df, close, "candlestick()", theme.missing)
     return candlestick(
         categories=categories_values,
         open=open_values,

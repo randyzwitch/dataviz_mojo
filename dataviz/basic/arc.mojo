@@ -219,8 +219,10 @@ def pie(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "pie()")
-    var values_values = _frame_floats(df, values, "pie()")
+    var categories_values = _frame_strings(
+        df, categories, "pie()", theme.missing, theme.missing_category_label
+    )
+    var values_values = _frame_floats(df, values, "pie()", theme.missing)
     return pie(
         categories=categories_values,
         values=values_values,

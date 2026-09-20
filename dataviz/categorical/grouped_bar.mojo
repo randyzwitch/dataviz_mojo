@@ -504,7 +504,15 @@ def grouped_bar(
             channel, has missing values, or the (series, category) pairs
             are not exactly one per cell.
     """
-    var pivot = _frame_series(df, category, series, value, "grouped_bar()")
+    var pivot = _frame_series(
+        df,
+        category,
+        series,
+        value,
+        "grouped_bar()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return grouped_bar(
         pivot[0],
         pivot[1],

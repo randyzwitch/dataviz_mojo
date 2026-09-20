@@ -287,7 +287,14 @@ def violin(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var groups = _frame_groups(df, category, value, "violin()")
+    var groups = _frame_groups(
+        df,
+        category,
+        value,
+        "violin()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return violin(
         groups[0],
         groups[1],

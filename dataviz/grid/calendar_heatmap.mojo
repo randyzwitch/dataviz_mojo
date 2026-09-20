@@ -400,8 +400,16 @@ def calendar_heatmap(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var dates_values = _frame_strings(df, dates, "calendar_heatmap()")
-    var values_values = _frame_floats(df, values, "calendar_heatmap()")
+    var dates_values = _frame_strings(
+        df,
+        dates,
+        "calendar_heatmap()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(
+        df, values, "calendar_heatmap()", theme.missing
+    )
     return calendar_heatmap(
         dates=dates_values,
         values=values_values,

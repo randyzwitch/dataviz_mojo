@@ -44,8 +44,8 @@ def effect_scatter(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "effect_scatter()")
-    var y_values = _frame_floats(df, y, "effect_scatter()")
+    var x_values = _frame_floats(df, x, "effect_scatter()", theme.missing)
+    var y_values = _frame_floats(df, y, "effect_scatter()", theme.missing)
     return effect_scatter(
         x=x_values,
         y=y_values,

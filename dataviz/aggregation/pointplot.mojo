@@ -286,8 +286,14 @@ def pointplot(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var categories_values = _frame_strings(df, categories, "pointplot()")
-    var values_values = _frame_floats(df, values, "pointplot()")
+    var categories_values = _frame_strings(
+        df,
+        categories,
+        "pointplot()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "pointplot()", theme.missing)
     return pointplot(
         categories=categories_values,
         values=values_values,

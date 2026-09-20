@@ -179,7 +179,14 @@ def ridgeline(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var groups = _frame_groups(df, category, value, "ridgeline()")
+    var groups = _frame_groups(
+        df,
+        category,
+        value,
+        "ridgeline()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return ridgeline(
         groups[0],
         groups[1],

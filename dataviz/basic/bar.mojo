@@ -329,7 +329,14 @@ def bar(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var plot = Plot().mark_bar(horizontal=horizontal).encode_frame(df, x=x, y=y)
+    # The theme goes on first: `encode_frame` reads `Theme.missing` and
+    # `Theme.missing_category_label` as it reads the columns (#367).
+    var plot = (
+        Plot()
+        .mark_bar(horizontal=horizontal)
+        .theme(theme)
+        .encode_frame(df, x=x, y=y)
+    )
     return _finished(
         plot^,
         theme,

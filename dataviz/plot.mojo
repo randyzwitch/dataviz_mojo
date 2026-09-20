@@ -220,6 +220,7 @@ from dataviz.core.text import (
     _replay_text_requests,
 )
 from dataviz.core.validate import (
+    _check_missing_policy,
     _check_line_smoothing,
     _check_unsupported_flags,
     _domain_override_scale,
@@ -3205,20 +3206,24 @@ struct Plot(Copyable, Movable):
                 its channel, or has missing values.
         """
         comptime caller = "Plot.encode_frame()"
-        var y_values = _frame_floats(df, y, caller)
+        var policy = self._theme.missing
+        var label = self._theme.missing_category_label
+        var y_values = _frame_floats(df, y, caller, policy)
         var color_values = List[Float64]()
         var color_categories = List[String]()
         if color.byte_length() > 0:
             if _is_string_column(df, color):
-                color_categories = _frame_strings(df, color, caller)
+                color_categories = _frame_strings(
+                    df, color, caller, policy, label
+                )
             else:
-                color_values = _frame_floats(df, color, caller)
+                color_values = _frame_floats(df, color, caller, policy)
         var size_values = List[Float64]()
         if size.byte_length() > 0:
-            size_values = _frame_floats(df, size, caller)
+            size_values = _frame_floats(df, size, caller, policy)
         var label_values = List[String]()
         if labels.byte_length() > 0:
-            label_values = _frame_strings(df, labels, caller)
+            label_values = _frame_strings(df, labels, caller, policy, label)
 
         if self._labels.x_title.byte_length() == 0:
             self._labels.x_title = x
@@ -3234,10 +3239,10 @@ struct Plot(Copyable, Movable):
                     + '") takes no size= or labels= channel'
                 )
             return self^.encode_categorical(
-                x=_frame_strings(df, x, caller), y=y_values
+                x=_frame_strings(df, x, caller, policy, label), y=y_values
             )
         return self^.encode(
-            x=_frame_floats(df, x, caller),
+            x=_frame_floats(df, x, caller, policy),
             y=y_values,
             color=color_values,
             color_categories=color_categories,
@@ -8093,6 +8098,7 @@ def _render_generic[
     than a real per-cell decision point.
     """
     _check_unsupported_flags(plot)
+    _check_missing_policy(plot)
     if plot._secondary_axis:
         raise Error(
             "Plot.secondary_axis() only applies inside render_layers()/"

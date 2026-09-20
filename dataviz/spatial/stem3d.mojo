@@ -530,9 +530,9 @@ def stem3d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "stem3d()")
-    var y_values = _frame_floats(df, y, "stem3d()")
-    var z_values = _frame_floats(df, z, "stem3d()")
+    var x_values = _frame_floats(df, x, "stem3d()", theme.missing)
+    var y_values = _frame_floats(df, y, "stem3d()", theme.missing)
+    var z_values = _frame_floats(df, z, "stem3d()", theme.missing)
     return stem3d(
         x=x_values,
         y=y_values,
@@ -673,12 +673,12 @@ def quiver3d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "quiver3d()")
-    var y_values = _frame_floats(df, y, "quiver3d()")
-    var z_values = _frame_floats(df, z, "quiver3d()")
-    var u_values = _frame_floats(df, u, "quiver3d()")
-    var v_values = _frame_floats(df, v, "quiver3d()")
-    var w_values = _frame_floats(df, w, "quiver3d()")
+    var x_values = _frame_floats(df, x, "quiver3d()", theme.missing)
+    var y_values = _frame_floats(df, y, "quiver3d()", theme.missing)
+    var z_values = _frame_floats(df, z, "quiver3d()", theme.missing)
+    var u_values = _frame_floats(df, u, "quiver3d()", theme.missing)
+    var v_values = _frame_floats(df, v, "quiver3d()", theme.missing)
+    var w_values = _frame_floats(df, w, "quiver3d()", theme.missing)
     return quiver3d(
         x=x_values,
         y=y_values,
@@ -846,12 +846,12 @@ def fill_between3d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x1_values = _frame_floats(df, x1, "fill_between3d()")
-    var y1_values = _frame_floats(df, y1, "fill_between3d()")
-    var z1_values = _frame_floats(df, z1, "fill_between3d()")
-    var x2_values = _frame_floats(df, x2, "fill_between3d()")
-    var y2_values = _frame_floats(df, y2, "fill_between3d()")
-    var z2_values = _frame_floats(df, z2, "fill_between3d()")
+    var x1_values = _frame_floats(df, x1, "fill_between3d()", theme.missing)
+    var y1_values = _frame_floats(df, y1, "fill_between3d()", theme.missing)
+    var z1_values = _frame_floats(df, z1, "fill_between3d()", theme.missing)
+    var x2_values = _frame_floats(df, x2, "fill_between3d()", theme.missing)
+    var y2_values = _frame_floats(df, y2, "fill_between3d()", theme.missing)
+    var z2_values = _frame_floats(df, z2, "fill_between3d()", theme.missing)
     return fill_between3d(
         x1=x1_values,
         y1=y1_values,

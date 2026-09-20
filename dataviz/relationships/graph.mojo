@@ -294,9 +294,21 @@ def graph(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var from_categories_values = _frame_strings(df, from_categories, "graph()")
-    var to_categories_values = _frame_strings(df, to_categories, "graph()")
-    var values_values = _frame_floats(df, values, "graph()")
+    var from_categories_values = _frame_strings(
+        df,
+        from_categories,
+        "graph()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var to_categories_values = _frame_strings(
+        df,
+        to_categories,
+        "graph()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "graph()", theme.missing)
     return graph(
         from_categories=from_categories_values,
         to_categories=to_categories_values,

@@ -261,9 +261,21 @@ def chord(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var from_categories_values = _frame_strings(df, from_categories, "chord()")
-    var to_categories_values = _frame_strings(df, to_categories, "chord()")
-    var values_values = _frame_floats(df, values, "chord()")
+    var from_categories_values = _frame_strings(
+        df,
+        from_categories,
+        "chord()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var to_categories_values = _frame_strings(
+        df,
+        to_categories,
+        "chord()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "chord()", theme.missing)
     return chord(
         from_categories=from_categories_values,
         to_categories=to_categories_values,

@@ -672,9 +672,9 @@ def bar3d(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "bar3d()")
-    var y_values = _frame_floats(df, y, "bar3d()")
-    var z_values = _frame_floats(df, z, "bar3d()")
+    var x_values = _frame_floats(df, x, "bar3d()", theme.missing)
+    var y_values = _frame_floats(df, y, "bar3d()", theme.missing)
+    var z_values = _frame_floats(df, z, "bar3d()", theme.missing)
     return bar3d(
         x=x_values,
         y=y_values,

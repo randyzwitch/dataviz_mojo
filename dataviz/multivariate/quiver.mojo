@@ -276,10 +276,10 @@ def quiver(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "quiver()")
-    var y_values = _frame_floats(df, y, "quiver()")
-    var u_values = _frame_floats(df, u, "quiver()")
-    var v_values = _frame_floats(df, v, "quiver()")
+    var x_values = _frame_floats(df, x, "quiver()", theme.missing)
+    var y_values = _frame_floats(df, y, "quiver()", theme.missing)
+    var u_values = _frame_floats(df, u, "quiver()", theme.missing)
+    var v_values = _frame_floats(df, v, "quiver()", theme.missing)
     return quiver(
         x=x_values,
         y=y_values,

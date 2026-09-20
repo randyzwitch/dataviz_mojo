@@ -453,7 +453,14 @@ def box(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
-    var groups = _frame_groups(df, category, value, "box()")
+    var groups = _frame_groups(
+        df,
+        category,
+        value,
+        "box()",
+        theme.missing,
+        theme.missing_category_label,
+    )
     return box(
         groups[0],
         groups[1],

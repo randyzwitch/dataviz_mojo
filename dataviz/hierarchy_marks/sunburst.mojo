@@ -326,9 +326,17 @@ def sunburst(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var ids_values = _frame_strings(df, ids, "sunburst()")
-    var parent_ids_values = _frame_strings(df, parent_ids, "sunburst()")
-    var values_values = _frame_floats(df, values, "sunburst()")
+    var ids_values = _frame_strings(
+        df, ids, "sunburst()", theme.missing, theme.missing_category_label
+    )
+    var parent_ids_values = _frame_strings(
+        df,
+        parent_ids,
+        "sunburst()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var values_values = _frame_floats(df, values, "sunburst()", theme.missing)
     return sunburst(
         ids=ids_values,
         parent_ids=parent_ids_values,

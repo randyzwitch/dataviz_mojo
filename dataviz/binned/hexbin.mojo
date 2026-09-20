@@ -572,8 +572,8 @@ def hexbin(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
-    var x_values = _frame_floats(df, x, "hexbin()")
-    var y_values = _frame_floats(df, y, "hexbin()")
+    var x_values = _frame_floats(df, x, "hexbin()", theme.missing)
+    var y_values = _frame_floats(df, y, "hexbin()", theme.missing)
     return hexbin(
         x=x_values,
         y=y_values,
