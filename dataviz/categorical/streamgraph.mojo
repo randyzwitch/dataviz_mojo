@@ -4,6 +4,9 @@ from canvas.geometry import FPoint
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.basic.continuous import _step_points
@@ -294,6 +297,65 @@ def _render_streamgraph[
     return frame.result()
 
 
+def streamgraph(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    smoothing: Float64 = 0.6,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`streamgraph()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per (series, category) pair, with `value` holding the cell.
+
+    A frame stores these long while the mark wants one row of values per
+    series, so the rows are pivoted. Both orders are first appearance,
+    and every series needs a value in every category: a missing pair
+    would have to be invented as a zero, and a repeated one is
+    ambiguous, so either raises. The axis titles default to the
+    `category` and `value` column names.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each category.
+        series: The string column naming each band.
+        value: The numeric column holding each cell.
+        smoothing: How much each band curves; see the list overload.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, has missing values, or the (series, category) pairs
+            are not exactly one per cell.
+    """
+    var pivot = _frame_series(df, category, series, value, "streamgraph()")
+    return streamgraph(
+        pivot[0],
+        pivot[1],
+        pivot[2],
+        smoothing=smoothing,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+    )
+
+
 def streamgraph[
     dtype: DType
 ](
@@ -394,6 +456,71 @@ def streamgraph[
     )
     return _finished(
         plot^, t, width, height, title, x_title, "", subtitle=subtitle
+    )
+
+
+def stacked_area(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    smoothing: Float64 = 0.0,
+    step: StepStyle = StepStyle.NONE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`stacked_area()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per (series, category) pair, with `value` holding the cell.
+
+    A frame stores these long while the mark wants one row of values per
+    series, so the rows are pivoted. Both orders are first appearance,
+    and every series needs a value in every category: a missing pair
+    would have to be invented as a zero, and a repeated one is
+    ambiguous, so either raises. The axis titles default to the
+    `category` and `value` column names.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each category.
+        series: The string column naming each band.
+        value: The numeric column holding each cell.
+        smoothing: How much each band curves; see the list overload.
+        step: Step (stairs) interpolation; see the list overload.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+        y_title: The y-axis caption; defaults to `value`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, has missing values, or the (series, category) pairs
+            are not exactly one per cell.
+    """
+    var pivot = _frame_series(df, category, series, value, "stacked_area()")
+    return stacked_area(
+        pivot[0],
+        pivot[1],
+        pivot[2],
+        smoothing=smoothing,
+        step=step,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+        y_title=y_title if y_title.byte_length() > 0 else value,
     )
 
 

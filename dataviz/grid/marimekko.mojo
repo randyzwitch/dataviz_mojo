@@ -3,6 +3,9 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
@@ -195,6 +198,68 @@ def _render_marimekko[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def marimekko(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`marimekko()` over a long-form `dataframe_mojo` `DataFrame`
+    (#743): one row per (subcategory, category) pair, with `value`
+    holding the cell.
+
+    A frame stores these long while the mark wants one row of values per
+    subcategory, so the rows are pivoted. Both orders are first
+    appearance, and every subcategory needs a value in every category:
+    a missing pair would have to be invented as a zero, and a repeated
+    one is ambiguous, so either raises. The axis titles default to the
+    `category` and `value` column names.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each column of the mosaic,
+            whose totals set the column widths.
+        series: The string column naming each subcategory, the stacked
+            share within a column.
+        value: The numeric column holding each cell.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+        y_title: The y-axis caption; defaults to `value`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, has missing values, or the (subcategory, category)
+            pairs are not exactly one per cell.
+    """
+    var pivot = _frame_series(df, category, series, value, "marimekko()")
+    return marimekko(
+        pivot[0],
+        pivot[1],
+        pivot[2],
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+        y_title=y_title if y_title.byte_length() > 0 else value,
+    )
 
 
 def marimekko[

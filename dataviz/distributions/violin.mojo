@@ -5,6 +5,9 @@ from canvas.fill_rule import FillRule
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_groups
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
@@ -235,6 +238,71 @@ def _render_horizontal_violin[
     )
 
     return frame.result()
+
+
+def violin(
+    df: DataFrame,
+    category: String,
+    value: String,
+    bandwidth: Float64 = 0.0,
+    scale_by_count: Bool = False,
+    width_fraction: Float64 = 0.4,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    horizontal: Bool = False,
+) raises -> Plot:
+    """`violin()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per observation, with `category` naming each row's group and
+    `value` holding the number.
+
+    A frame stores these long while the mark wants one list per
+    category, so the rows are bucketed by `category`, in first-appearance
+    order. The axis titles default to the two column names.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each observation's group.
+        value: The numeric column holding the observations.
+        bandwidth: Kernel bandwidth; see the list overload.
+        scale_by_count: Scale each violin by its sample count.
+        width_fraction: Each violin's share of its band.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+        y_title: The y-axis caption; defaults to `value`.
+        horizontal: Draw the categories down the y axis instead.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, or has missing values.
+    """
+    var groups = _frame_groups(df, category, value, "violin()")
+    return violin(
+        groups[0],
+        groups[1],
+        bandwidth=bandwidth,
+        scale_by_count=scale_by_count,
+        width_fraction=width_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+        y_title=y_title if y_title.byte_length() > 0 else value,
+        horizontal=horizontal,
+    )
 
 
 def violin[

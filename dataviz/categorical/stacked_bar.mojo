@@ -3,6 +3,9 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from canvas.text.render import TextAlign
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
@@ -323,6 +326,71 @@ def _render_horizontal_stacked_bar[
         )
 
     return frame.result()
+
+
+def stacked_bar(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    percent: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    horizontal: Bool = False,
+) raises -> Plot:
+    """`stacked_bar()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per (series, category) pair, with `value` holding the cell.
+
+    A frame stores these long while the mark wants one row of values per
+    series, so the rows are pivoted. Both orders are first appearance,
+    and every series needs a value in every category: a missing pair
+    would have to be invented as a zero, and a repeated one is
+    ambiguous, so either raises. The axis titles default to the
+    `category` and `value` column names.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each category.
+        series: The string column naming each series.
+        value: The numeric column holding each cell.
+        percent: Scale each stack to 100%.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+        y_title: The y-axis caption; defaults to `value`.
+        horizontal: Draw the categories down the y axis instead.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, has missing values, or the (series, category) pairs
+            are not exactly one per cell.
+    """
+    var pivot = _frame_series(df, category, series, value, "stacked_bar()")
+    return stacked_bar(
+        pivot[0],
+        pivot[1],
+        pivot[2],
+        percent=percent,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+        y_title=y_title if y_title.byte_length() > 0 else value,
+        horizontal=horizontal,
+    )
 
 
 def stacked_bar[
