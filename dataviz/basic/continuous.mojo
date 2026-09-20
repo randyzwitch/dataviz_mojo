@@ -12,6 +12,8 @@ from canvas.vector.draw_target import DrawTarget
 
 from morrow import Morrow
 
+from dataframe import DataFrame
+
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import (
     ColorScale,
@@ -916,6 +918,112 @@ def _draw_area_layer[
     path.close()
     target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
     target.pop_clip()
+
+
+def scatter(
+    df: DataFrame,
+    x: String,
+    y: String,
+    color: String = "",
+    size: String = "",
+    labels: String = "",
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`scatter()` over named columns of a `dataframe_mojo` `DataFrame`
+    (#364). The columns carry their own names, so the axis titles
+    default to them.
+
+    See `Plot.encode_frame()` for how each column's dtype picks its
+    channel, and for what a column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for the x axis.
+        y: The numeric column for the y axis.
+        color: Optional column driving color -- a palette for a string
+            column, a continuous scale for a numeric one.
+        size: Optional numeric column driving point size.
+        labels: Optional string column drawn above each point.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption; defaults to `x`.
+        y_title: The y-axis caption; defaults to `y`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, or has missing values.
+
+    """
+    var plot = (
+        Plot()
+        .mark_point()
+        .encode_frame(df, x=x, y=y, color=color, size=size, labels=labels)
+    )
+    return _finished(
+        plot^,
+        theme,
+        width,
+        height,
+        title,
+        x_title if x_title.byte_length() > 0 else x,
+        y_title if y_title.byte_length() > 0 else y,
+    )
+
+
+def line(
+    df: DataFrame,
+    x: String,
+    y: String,
+    step: StepStyle = StepStyle.NONE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`line()` over named columns of a `dataframe_mojo` `DataFrame`
+    (#364); the axis titles default to the column names.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for the x axis.
+        y: The numeric column for the y axis.
+        step: Step (stairs) interpolation; see the numeric overload.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption; defaults to `x`.
+        y_title: The y-axis caption; defaults to `y`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, or has
+            missing values.
+    """
+    var plot = Plot().mark_line(step=step).encode_frame(df, x=x, y=y)
+    return _finished(
+        plot^,
+        theme,
+        width,
+        height,
+        title,
+        x_title if x_title.byte_length() > 0 else x,
+        y_title if y_title.byte_length() > 0 else y,
+    )
 
 
 def scatter(

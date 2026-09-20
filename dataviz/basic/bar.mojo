@@ -2,6 +2,8 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
 from dataviz.core.array_like import _materialize_scalar_list
 
 from canvas.text.render import TextAlign
@@ -288,6 +290,56 @@ def _render_horizontal_bar[
     )
 
     return frame.result()
+
+
+def bar(
+    df: DataFrame,
+    x: String,
+    y: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    horizontal: Bool = False,
+) raises -> Plot:
+    """`bar()` over named columns of a `dataframe_mojo` `DataFrame`
+    (#364): a string `x` column is the category axis, a numeric `y`
+    column the bar heights, and the axis titles default to both names.
+
+    Args:
+        df: The frame to read.
+        x: The string column naming each bar.
+        y: The numeric column giving each bar's height.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `x`.
+        y_title: The y-axis caption; defaults to `y`.
+        horizontal: Draw the bars left-to-right instead of upward.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, or has missing values.
+    """
+    var plot = Plot().mark_bar(horizontal=horizontal).encode_frame(df, x=x, y=y)
+    return _finished(
+        plot^,
+        theme,
+        width,
+        height,
+        title,
+        x_title if x_title.byte_length() > 0 else x,
+        y_title if y_title.byte_length() > 0 else y,
+        subtitle=subtitle,
+    )
 
 
 def bar[

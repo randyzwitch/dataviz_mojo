@@ -277,6 +277,12 @@ from dataviz.core.scale import (
 from dataviz.core.stats import SmoothMethod
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
+from dataframe import DataFrame
+from dataviz.core.frame_input import (
+    _frame_floats,
+    _frame_strings,
+    _is_string_column,
+)
 
 from dataviz.radial.nightingale import _render_nightingale
 from dataviz.radial.polar import _render_polar
@@ -3155,6 +3161,89 @@ struct Plot(Copyable, Movable):
         self._xyz.y = y.copy()
         self._xyz.z = z.copy()
         return self^
+
+    def encode_frame(
+        var self,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String = "",
+        size: String = "",
+        labels: String = "",
+    ) raises -> Self:
+        """Encode named columns of a `dataframe_mojo` `DataFrame` (#364).
+
+        Which channel each column feeds is read from its dtype, not
+        declared: a string `x` is a categorical axis (`Mark.BAR` and the
+        rest of the category-plus-value marks), any numeric `x` is a
+        continuous one. `color` is a palette channel for a string column
+        and a continuous scale for a numeric one, matching what
+        `encode()` and `encode_categorical()` do with the same data.
+
+        The axis titles default to the column names, since a column
+        already carries the name a reader wants on the axis. An explicit
+        `labels()` call, before or after, wins.
+
+        A column with missing values raises: what a mark draws for a gap
+        is #367. The message names the column and the first row, and
+        points at `DataFrame.drop_nulls()`/`fill_null()`.
+
+        Args:
+            df: The frame to read.
+            x: The column for the x channel.
+            y: The column for the y channel; must be numeric.
+            color: Optional column driving color -- a palette for a
+                string column, a continuous scale for a numeric one.
+            size: Optional numeric column driving point size.
+            labels: Optional string column drawn above each point.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: A named column is missing, has the wrong dtype for
+                its channel, or has missing values.
+        """
+        comptime caller = "Plot.encode_frame()"
+        var y_values = _frame_floats(df, y, caller)
+        var color_values = List[Float64]()
+        var color_categories = List[String]()
+        if color.byte_length() > 0:
+            if _is_string_column(df, color):
+                color_categories = _frame_strings(df, color, caller)
+            else:
+                color_values = _frame_floats(df, color, caller)
+        var size_values = List[Float64]()
+        if size.byte_length() > 0:
+            size_values = _frame_floats(df, size, caller)
+        var label_values = List[String]()
+        if labels.byte_length() > 0:
+            label_values = _frame_strings(df, labels, caller)
+
+        if self._labels.x_title.byte_length() == 0:
+            self._labels.x_title = x
+        if self._labels.y_title.byte_length() == 0:
+            self._labels.y_title = y
+
+        if _is_string_column(df, x):
+            if len(size_values) > 0 or len(label_values) > 0:
+                raise Error(
+                    caller
+                    + ': a categorical x ("'
+                    + x
+                    + '") takes no size= or labels= channel'
+                )
+            return self^.encode_categorical(
+                x=_frame_strings(df, x, caller), y=y_values
+            )
+        return self^.encode(
+            x=_frame_floats(df, x, caller),
+            y=y_values,
+            color=color_values,
+            color_categories=color_categories,
+            size=size_values,
+            labels=label_values,
+        )
 
     def encode_categorical(
         var self,
