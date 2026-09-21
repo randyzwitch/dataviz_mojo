@@ -12,7 +12,7 @@ layout: hextra-home
 
 <div class="hx:mb-12">
 {{< hextra/hero-subtitle >}}
-  One fluent `Plot` builder -- mark, encode, theme -- covers 40+ chart types,<br class="hx:sm:block hx:hidden" />
+  One fluent `Plot` builder -- mark, encode, theme -- covers 70+ chart types,<br class="hx:sm:block hx:hidden" />
   rendered to SVG or raster.
 {{< /hextra/hero-subtitle >}}
 </div>
@@ -141,7 +141,7 @@ p:not([class]) {
 </div>
 
 <p class="hx:text-sm hx:text-gray-500 hx:dark:text-gray-400 hx:mb-12">
-  Nine of the 40+ chart types this package builds -- see the rest, source next to rendered output, in
+  Nine of the 70+ chart types this package builds -- see the rest, source next to rendered output, in
   <a href="examples/">the examples gallery</a>.
 </p>
 
@@ -155,7 +155,7 @@ p:not([class]) {
   >}}
   {{< hextra/feature-card
     icon="chart-square-bar"
-    title="40+ convenience chart functions"
+    title="80+ one-call chart functions"
     subtitle="Scatter and bar through sankey, treemap, radar, and candlestick -- statistical, financial, hierarchical, radial, and network charts all share the same API."
   >}}
   {{< hextra/feature-card
