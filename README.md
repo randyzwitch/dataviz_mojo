@@ -6,9 +6,11 @@ scales, themes, raster and SVG output, facets, and multi-series layers.
 See the **[documentation and examples](https://randyzwitch.com/dataviz_mojo/)**
 for rendered examples and the generated API reference.
 
-See the [wiki](https://github.com/randyzwitch/dataviz_mojo/wiki) for
-exactly what's built ([Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog))
-vs. still open ([Backlog](https://github.com/randyzwitch/dataviz_mojo/wiki/Backlog)).
+See the [release notes](https://github.com/randyzwitch/dataviz_mojo/releases)
+for what each version added, changed and broke, and the
+[issue tracker](https://github.com/randyzwitch/dataviz_mojo/issues) for what's
+still open. The [wiki](https://github.com/randyzwitch/dataviz_mojo/wiki) keeps
+the early design history, up to v0.11.0.
 
 ## Install
 
@@ -62,9 +64,12 @@ git push origin main --tags   # review with `git show`/`git log` first
 `pixi run check-version` on its own just checks the two fields agree;
 pass a ref/tag as an extra argument (`pixi run check-version v0.8.0`)
 to also check it against them. See `scripts/release.sh`/
-`scripts/check_version.sh` for the full behavior. The wiki
-[Changelog](https://github.com/randyzwitch/dataviz_mojo/wiki/Changelog)
-stays the human-readable release record; update it separately.
+`scripts/check_version.sh` for the full behavior.
+
+Write the [release notes](https://github.com/randyzwitch/dataviz_mojo/releases)
+when you tag: they are the human-readable record of what each version
+added, changed and broke, and the only place a breaking change is
+announced.
 
 ## License
 
