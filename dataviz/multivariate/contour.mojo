@@ -8,6 +8,11 @@ from canvas.geometry import round_to_int
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from std.utils.numerics import inf, isnan
+
+from dataviz.core.frame_input import _frame_grid
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -346,11 +351,14 @@ def _auto_levels(z: List[List[Float64]], count: Int) raises -> List[Float64]:
     Returns:
         The levels, ascending; empty when `z` is flat.
     """
-    var lo = z[0][0]
-    var hi = z[0][0]
+    # The levels span the cells that are there (#367).
+    var lo = inf[DType.float64]()
+    var hi = -inf[DType.float64]()
     for r in range(len(z)):
         for c in range(len(z[r])):
             var v = z[r][c]
+            if isnan(v):
+                continue
             if v < lo:
                 lo = v
             if v > hi:
@@ -422,6 +430,14 @@ def _contour_segments(
             var b = z[r][c + 1]
             var cc = z[r + 1][c + 1]
             var d = z[r + 1][c]
+
+            # A cell with a missing corner has no contour to draw: where
+            # the line crosses depends on that corner's value, and
+            # guessing it would draw a boundary nobody measured (#367).
+            # Neighbouring cells still draw, so a hole in the field
+            # leaves a hole in the contours.
+            if isnan(a) or isnan(b) or isnan(cc) or isnan(d):
+                continue
 
             var mask = 0
             if a > level:
@@ -632,6 +648,14 @@ def _append_above_region(
             var b = z[r][c + 1]
             var cc = z[r + 1][c + 1]
             var d = z[r + 1][c]
+
+            # A cell with a missing corner has no contour to draw: where
+            # the line crosses depends on that corner's value, and
+            # guessing it would draw a boundary nobody measured (#367).
+            # Neighbouring cells still draw, so a hole in the field
+            # leaves a hole in the contours.
+            if isnan(a) or isnan(b) or isnan(cc) or isnan(d):
+                continue
 
             var mask = 0
             if a > level:
@@ -1162,6 +1186,70 @@ def _render_contourf[
     return frame.result()
 
 
+def contour(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    levels: List[Float64] = List[Float64](),
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`contour()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per cell, with `row` and `column` giving the cell's
+    coordinates and `value` its height.
+
+    A field is a grid, and a frame is a list of cells, so the rows are
+    pivoted into one. Both axes come out ascending. A cell with no row
+    is **missing**, not zero: it comes out blank and takes no part in
+    the color limits (#367), which is what lets a table that was never
+    rectangular be drawn as a field.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+        levels: Explicit contour levels; see the list overload.
+        level_count: How many levels when `levels` is empty.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `column`.
+        y_title: The y-axis caption; defaults to `row`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var grid = _frame_grid(df, row, column, value, "contour()", theme.missing)
+    return contour(
+        grid[2],
+        x=grid[1],
+        y=grid[0],
+        levels=levels,
+        level_count=level_count,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else column,
+        y_title=y_title if y_title.byte_length() > 0 else row,
+    )
+
+
 def contour[
     dtype: DType
 ](
@@ -1253,6 +1341,70 @@ def contour[
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def contourf(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    levels: List[Float64] = List[Float64](),
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`contourf()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per cell, with `row` and `column` giving the cell's
+    coordinates and `value` its height.
+
+    A field is a grid, and a frame is a list of cells, so the rows are
+    pivoted into one. Both axes come out ascending. A cell with no row
+    is **missing**, not zero: it comes out blank and takes no part in
+    the color limits (#367), which is what lets a table that was never
+    rectangular be drawn as a field.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+        levels: Explicit contour levels; see the list overload.
+        level_count: How many levels when `levels` is empty.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `column`.
+        y_title: The y-axis caption; defaults to `row`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var grid = _frame_grid(df, row, column, value, "contourf()", theme.missing)
+    return contourf(
+        grid[2],
+        x=grid[1],
+        y=grid[0],
+        levels=levels,
+        level_count=level_count,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else column,
+        y_title=y_title if y_title.byte_length() > 0 else row,
     )
 
 

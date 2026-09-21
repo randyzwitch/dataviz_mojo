@@ -3,6 +3,9 @@ from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.funnel import _descending_value_order
@@ -316,6 +319,69 @@ def _render_bump[
         )
 
     return frame.result()
+
+
+def bump(
+    df: DataFrame,
+    category: String,
+    series: String,
+    value: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+) raises -> Plot:
+    """`bump()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per (series, category) pair, with `value` holding the rank
+    or score at that step.
+
+    The rows are pivoted into one line per series, both orders by first
+    appearance. Every series needs a value at every step: a missing one
+    would have to be invented, and a repeated one is ambiguous, so
+    either raises.
+
+    Args:
+        df: The frame to read.
+        category: The string column naming each step along the x axis.
+        series: The string column naming each line.
+        value: The numeric column holding each point.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `category`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for its
+            channel, has missing values, or the (series, category) pairs
+            are not exactly one per cell.
+    """
+    var pivot = _frame_series(
+        df,
+        category,
+        series,
+        value,
+        "bump()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    return bump(
+        pivot[0],
+        pivot[1],
+        pivot[2],
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else category,
+    )
 
 
 def bump[

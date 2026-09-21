@@ -33,7 +33,7 @@ in each function for as long as its pointer is read, which is what the
 buffer accessors require.
 """
 
-from std.utils.numerics import nan
+from std.utils.numerics import isnan, nan
 
 from dataframe import DataFrame
 from dataframe.dtype import DataType
@@ -437,6 +437,121 @@ def _frame_series(
                     " the same claim as a zero"
                 )
     return (cat_order^, series_order^, values^)
+
+
+def _frame_grid(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    caller: String,
+    missing: Missing = Missing.DRAW,
+) raises -> Tuple[List[Float64], List[Float64], List[List[Float64]]]:
+    """A long-form frame as the `(y, x, z)` grid the field marks take:
+    `z[i][j]` is the value at row key `y[i]` and column key `x[j]`.
+
+    All three columns are numeric, because a field's axes are
+    coordinates rather than labels -- these marks interpolate between
+    them. Both key orders are ascending, which is what the marks'
+    own `x`/`y` arguments require.
+
+    A cell with no row is **missing**, not zero: it comes out as `NaN`,
+    which the marks leave blank and the color limits skip (#367). That
+    is what makes a pivot honest -- a rectangular grid out of a table
+    that was never rectangular.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+        caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
+
+    Returns:
+        The row keys ascending, the column keys ascending, and the grid.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var rows = _frame_floats(df, row, caller, missing)
+    var cols = _frame_floats(df, column, caller, missing)
+    var values = _frame_floats(df, value, caller, missing)
+    if len(rows) != len(cols) or len(rows) != len(values):
+        raise Error(
+            caller
+            + ": the three columns have different lengths, "
+            + String(len(rows))
+            + ", "
+            + String(len(cols))
+            + " and "
+            + String(len(values))
+        )
+
+    var y = _sorted_unique(rows)
+    var x = _sorted_unique(cols)
+    var z = List[List[Float64]]()
+    var filled = List[List[Bool]]()
+    for _ in range(len(y)):
+        var line = List[Float64]()
+        var seen = List[Bool]()
+        for _ in range(len(x)):
+            line.append(nan[DType.float64]())
+            seen.append(False)
+        z.append(line^)
+        filled.append(seen^)
+
+    for i in range(len(values)):
+        # A row whose own coordinates are missing has no cell to land
+        # in, so it takes no part.
+        if isnan(rows[i]) or isnan(cols[i]):
+            continue
+        var ri = _index_of(y, rows[i])
+        var ci = _index_of(x, cols[i])
+        if filled[ri][ci]:
+            raise Error(
+                caller
+                + ": more than one row at ("
+                + String(rows[i])
+                + ", "
+                + String(cols[i])
+                + "). A grid cell holds one value; aggregate first, with"
+                " DataFrame.group_by(...).agg(...)"
+            )
+        z[ri][ci] = values[i]
+        filled[ri][ci] = True
+    return (y^, x^, z^)
+
+
+def _sorted_unique(values: List[Float64]) -> List[Float64]:
+    """The distinct present values, ascending: a grid axis's keys."""
+    var out = List[Float64]()
+    for v in values:
+        if isnan(v):
+            continue
+        var seen = False
+        for u in out:
+            if u == v:
+                seen = True
+        if not seen:
+            out.append(v)
+    for i in range(1, len(out)):
+        var k = i
+        while k > 0 and out[k] < out[k - 1]:
+            var t = out[k]
+            out[k] = out[k - 1]
+            out[k - 1] = t
+            k -= 1
+    return out^
+
+
+def _index_of(keys: List[Float64], key: Float64) -> Int:
+    """Where `key` sits in `keys`, which holds it by construction."""
+    for i in range(len(keys)):
+        if keys[i] == key:
+            return i
+    return 0
 
 
 def _is_string_column(df: DataFrame, name: String) raises -> Bool:

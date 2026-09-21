@@ -31,6 +31,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
+from dataviz.core.frame_input import _frame_grid
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
@@ -458,6 +459,64 @@ def _render_trisurf3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
+def surface3d(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`surface3d()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per cell, with `row` and `column` giving the cell's
+    coordinates and `value` its height.
+
+    A field is a grid, and a frame is a list of cells, so the rows are
+    pivoted into one. Both axes come out ascending, and become the surface's own x and y. A cell with no row
+    is **missing**, not zero: it comes out blank and takes no part in
+    the color limits (#367), which is what lets a table that was never
+    rectangular be drawn as a field.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+        elev: Degrees to look down on the scene from.
+        azim: Degrees to turn the scene through.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var grid = _frame_grid(df, row, column, value, "surface3d()", theme.missing)
+    return surface3d(
+        grid[2],
+        x=grid[1],
+        y=grid[0],
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+    )
+
+
 def surface3d[
     dtype: DType
 ](
@@ -545,6 +604,64 @@ def surface3d[
     )
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def wire3d(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """`wire3d()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per cell, with `row` and `column` giving the cell's
+    coordinates and `value` its height.
+
+    A field is a grid, and a frame is a list of cells, so the rows are
+    pivoted into one. Both axes come out ascending, and become the surface's own x and y. A cell with no row
+    is **missing**, not zero: it comes out blank and takes no part in
+    the color limits (#367), which is what lets a table that was never
+    rectangular be drawn as a field.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+        elev: Degrees to look down on the scene from.
+        azim: Degrees to turn the scene through.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var grid = _frame_grid(df, row, column, value, "wire3d()", theme.missing)
+    return wire3d(
+        grid[2],
+        x=grid[1],
+        y=grid[0],
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )
 
 
