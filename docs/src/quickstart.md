@@ -13,10 +13,12 @@ Add it to your workspace's `pixi.toml` as a git-source dependency:
 preview = ["pixi-build"]  # git-source pixi dependencies are still a preview feature
 
 [dependencies]
-dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch = "main" }
+dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.13.0" }
 ```
 
 `pixi install`/`pixi run` builds `dataviz_mojo` (and its `canvas_mojo` dependency) from that git ref and installs the resulting precompiled package into your workspace's pixi environment.
+
+The tag is the released version; see [all releases](https://github.com/randyzwitch/dataviz_mojo/releases). Swapping it for `branch = "main"` follows development instead, which is only worth it if you want something unreleased: this package is pre-1.0 and renames or removes API outright rather than running deprecation cycles, so `main` can break your program on any `pixi update`.
 
 Run `pixi install` once after saving `pixi.toml`. The examples below can then
 live in `main.mojo` and run with:
