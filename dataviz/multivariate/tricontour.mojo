@@ -720,6 +720,78 @@ def tricontourf(
     )
 
 
+def tricontourf(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    levels: String = "",
+    level_count: Int = 8,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`tricontourf()` over named columns of a `dataframe_mojo`
+    `DataFrame` (#743). Each argument names a column instead of
+    holding the values.
+
+    The filled counterpart of `tricontour()`'s own frame overload,
+    which this mirrors.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for this channel.
+        y: The numeric column for this channel.
+        z: The numeric column for this channel.
+        levels: The numeric column for this channel; left empty, the
+            channel is unused.
+        level_count: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var x_values = _frame_floats(df, x, "tricontourf()", theme.missing)
+    var y_values = _frame_floats(df, y, "tricontourf()", theme.missing)
+    var z_values = _frame_floats(df, z, "tricontourf()", theme.missing)
+    var levels_values = List[Float64]()
+    if levels.byte_length() > 0:
+        levels_values = _frame_floats(
+            df, levels, "tricontourf()", theme.missing
+        )
+    return tricontourf(
+        x=x_values,
+        y=y_values,
+        z=z_values,
+        levels=levels_values,
+        level_count=level_count,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
+
+
 def tricontour(
     df: DataFrame,
     x: String,

@@ -33,6 +33,8 @@ from canvas.geometry import snap_to_pixel_center
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataframe import DataFrame
+from dataviz.core.frame_input import _frame_floats
 
 
 comptime _KDE_SAMPLES = 30
@@ -539,6 +541,63 @@ def kdeplot(
     )
 
 
+def kdeplot(
+    df: DataFrame,
+    values: String,
+    bandwidth: Float64 = 0.0,
+    fill: Bool = False,
+    rug: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`kdeplot()` over a named column of a `dataframe_mojo` `DataFrame`
+    (#743); the x-axis title defaults to the column name.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        values: The numeric column holding the observations.
+        bandwidth: See the list overload.
+        fill: See the list overload.
+        rug: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var observations = _frame_floats(df, values, "kdeplot()", theme.missing)
+    return kdeplot(
+        values=observations,
+        bandwidth=bandwidth,
+        fill=fill,
+        rug=rug,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else values,
+        y_title=y_title,
+    )
+
+
 def rugplot(
     values: List[Float64],
     theme: Theme = Theme(),
@@ -601,6 +660,54 @@ def rugplot(
     var plot = Plot().mark_rug().encode_kde(values=values)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def rugplot(
+    df: DataFrame,
+    values: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`rugplot()` over a named column of a `dataframe_mojo` `DataFrame`
+    (#743); the x-axis title defaults to the column name.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        values: The numeric column holding the observations.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var observations = _frame_floats(df, values, "rugplot()", theme.missing)
+    return rugplot(
+        values=observations,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else values,
+        y_title=y_title,
     )
 
 

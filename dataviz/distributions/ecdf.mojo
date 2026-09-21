@@ -21,6 +21,8 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
+from dataframe import DataFrame
+from dataviz.core.frame_input import _frame_floats
 
 
 struct _EcdfCurve(Movable):
@@ -342,4 +344,55 @@ def ecdf(
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def ecdf(
+    df: DataFrame,
+    values: String,
+    complementary: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`ecdf()` over a named column of a `dataframe_mojo` `DataFrame`
+    (#743); the x-axis title defaults to the column name.
+
+    See `Plot.encode_frame()` for how columns are read and what a
+    column with missing values does.
+
+    Args:
+        df: The frame to read.
+        values: The numeric column holding the observations.
+        complementary: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype for
+            its channel, or has missing values.
+    """
+    var observations = _frame_floats(df, values, "ecdf()", theme.missing)
+    return ecdf(
+        values=observations,
+        complementary=complementary,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else values,
+        y_title=y_title,
     )
