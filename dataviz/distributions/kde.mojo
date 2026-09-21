@@ -15,6 +15,7 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataviz.core.stats import _present
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
@@ -37,7 +38,7 @@ from dataviz.core.theme import Theme
 comptime _KDE_SAMPLES = 30
 
 
-def _kde_bandwidth(values: List[Float64]) -> Float64:
+def _kde_bandwidth(raw: List[Float64]) -> Float64:
     """Silverman's rule of thumb for kernel-density bandwidth,
     `0.9 * std * n^(-1/5)`: the std-only version, not the IQR-adjusted
     variant (`0.9 * min(std, IQR/1.34) * n^(-1/5)`), which is more robust
@@ -45,6 +46,7 @@ def _kde_bandwidth(values: List[Float64]) -> Float64:
     `1.0` when `std <= 0.0` (a single value, or all identical), where the
     formula would collapse the kernel to a spike.
     """
+    var values = _present(raw)
     var n = len(values)
     var mean = 0.0
     for v in values:
@@ -101,8 +103,12 @@ def _kde_curve(
     Returns:
         The evaluation points and the density at each.
     """
-    var h = bandwidth if bandwidth > 0.0 else _kde_bandwidth(values)
-    var mm = _min_max(values)
+    # The density is estimated from the observations that are there: a
+    # missing one contributes no kernel, and `_kde_density` summing one
+    # would make the whole curve `NaN` (#367).
+    var present = _present(values)
+    var h = bandwidth if bandwidth > 0.0 else _kde_bandwidth(present)
+    var mm = _min_max(present)
     var lo = mm.min - 3.0 * h
     var hi = mm.max + 3.0 * h
     var xs = List[Float64](capacity=_KDE_SAMPLES)
@@ -110,7 +116,7 @@ def _kde_curve(
     for s in range(_KDE_SAMPLES):
         var x = lo + (hi - lo) * Float64(s) / Float64(_KDE_SAMPLES - 1)
         xs.append(x)
-        ys.append(_kde_density(values, h, x))
+        ys.append(_kde_density(present, h, x))
     return (xs^, ys^)
 
 

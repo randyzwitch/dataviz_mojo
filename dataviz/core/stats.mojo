@@ -6,6 +6,7 @@ hand-computed values away from any rendering, so a chart only has to
 show that the numbers reached the glyph.
 """
 
+from std.utils.numerics import isnan
 from std.math import sqrt
 
 from dataviz.distributions.box import _percentile
@@ -75,6 +76,42 @@ struct _OlsFit(Copyable, Movable):
         )
 
 
+def _present_pairs(
+    x: List[Float64], y: List[Float64]
+) raises -> Tuple[List[Float64], List[Float64]]:
+    """The `(x, y)` pairs where both coordinates are there (#367).
+
+    A fit needs both halves of a point: a row missing either one says
+    nothing about the relationship between them, so it is left out
+    rather than fitted through.
+
+    Args:
+        x: The x column.
+        y: The y column, the same length.
+
+    Returns:
+        The surviving pairs, in order.
+
+    Raises:
+        Error: The columns differ in length.
+    """
+    if len(x) != len(y):
+        raise Error(
+            "x and y must have the same length (got "
+            + String(len(x))
+            + " and "
+            + String(len(y))
+            + ")"
+        )
+    var kept_x = List[Float64](capacity=len(x))
+    var kept_y = List[Float64](capacity=len(y))
+    for i in range(len(x)):
+        if not isnan(x[i]) and not isnan(y[i]):
+            kept_x.append(x[i])
+            kept_y.append(y[i])
+    return (kept_x^, kept_y^)
+
+
 def _ols_fit(x: List[Float64], y: List[Float64]) raises -> _OlsFit:
     """Fit `y = slope * x + intercept` by ordinary least squares.
 
@@ -87,12 +124,15 @@ def _ols_fit(x: List[Float64], y: List[Float64]) raises -> _OlsFit:
         Error: Fewer than 2 points, or every `x` identical (the
             denominator is zero and no non-vertical line fits).
     """
-    var n_points = len(x)
+    var pairs = _present_pairs(x, y)
+    ref px = pairs[0]
+    ref py = pairs[1]
+    var n_points = len(px)
     if n_points < 2:
         raise Error(
             "needs at least 2 points to fit a line through (got "
             + String(n_points)
-            + ")"
+            + " with both coordinates present)"
         )
     var n = Float64(n_points)
     var sum_x = 0.0
@@ -100,10 +140,10 @@ def _ols_fit(x: List[Float64], y: List[Float64]) raises -> _OlsFit:
     var sum_xy = 0.0
     var sum_xx = 0.0
     for i in range(n_points):
-        sum_x += x[i]
-        sum_y += y[i]
-        sum_xy += x[i] * y[i]
-        sum_xx += x[i] * x[i]
+        sum_x += px[i]
+        sum_y += py[i]
+        sum_xy += px[i] * py[i]
+        sum_xx += px[i] * px[i]
     var denom = n * sum_xx - sum_x * sum_x
     if denom == 0.0:
         raise Error(
@@ -117,7 +157,7 @@ def _ols_fit(x: List[Float64], y: List[Float64]) raises -> _OlsFit:
     var sxx = sum_xx - n * mean_x * mean_x
     var ss_res = 0.0
     for i in range(n_points):
-        var r = y[i] - (slope * x[i] + intercept)
+        var r = py[i] - (slope * px[i] + intercept)
         ss_res += r * r
     var residual_se = sqrt(ss_res / (n - 2.0)) if n_points > 2 else 0.0
     return _OlsFit(n_points, slope, intercept, mean_x, mean_y, sxx, residual_se)
@@ -393,37 +433,71 @@ def _sort_ascending(mut values: List[Float64]):
             k -= 1
 
 
+def _present(values: List[Float64]) -> List[Float64]:
+    """The values that are there, dropping the missing ones (#367).
+
+    Every statistic in this package starts here, so "the mean of what
+    was measured" is the same rule everywhere: a missing observation is
+    left out rather than counted as a zero or poisoning the result into
+    `NaN`. The count that remains is the effective sample size, which is
+    what `Estimator.COUNT` then reports.
+
+    Args:
+        values: A column, possibly with missing entries.
+
+    Returns:
+        A list of the present values, in order.
+    """
+    var out = List[Float64](capacity=len(values))
+    for v in values:
+        if not isnan(v):
+            out.append(v)
+    return out^
+
+
 def _estimate(values: List[Float64], estimator: Estimator) raises -> Float64:
-    """Reduce `values` by `estimator`. Raises on an empty list."""
-    var n = len(values)
+    """Reduce `values` by `estimator`, over the observations that are
+    there. Raises when none is.
+
+    `Estimator.COUNT` therefore reports the effective sample size: how
+    many observations the estimate rests on, not how many rows the
+    column had (#367).
+    """
+    var present = _present(values)
+    var n = len(present)
     if n == 0:
-        raise Error("an estimate needs at least one observation")
+        raise Error(
+            "an estimate needs at least one observation, and every value"
+            " in this group is missing"
+        )
     if estimator == Estimator.COUNT:
         return Float64(n)
     var total = 0.0
-    for v in values:
+    for v in present:
         total += v
     if estimator == Estimator.SUM:
         return total
     if estimator == Estimator.MEAN:
         return total / Float64(n)
-    var sorted = values.copy()
+    var sorted = present^
     _sort_ascending(sorted)
     return _percentile(sorted, 0.5)
 
 
 def _sample_sd(values: List[Float64]) -> Float64:
-    """The sample standard deviation (n - 1 in the denominator); `0.0`
-    below two observations, where it is undefined."""
-    var n = len(values)
+    """The sample standard deviation (n - 1 in the denominator) over the
+    observations that are there; `0.0` below two of them, where it is
+    undefined (#367)."""
+    var present = _present(values)
+    var n = len(present)
     if n < 2:
         return 0.0
     var mean = 0.0
-    for v in values:
+    for v in present:
         mean += v
     mean /= Float64(n)
     var ss = 0.0
-    for v in values:
+    for v in present:
         ss += (v - mean) * (v - mean)
     return sqrt(ss / Float64(n - 1))
 
@@ -435,18 +509,24 @@ def _interval(
     seed: UInt64,
 ) raises -> Tuple[Float64, Float64]:
     """The `(low, high)` interval around `_estimate(values, estimator)`
-    that `errorbar` asks for. `COUNT` and `ErrorBar.none()` both give
-    the estimate twice -- an empty interval, drawn as no whisker.
+    that `errorbar` asks for, over the observations that are there.
+    `COUNT` and `ErrorBar.none()` both give the estimate twice -- an
+    empty interval, drawn as no whisker.
     """
     var est = _estimate(values, estimator)
     if errorbar.is_none() or estimator == Estimator.COUNT:
         return (est, est)
-    var n = len(values)
+    # Every part below counts, resamples or sorts observations, so it
+    # works from the ones that are there: `n` is the effective sample
+    # size, and a bootstrap that could draw a missing value would put a
+    # `NaN` into an interval (#367).
+    var present = _present(values)
+    var n = len(present)
     if errorbar._kind == 1:
-        var half = errorbar.scale * _sample_sd(values)
+        var half = errorbar.scale * _sample_sd(present)
         return (est - half, est + half)
     if errorbar._kind == 2:
-        var half = errorbar.scale * _sample_sd(values) / sqrt(Float64(n))
+        var half = errorbar.scale * _sample_sd(present) / sqrt(Float64(n))
         return (est - half, est + half)
     var level = errorbar.scale
     if level <= 0.0 or level >= 1.0:
@@ -458,7 +538,7 @@ def _interval(
     var lo_p = (1.0 - level) / 2.0
     var hi_p = (1.0 + level) / 2.0
     if errorbar._kind == 3:
-        var sorted = values.copy()
+        var sorted = present.copy()
         _sort_ascending(sorted)
         return (_percentile(sorted, lo_p), _percentile(sorted, hi_p))
     # Bootstrap: resample with replacement, re-estimate, take the
@@ -469,7 +549,7 @@ def _interval(
     for _ in range(_BOOTSTRAP_RESAMPLES):
         draw.clear()
         for _ in range(n):
-            draw.append(values[Int(rng.next_bits() % UInt64(n))])
+            draw.append(present[Int(rng.next_bits() % UInt64(n))])
         estimates.append(_estimate(draw, estimator))
     _sort_ascending(estimates)
     return (_percentile(estimates, lo_p), _percentile(estimates, hi_p))
@@ -534,15 +614,26 @@ def _aggregate(
             members.append(List[Float64]())
             found = len(categories) - 1
         members[found].append(values[i])
+    var kept = List[String](capacity=len(categories))
     var estimates = List[Float64](capacity=len(categories))
     var lows = List[Float64](capacity=len(categories))
     var highs = List[Float64](capacity=len(categories))
     for j in range(len(categories)):
+        # A group whose observations are all missing has no estimate to
+        # draw, so it leaves the axis rather than becoming a bar of no
+        # height, which would read as a measured zero (#367).
+        if len(_present(members[j])) == 0:
+            continue
+        kept.append(categories[j])
         estimates.append(_estimate(members[j], estimator))
         var iv = _interval(members[j], estimator, errorbar, seed)
         lows.append(iv[0])
         highs.append(iv[1])
-    return _Aggregate(categories^, estimates^, lows^, highs^)
+    if len(kept) == 0:
+        raise Error(
+            "nothing to estimate: every observation in every group is missing"
+        )
+    return _Aggregate(kept^, estimates^, lows^, highs^)
 
 
 struct _NumericAggregate(Movable):
@@ -599,6 +690,12 @@ def _aggregate_by_x(
     var keys = List[Float64]()
     var members = List[List[Float64]]()
     for i in range(len(x)):
+        # A row with no x has no position on the axis to be estimated
+        # at, so it takes no part (#367). A row with an x but no y is
+        # kept here and dropped by the estimate below, which is what
+        # makes the effective sample size right.
+        if isnan(x[i]):
+            continue
         var found = -1
         for j in range(len(keys)):
             if keys[j] == x[i]:
@@ -624,11 +721,20 @@ def _aggregate_by_x(
     var lows = List[Float64](capacity=len(keys))
     var highs = List[Float64](capacity=len(keys))
     for j in order:
+        # An x whose observations are all missing has no estimate; it
+        # leaves the line rather than dropping it to a measured-looking
+        # zero (#367).
+        if len(_present(members[j])) == 0:
+            continue
         xs.append(keys[j])
         estimates.append(_estimate(members[j], estimator))
         var iv = _interval(members[j], estimator, errorbar, seed)
         lows.append(iv[0])
         highs.append(iv[1])
+    if len(xs) == 0:
+        raise Error(
+            "nothing to estimate: every observation at every x is missing"
+        )
     return _NumericAggregate(xs^, estimates^, lows^, highs^)
 
 

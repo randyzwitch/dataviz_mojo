@@ -43,6 +43,7 @@ from dataviz.core.stats import (
     _loess_at,
     _ols_fit,
     _poly_fit,
+    _present_pairs,
 )
 from dataviz.core.theme import Theme
 
@@ -757,11 +758,16 @@ def _draw_annotation_smooth[
             " fit a curve against. Supported today:"
             " Mark.POINT/LINE/AREA/EFFECT_SCATTER only"
         )
-    ref x = plot._continuous.x
-    ref y = plot._continuous.y
-    if len(x) != len(y) or len(x) < 2:
+    # A row missing either coordinate says nothing about the
+    # relationship between them, so the curve is fitted through the
+    # pairs that are whole (#367).
+    var pairs = _present_pairs(plot._continuous.x, plot._continuous.y)
+    ref x = pairs[0]
+    ref y = pairs[1]
+    if len(x) < 2:
         raise Error(
-            "Plot.annotate_smooth(): needs at least 2 points with one y per x"
+            "Plot.annotate_smooth(): needs at least 2 points with both"
+            " coordinates present"
         )
     var lo = x[0]
     var hi = x[0]
