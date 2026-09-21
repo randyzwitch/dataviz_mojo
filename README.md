@@ -19,7 +19,7 @@ the early design history, up to v0.11.0.
 preview = ["pixi-build"]  # git-source pixi dependencies are still a preview feature
 
 [dependencies]
-dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", branch = "main" }
+dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.13.0" }
 ```
 
 Pixi builds `dataviz_mojo` and its `canvas_mojo` dependency from the selected
@@ -28,6 +28,11 @@ Git ref. The package installs as `dataviz_mojo` and imports as `dataviz`:
 ```mojo
 from dataviz import Plot, save
 ```
+
+Swap the tag for `branch = "main"` to follow development instead. This
+package is pre-1.0 and renames or removes API outright rather than running
+deprecation cycles, so `main` can break your program on any `pixi update`;
+a tag cannot.
 
 For a complete first chart and the command that runs it, follow the
 **[five-minute quickstart](https://randyzwitch.com/dataviz_mojo/quickstart/)**.

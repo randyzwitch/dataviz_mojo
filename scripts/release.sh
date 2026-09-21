@@ -57,7 +57,20 @@ rm -f "$MANIFEST.bak"
 
 "$ROOT/scripts/check_version.sh"
 
-git -C "$ROOT" add "$MANIFEST"
+# The install snippet a new user copies names a tag, so it has to move
+# with the version or it sends them to the previous release (#765).
+# Both files carry the line verbatim; check_install_tag.sh is the gate
+# that catches a bump done by hand instead of through this script.
+for doc in README.md docs/src/quickstart.md; do
+    sed -i.bak \
+        "s|\(dataviz_mojo = { git = \"https://github.com/randyzwitch/dataviz_mojo.git\", tag = \"\)v$OLD_VERSION\(\" }\)|\\1v$NEW_VERSION\\2|" \
+        "$ROOT/$doc"
+    rm -f "$ROOT/$doc.bak"
+done
+
+"$ROOT/scripts/check_install_tag.sh"
+
+git -C "$ROOT" add "$MANIFEST" "$ROOT/README.md" "$ROOT/docs/src/quickstart.md"
 git -C "$ROOT" commit -m "Bump version to $NEW_VERSION"
 git -C "$ROOT" tag "v$NEW_VERSION"
 
