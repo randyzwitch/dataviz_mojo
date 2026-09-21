@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation and examples
+    url: https://randyzwitch.com/dataviz_mojo/
+    about: The quickstart, the example gallery with source beside each chart, and the API reference.
+  - name: Security report
+    url: https://github.com/randyzwitch/dataviz_mojo/security/advisories/new
+    about: Report a vulnerability privately rather than in a public issue.

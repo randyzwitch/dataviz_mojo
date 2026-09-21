@@ -1,0 +1,65 @@
+name: Bug report
+description: A chart that draws the wrong thing, a call that raises, or a build that fails.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A program we can run is worth more than a description of one. Most
+        bugs here are reproduced in under ten lines.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected the chart or call to do, and what it did instead.
+      placeholder: The y-axis labels read 2000000 where I expected 2M.
+    validations:
+      required: true
+  - type: textarea
+    id: program
+    attributes:
+      label: A program that shows it
+      description: >
+        Complete, with imports and `main()`, so it can be pasted into a file
+        and run. Trim it to the smallest version that still misbehaves.
+      render: mojo
+      placeholder: |
+        from dataviz import Plot, save
+
+        def main() raises:
+            var x: List[Float64] = [1.0, 2.0, 3.0]
+            var y: List[Float64] = [1200000.0, 3400000.0, 2100000.0]
+            save(Plot().mark_line().encode(x=x, y=y), "chart.svg")
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What it printed
+      description: >
+        The error and its stack, or the rendered output. Attach the image if
+        the problem is something you can see.
+      render: text
+  - type: input
+    id: dependency
+    attributes:
+      label: Your dependency line
+      description: The `dataviz_mojo = { ... }` line from your `pixi.toml`.
+      placeholder: dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.13.0" }
+    validations:
+      required: true
+  - type: input
+    id: mojo-version
+    attributes:
+      label: Mojo version
+      description: The output of `pixi run mojo --version`.
+      placeholder: Mojo 1.1.0 (8189361e)
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and processor
+      placeholder: Ubuntu 24.04, x86-64
+    validations:
+      required: true
