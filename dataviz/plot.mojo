@@ -7429,23 +7429,74 @@ def _render_svg_into(
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
-def _resolve_output_format(
-    theme_format: OutputFormat, path: String
-) -> OutputFormat:
-    """The format `save()`/`save_layers()`/`save_facets()` use: `path`'s
-    extension when it's `.svg`/`.png`/`.bmp`/`.pdf` (case-insensitive),
-    otherwise `theme_format` (`Theme.output_format`).
+def _path_extension(path: String) -> String:
+    """`path`'s extension, lowercased and including its dot, or an empty
+    string when the last path component hasn't got one.
+
+    Only the last component is considered, so a dot in a directory name
+    (`charts.v2/out`) is not an extension. A leading dot is a hidden
+    file rather than an extension, so `.gitignore` has none.
     """
     var lower = path.lower()
-    if lower.endswith(".svg"):
+    var name = lower
+    var slash = lower.rfind("/")
+    if slash >= 0:
+        name = String(lower[byte = slash + 1 :])
+    var dot = name.rfind(".")
+    if dot <= 0:
+        return String("")
+    return String(name[byte=dot:])
+
+
+def _resolve_output_format(
+    theme_format: OutputFormat, path: String
+) raises -> OutputFormat:
+    """The format `save()`/`save_layers()`/`save_facets()` use: `path`'s
+    extension when it's `.svg`/`.png`/`.bmp`/`.pdf` (case-insensitive),
+    or `theme_format` (`Theme.output_format`) when `path` has no
+    extension at all.
+
+    **Any other extension raises** (#755). This used to fall through to
+    `theme_format` like an absent one, so `save(plot, "chart.jpg")`
+    wrote SVG markup into a file named `.jpg` and reported success --
+    the same defect #696 fixed for the already-rendered canvases, still
+    the default here for every extension nobody had thought of. `.jpg`,
+    `.jpeg`, `.gif`, `.webp`, `.tif` and `.html` all did it.
+
+    An allow-list rather than a list of known-wrong extensions, because
+    the set of formats this package can write is closed and small while
+    the set it cannot is not.
+
+    Args:
+        theme_format: The fallback for a path with no extension.
+        path: The destination.
+
+    Returns:
+        The format to write.
+
+    Raises:
+        Error: `path` has an extension this package cannot write.
+    """
+    var ext = _path_extension(path)
+    if ext == ".svg":
         return OutputFormat.SVG
-    elif lower.endswith(".png"):
+    elif ext == ".png":
         return OutputFormat.PNG
-    elif lower.endswith(".bmp"):
+    elif ext == ".bmp":
         return OutputFormat.BMP
-    elif lower.endswith(".pdf"):
+    elif ext == ".pdf":
         return OutputFormat.PDF
-    return theme_format
+    elif ext.byte_length() == 0:
+        return theme_format
+    raise Error(
+        "save(): don't know how to write a "
+        + ext
+        + " file. This package writes .svg, .png, .bmp and .pdf; a path"
+        + " with no extension at all uses Theme.output_format. Nothing"
+        + " was written to "
+        + path
+        + "."
+    )
 
 
 def _resolve_description(labels: _LabelData) -> String:
@@ -7661,9 +7712,15 @@ def save(
     plot: Plot, path: String, dpi: Float64 = 72.0, tight: Bool = False
 ) raises:
     """Render `plot` and write it to `path` in one call. The format
-    comes from `_resolve_output_format()` (the path's extension, falling
-    back to `plot._theme.output_format`); `PNG`/`BMP` both go through
-    `render()` and differ only in the writer.
+    comes from the path's extension -- `.svg`, `.png`, `.bmp` or `.pdf`
+    -- or from `plot._theme.output_format` when `path` has no extension
+    at all; `PNG`/`BMP` both go through `render()` and differ only in
+    the writer.
+
+    **Any other extension raises and writes nothing** (#755). A `.jpg`
+    path used to fall back to the theme format like an absent one, so
+    it got SVG markup in a file named `.jpg` and the call reported
+    success.
 
     `plot` is a plain borrow: `save(scatter(x, y), path)` compiles
     inline, with no need to bind the temporary to a variable first. Call
@@ -7728,54 +7785,62 @@ def save(
             write_bmp(render(bmp_scaled), path)
 
 
-def _reject_mismatched_extension(
+def _require_extension(
     path: String,
     because: String,
     accepted: String,
-    wrong: List[String],
+    allowed: List[String],
 ) raises:
-    """Raise before opening `path` when its extension names a format
-    this canvas cannot produce (#696).
+    """Raise before opening `path` unless its extension is one this
+    canvas can produce (#696, #755).
 
-    Before this, `save(canvas, "chart.pdf")` wrote PNG bytes and
-    `save(svg, "chart.pdf")` wrote markup: each overload rejected only
-    the extensions someone had thought of, and everything else fell
-    through to the default writer. A file that says `.pdf` and holds a
-    PNG is worse than a failed save, because nothing reports it.
+    Before #696, `save(canvas, "chart.pdf")` wrote PNG bytes and
+    `save(svg, "chart.pdf")` wrote markup. That fix listed the
+    extensions each overload had to refuse, which left every extension
+    nobody had thought of still falling through to the default writer:
+    `save(canvas, "chart.jpg")` wrote a PNG. A file that says `.jpg`
+    and holds a PNG is worse than a failed save, because nothing
+    reports it.
+
+    So the test is now the other way round. The set of formats a given
+    canvas can write is closed and has one or two members; the set it
+    cannot is every other string. An absent extension is still allowed
+    through to the caller's chosen writer, which is what lets
+    `save(canvas, "out")` work.
 
     Checked before the file is opened, so a rejected path is left
-    untouched rather than created and truncated. An unrecognized or
-    absent extension is allowed through to the caller's chosen writer,
-    which is what lets `save(canvas, "out")` still work.
+    untouched rather than created and truncated.
 
-    `because` is the canvas's own explanation of why it cannot, kept
-    per-canvas rather than generated, so a caller gets the same
-    sentence that told them something useful before this was
-    centralized.
+    `because` is the canvas's own explanation, kept per-canvas rather
+    than generated, so a caller gets the same sentence that told them
+    something useful before this was centralized.
 
     Args:
         path: The destination.
         because: Why this canvas cannot write that format.
-        accepted: The extension this canvas writes.
-        wrong: The recognized extensions it cannot.
+        accepted: The extension this canvas writes, for the message.
+        allowed: The extensions it can write.
 
     Raises:
-        Error: `path` ends in one of `wrong`.
+        Error: `path` has an extension outside `allowed`.
     """
-    var lower = path.lower()
-    for ext in wrong:
-        if lower.endswith(ext):
-            raise Error(
-                "save(): cannot write a "
-                + ext
-                + " file here -- "
-                + because
-                + " Save it as "
-                + accepted
-                + ", or build the chart as a Plot and call"
-                + " save(plot, path), which renders whatever format the"
-                + " extension asks for."
-            )
+    var ext = _path_extension(path)
+    if ext.byte_length() == 0:
+        return
+    for ok in allowed:
+        if ext == ok:
+            return
+    raise Error(
+        "save(): cannot write a "
+        + ext
+        + " file here -- "
+        + because
+        + " Save it as "
+        + accepted
+        + ", or build the chart as a Plot and call"
+        + " save(plot, path), which renders whatever format the"
+        + " extension asks for."
+    )
 
 
 def render(figure: Figure) raises -> Canvas:
@@ -7907,12 +7972,12 @@ def save(svg: SvgCanvas, path: String) raises:
     Raises:
         Error: A `.png` or `.bmp` path, or the write fails.
     """
-    var wrong: List[String] = [".png", ".bmp", ".pdf"]
-    _reject_mismatched_extension(
+    var allowed: List[String] = [".svg"]
+    _require_extension(
         path,
         "an SvgCanvas is vector markup, not pixels.",
         ".svg",
-        wrong,
+        allowed,
     )
     var f = open(path, "w")
     f.write(svg.to_string())
@@ -7924,12 +7989,12 @@ def save(canvas: Canvas, path: String) raises:
     extension, PNG otherwise. A `.svg` path raises, since raster pixels
     can't become vector markup.
     """
-    var wrong: List[String] = [".svg", ".pdf"]
-    _reject_mismatched_extension(
+    var allowed: List[String] = [".png", ".bmp"]
+    _require_extension(
         path,
         "a Canvas is already-rendered raster pixels.",
         ".png or .bmp",
-        wrong,
+        allowed,
     )
     if path.lower().endswith(".bmp"):
         write_bmp(canvas, path)
@@ -7959,12 +8024,12 @@ def save(var pdf: PdfCanvas, path: String) raises:
     Raises:
         Error: A `.png`, `.bmp` or `.svg` path, or the write fails.
     """
-    var wrong: List[String] = [".png", ".bmp", ".svg"]
-    _reject_mismatched_extension(
+    var allowed: List[String] = [".pdf"]
+    _require_extension(
         path,
         "a PdfCanvas is a finished PDF document.",
         ".pdf",
-        wrong,
+        allowed,
     )
     write_pdf(pdf, path)
 

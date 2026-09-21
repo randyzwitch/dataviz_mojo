@@ -1408,15 +1408,97 @@ def test_a_rendered_canvas_refuses_a_path_it_cannot_honor() raises:
     assert_true(_still_sentinel(pdf_to_svg), "and left the file alone")
 
 
-def test_an_unrecognized_extension_still_takes_the_canvas_default() raises:
-    # Only a *recognized* extension that the canvas cannot produce is
-    # refused; an unknown or absent one goes to that canvas's own
-    # writer, which is what keeps save(canvas, "out") working.
+def test_a_path_with_no_extension_takes_the_canvas_default() raises:
+    # An absent extension is the one case that still falls through to
+    # the canvas's own writer, which is what keeps save(canvas, "out")
+    # working. A dot inside a directory name is not an extension, so
+    # that path takes the default too.
     var p = _tiny_plot(_clear_theme())
     var path = "/tmp/dataviz_test_contract_noext"
     save(render(p), path)
     var a = _file_bytes(path)
     assert_equal(Int(a[1]), 80, "still a PNG")
+
+
+def test_an_unrecognized_extension_is_refused_rather_than_guessed() raises:
+    # #696 listed the extensions each overload had to refuse, which left
+    # every extension nobody had thought of falling through to the
+    # default writer: save(plot, "chart.jpg") wrote SVG markup into a
+    # file named .jpg and reported success, and .jpeg, .gif, .webp,
+    # .tif, .eps and .html did the same (#755). A file that says .jpg
+    # and holds SVG is worse than a failed save, because nothing
+    # reports it. The test is now an allow-list, so this stays closed
+    # for extensions nobody has thought of yet either.
+    var p = _tiny_plot(_clear_theme())
+    var unwritable: List[String] = [
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".webp",
+        ".tif",
+        ".eps",
+        ".html",
+    ]
+    for ext in unwritable:
+        var path = "/tmp/dataviz_test_unknown_ext" + ext
+        _write_sentinel(path)
+        with assert_raises(contains="don't know how to write a " + ext):
+            save(p, path)
+        assert_true(_still_sentinel(path), "left " + ext + " alone")
+
+    # The already-rendered canvases refuse the same way, through their
+    # own allow-lists, and name the canvas rather than the package.
+    var svg_path = "/tmp/dataviz_test_unknown_svg.jpg"
+    _write_sentinel(svg_path)
+    with assert_raises(contains="cannot write a .jpg"):
+        save(render_svg(p), svg_path)
+    assert_true(_still_sentinel(svg_path), "left the SvgCanvas path alone")
+
+    var raster_path = "/tmp/dataviz_test_unknown_raster.webp"
+    _write_sentinel(raster_path)
+    with assert_raises(contains="cannot write a .webp"):
+        save(render(p), raster_path)
+    assert_true(_still_sentinel(raster_path), "left the Canvas path alone")
+
+    var pdf_path = "/tmp/dataviz_test_unknown_pdf.gif"
+    _write_sentinel(pdf_path)
+    with assert_raises(contains="cannot write a .gif"):
+        save(render_pdf(p), pdf_path)
+    assert_true(_still_sentinel(pdf_path), "left the PdfCanvas path alone")
+
+
+def test_the_four_writable_extensions_still_write() raises:
+    # The other half of the allow-list: it must not have closed over a
+    # format this package does produce. One assertion per writer, by
+    # magic bytes rather than by the call not raising.
+    var p = _tiny_plot(_clear_theme())
+
+    save(p, "/tmp/dataviz_test_ok.png")
+    assert_equal(
+        Int(_file_bytes("/tmp/dataviz_test_ok.png")[1]), 80, "PNG magic"
+    )
+    save(p, "/tmp/dataviz_test_ok.bmp")
+    assert_equal(
+        Int(_file_bytes("/tmp/dataviz_test_ok.bmp")[0]), 66, "BMP magic"
+    )
+    save(p, "/tmp/dataviz_test_ok.svg")
+    assert_true(
+        _file_text("/tmp/dataviz_test_ok.svg").startswith("<svg"), "SVG markup"
+    )
+    # By bytes, not text: a PDF embeds a font subset, so reading the
+    # whole file as a String fails on invalid UTF-8.
+    save(p, "/tmp/dataviz_test_ok.pdf")
+    var pdf_bytes = _file_bytes("/tmp/dataviz_test_ok.pdf")
+    assert_equal(Int(pdf_bytes[0]), 37, "PDF header %")
+    assert_equal(Int(pdf_bytes[1]), 80, "PDF header P")
+    assert_equal(Int(pdf_bytes[2]), 68, "PDF header D")
+    assert_equal(Int(pdf_bytes[3]), 70, "PDF header F")
+
+    # Case does not matter, and neither does a dot earlier in the name.
+    save(p, "/tmp/dataviz_test_ok.v2.PNG")
+    assert_equal(
+        Int(_file_bytes("/tmp/dataviz_test_ok.v2.PNG")[1]), 80, "PNG magic"
+    )
 
 
 # ---------------------------------------------------------------
