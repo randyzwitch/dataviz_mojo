@@ -18,6 +18,9 @@ from canvas.vector.draw_target import DrawTarget
 
 from std.utils.numerics import inf, isnan
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_grid
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -925,6 +928,63 @@ def _render_image[
     )
 
     return frame.result()
+
+
+def imshow(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`imshow()` over a long-form `dataframe_mojo` `DataFrame` (#743):
+    one row per cell, with `row` and `column` giving the cell's
+    coordinates and `value` its height.
+
+    A field is a grid, and a frame is a list of cells, so the rows are
+    pivoted into one. Both axes come out ascending. A cell with no row
+    is **missing**, not zero: it comes out blank and takes no part in
+    the color limits (#367), which is what lets a table that was never
+    rectangular be drawn as a field.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each cell's row coordinate.
+        column: The numeric column giving each cell's column coordinate.
+        value: The numeric column holding each cell.
+
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `column`.
+        y_title: The y-axis caption; defaults to `row`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var grid = _frame_grid(df, row, column, value, "imshow()", theme.missing)
+    return imshow(
+        grid[2],
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else column,
+        y_title=y_title if y_title.byte_length() > 0 else row,
+    )
 
 
 def imshow[

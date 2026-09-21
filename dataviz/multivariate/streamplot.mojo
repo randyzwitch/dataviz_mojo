@@ -25,6 +25,9 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_grid
 from dataviz.core.array_like import (
     _materialize_nested_scalar_list,
     _materialize_scalar_list,
@@ -675,6 +678,75 @@ def _render_streamplot[
         cache=cache,
     )
     return frame.result()
+
+
+def streamplot(
+    df: DataFrame,
+    row: String,
+    column: String,
+    u: String,
+    v: String,
+    density: Float64 = 1.0,
+    arrows: Bool = True,
+    color_by_magnitude: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`streamplot()` over a long-form `dataframe_mojo` `DataFrame`
+    (#743): one row per grid point, with `row` and `column` giving its
+    coordinates and `u`/`v` the two components of the vector there.
+
+    Both components are pivoted onto the same grid, so a row missing
+    either one leaves that cell without a vector. Both axes come out
+    ascending.
+
+    Args:
+        df: The frame to read.
+        row: The numeric column giving each point's row coordinate.
+        column: The numeric column giving each point's column coordinate.
+        u: The numeric column holding the x component.
+        v: The numeric column holding the y component.
+        density: Line spacing; see the list overload.
+        arrows: Draw direction arrows along each line.
+        color_by_magnitude: Color the lines by speed.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        subtitle: A line under the title.
+        x_title: The x-axis caption; defaults to `column`.
+        y_title: The y-axis caption; defaults to `row`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, the columns
+            differ in length, or a (row, column) pair repeats.
+    """
+    var us = _frame_grid(df, row, column, u, "streamplot()", theme.missing)
+    var vs = _frame_grid(df, row, column, v, "streamplot()", theme.missing)
+    return streamplot(
+        us[1],
+        us[0],
+        us[2],
+        vs[2],
+        density=density,
+        arrows=arrows,
+        color_by_magnitude=color_by_magnitude,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else column,
+        y_title=y_title if y_title.byte_length() > 0 else row,
+    )
 
 
 def streamplot[
