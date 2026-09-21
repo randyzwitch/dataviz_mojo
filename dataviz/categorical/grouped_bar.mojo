@@ -486,7 +486,6 @@ def grouped_bar(
         category: The string column naming each category.
         series: The string column naming each series.
         value: The numeric column holding each cell.
-
         theme: Full styling knobs beyond this function's own parameters.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).

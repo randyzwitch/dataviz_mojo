@@ -958,7 +958,6 @@ def imshow(
         row: The numeric column giving each cell's row coordinate.
         column: The numeric column giving each cell's column coordinate.
         value: The numeric column holding each cell.
-
         theme: Full styling knobs beyond this function's own parameters.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).

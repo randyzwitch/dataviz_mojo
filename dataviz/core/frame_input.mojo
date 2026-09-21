@@ -127,6 +127,7 @@ def _frame_floats(
         df: The frame to read.
         name: The column's name.
         caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
 
     Returns:
         The column's values, in row order.
@@ -162,7 +163,7 @@ def _frame_floats(
         if holes and not column.is_valid(i):
             out.append(nan[DType.float64]())
         else:
-            out.append(values[i])
+            out.append(values[unsafe_offset=i])
     # `typed` owns the buffer `values` points into, so it has to outlive
     # the loop above; this keeps it alive past the last read.
     _ = typed.null_count()
@@ -182,6 +183,9 @@ def _frame_strings(
         df: The frame to read.
         name: The column's name.
         caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
+        label: What an absent level is called
+            (`Theme.missing_category_label`).
 
     Returns:
         The column's values, in row order.
@@ -231,6 +235,7 @@ def _frame_bools(
         df: The frame to read.
         name: The column's name.
         caller: The public function to name in an error.
+        missing: The policy in force (`Theme.missing`).
 
     Returns:
         The column's values, in row order.
