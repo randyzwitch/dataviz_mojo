@@ -14,7 +14,7 @@ mojo = ">=1.1.0,<1.2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.1" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
-dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", rev = "c06399b" }
+dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
 hugo = ">=0.165.0,<0.166"
 go = ">=1.26.7,<2"
 # Dev/test dependencies for numpy_interop.mojo.
@@ -89,11 +89,11 @@ mojo = ">=1.1.0,<1.2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.1" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
-dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", rev = "c06399b" }
+dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
 
 [package.run-dependencies]
 mojo = ">=1.1.0,<1.2"
 canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.39.1" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
-dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", rev = "c06399b" }
+dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
