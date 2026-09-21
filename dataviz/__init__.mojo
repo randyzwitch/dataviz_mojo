@@ -23,6 +23,7 @@ from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle
 from dataviz.core.step_style import StepStyle
+from dataviz.core.frame_facets import FacetPart, facet_by, pooled_extent
 from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz.core.x_label_rotation import XAxisLabelRotation
 from dataviz.plot import (

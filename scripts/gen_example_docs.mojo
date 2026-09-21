@@ -601,6 +601,7 @@ def _cookbook_categories() -> List[Category]:
             [
                 "dataframe_columns",
                 "dataframe_long_form",
+                "dataframe_facets",
                 "numeric_types",
                 "numpy_pandas_data",
                 "array_like_data",
