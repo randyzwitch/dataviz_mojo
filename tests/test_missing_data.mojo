@@ -12,7 +12,7 @@ either policy -- it is not a missing measurement.
 
 from dataframe import Column, DataFrame, Series
 
-from dataviz import area, bar, line, scatter
+from dataviz import area, bar, calendar_heatmap, heatmap, imshow, line, scatter
 from dataviz.core.missing import Missing
 from dataviz.core.scale import _min_max
 from dataviz.core.theme import Theme
@@ -211,6 +211,99 @@ def test_strict_mode_refuses_a_frame_s_nulls_at_the_boundary() raises:
             y="reading",
             theme=Theme(missing=Missing.RAISE),
         )
+
+
+def _cells() -> List[List[Float64]]:
+    var grid = List[List[Float64]]()
+    var row0: List[Float64] = [1.0, _nan()]
+    var row1: List[Float64] = [3.0, 4.0]
+    grid.append(row0^)
+    grid.append(row1^)
+    return grid^
+
+
+def test_a_missing_heatmap_cell_is_left_blank() raises:
+    """A color off the end of the ramp reads as a measurement at that
+    end, so a cell with no value is not drawn at all."""
+    var xs: List[String] = ["a", "b", "a", "b"]
+    var ys: List[String] = ["r", "r", "s", "s"]
+    var holed: List[Float64] = [1.0, 2.0, _nan(), 4.0]
+    var whole: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var gapped = render_svg(
+        heatmap(xs, ys, holed, width=320, height=240)
+    ).to_string()
+    var solid = render_svg(
+        heatmap(xs, ys, whole, width=320, height=240)
+    ).to_string()
+    assert_equal(
+        gapped.count("<rect") + 1,
+        solid.count("<rect"),
+        "one cell fewer is drawn",
+    )
+
+
+def test_missing_cells_do_not_move_the_color_limits() raises:
+    """The acceptance criterion: the ramp spans the cells that are
+    there, so the same value is the same color with or without a hole
+    elsewhere in the grid."""
+    var xs: List[String] = ["a", "b", "a", "b"]
+    var ys: List[String] = ["r", "r", "s", "s"]
+    var holed: List[Float64] = [1.0, 4.0, _nan(), 4.0]
+    var without: List[String] = ["a", "b", "b"]
+    var without_y: List[String] = ["r", "r", "s"]
+    var kept: List[Float64] = [1.0, 4.0, 4.0]
+    var with_hole = render_svg(
+        heatmap(xs, ys, holed, width=320, height=240)
+    ).to_string()
+    var no_hole = render_svg(
+        heatmap(without, without_y, kept, width=320, height=240)
+    ).to_string()
+    # The legend's end labels come from the limits, which must match.
+    assert_true(
+        ">1.0</text>" in with_hole and ">1.0</text>" in no_hole,
+        "same low end",
+    )
+    assert_true(
+        ">4.0</text>" in with_hole and ">4.0</text>" in no_hole,
+        "same high end",
+    )
+
+
+def test_a_missing_image_cell_is_left_blank() raises:
+    var svg = render_svg(imshow(_cells(), width=200, height=200)).to_string()
+    var full = List[List[Float64]]()
+    var r0: List[Float64] = [1.0, 2.0]
+    var r1: List[Float64] = [3.0, 4.0]
+    full.append(r0^)
+    full.append(r1^)
+    var whole = render_svg(imshow(full, width=200, height=200)).to_string()
+    assert_true(
+        svg.count("<rect") < whole.count("<rect"),
+        "the missing cell draws nothing",
+    )
+
+
+def test_a_grid_that_is_missing_throughout_has_no_color_limits() raises:
+    var grid = List[List[Float64]]()
+    var row: List[Float64] = [_nan(), _nan()]
+    grid.append(row^)
+    with assert_raises(contains="every cell in this grid is missing"):
+        _ = render_svg(imshow(grid, width=200, height=200))
+
+
+def test_a_missing_calendar_day_is_left_blank() raises:
+    var dates: List[String] = ["2026-01-01", "2026-01-02", "2026-01-03"]
+    var counts: List[Float64] = [3.0, _nan(), 5.0]
+    var whole_counts: List[Float64] = [3.0, 4.0, 5.0]
+    var gapped = render_svg(
+        calendar_heatmap(dates, counts, width=640, height=220)
+    ).to_string()
+    var solid = render_svg(
+        calendar_heatmap(dates, whole_counts, width=640, height=220)
+    ).to_string()
+    assert_equal(
+        gapped.count("<rect") + 1, solid.count("<rect"), "one day fewer"
+    )
 
 
 def main() raises:

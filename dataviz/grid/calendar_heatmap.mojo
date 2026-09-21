@@ -6,6 +6,8 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
+from std.utils.numerics import isnan
+
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
@@ -331,6 +333,9 @@ def _render_calendar_heatmap[
         var y_stop = Float64(plot_y0) - 0.5 + Float64(row + 1) * cell_height
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
+        # A day with no value is left as background (#367).
+        if isnan(plot._calendar.values[i]):
+            continue
         var color = color_scale.color_at(plot._calendar.values[i])
         if tooltips_on:
             target.begin_annotated_group(
