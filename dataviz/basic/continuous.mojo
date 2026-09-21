@@ -1467,6 +1467,58 @@ def area(
     return _finished(plot^, theme, width, height, title, x_title, y_title)
 
 
+def area(
+    df: DataFrame,
+    x: String,
+    y: String,
+    step: StepStyle = StepStyle.NONE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """`area()` over named columns of a `dataframe_mojo` `DataFrame`
+    (#743); the axis titles default to the column names.
+
+    The numeric counterpart of `line()`'s own frame overload, which
+    this mirrors: same channels, same defaults, a filled mark.
+
+    Args:
+        df: The frame to read.
+        x: The numeric column for the x axis.
+        y: The numeric column for the y axis; the filled area runs
+            from each value to the zero baseline.
+        step: Step (stairs) interpolation; see the numeric overload.
+        theme: Full styling knobs beyond this function's own parameters.
+        width: Pixel width of the returned `Plot` (`.size()`).
+        height: Pixel height of the returned `Plot` (`.size()`).
+        title: The chart's title, shown above the plot.
+        x_title: The x-axis caption; defaults to `x`.
+        y_title: The y-axis caption; defaults to `y`.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is missing, is not numeric, or has
+            missing values.
+    """
+    var plot = (
+        Plot().mark_area(step=step).theme(theme).encode_frame(df, x=x, y=y)
+    )
+    return _finished(
+        plot^,
+        theme,
+        width,
+        height,
+        title,
+        x_title if x_title.byte_length() > 0 else x,
+        y_title if y_title.byte_length() > 0 else y,
+    )
+
+
 def area[
     x_dtype: DType, y_dtype: DType
 ](

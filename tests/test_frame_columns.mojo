@@ -14,17 +14,22 @@ and the list call and demanding the same bytes.
 from dataframe import Column, DataFrame, Series
 
 from dataviz import (
+    area,
     calendar_heatmap,
     candlestick,
+    ecdf,
     funnel,
     heatmap,
     histogram,
+    kdeplot,
     pie,
     polar,
     quiver,
+    rugplot,
     sankey,
     scatter3d,
     treemap,
+    tricontourf,
     waterfall,
 )
 from dataviz.plot import render_svg
@@ -352,6 +357,168 @@ def test_a_date_column_reaches_the_calendar() raises:
 def test_a_missing_column_still_names_the_frame_s_columns() raises:
     with assert_raises(contains="The frame has: region, amount"):
         _ = funnel(_cat_frame(), categories="region", values="nope")
+
+
+# ---------------------------------------------------------------
+# Tier 4: the flat-column functions the earlier tiers left behind
+# (#743). Same rule as above -- frame call and list call, same bytes.
+
+
+def _obs() -> List[Float64]:
+    return [2.0, 4.0, 3.0, 5.0, 4.5, 6.0, 3.5, 5.5]
+
+
+def _obs_frame() raises -> DataFrame:
+    return DataFrame([Series("latency", Column[Float64](_obs()))])
+
+
+def test_area_reads_two_numeric_columns() raises:
+    var xs: List[Float64] = [1.0, 2.0, 3.0, 4.0]
+    var ys: List[Float64] = [2.0, 4.0, 3.0, 5.0]
+    var df = DataFrame(
+        [
+            Series("day", Column[Float64](xs.copy())),
+            Series("revenue", Column[Float64](ys.copy())),
+        ]
+    )
+    var by_frame = render_svg(
+        area(df, x="day", y="revenue", width=360, height=300)
+    ).to_string()
+    var by_list = render_svg(
+        area(xs, ys, width=360, height=300, x_title="day", y_title="revenue")
+    ).to_string()
+    assert_equal(by_frame, by_list, "area: same document")
+
+
+def test_one_observation_column_ecdf_kde_and_rug() raises:
+    # Three functions whose whole input is a single numeric column, so
+    # the only thing to get wrong is which title the name defaults to.
+    var df = _obs_frame()
+
+    var ecdf_frame = render_svg(
+        ecdf(df, values="latency", width=360, height=300)
+    ).to_string()
+    var ecdf_list = render_svg(
+        ecdf(_obs(), width=360, height=300, x_title="latency")
+    ).to_string()
+    assert_equal(ecdf_frame, ecdf_list, "ecdf: same document")
+
+    var kde_frame = render_svg(
+        kdeplot(df, values="latency", width=360, height=300)
+    ).to_string()
+    var kde_list = render_svg(
+        kdeplot(_obs(), width=360, height=300, x_title="latency")
+    ).to_string()
+    assert_equal(kde_frame, kde_list, "kdeplot: same document")
+
+    var rug_frame = render_svg(
+        rugplot(df, values="latency", width=360, height=300)
+    ).to_string()
+    var rug_list = render_svg(
+        rugplot(_obs(), width=360, height=300, x_title="latency")
+    ).to_string()
+    assert_equal(rug_frame, rug_list, "rugplot: same document")
+
+
+def test_kdeplot_keeps_its_own_flags_through_the_frame_overload() raises:
+    # bandwidth/fill/rug are not columns; a generated overload can drop
+    # one silently, and the chart still renders.
+    var df = _obs_frame()
+    var plain = render_svg(
+        kdeplot(df, values="latency", width=360, height=300)
+    ).to_string()
+    var filled = render_svg(
+        kdeplot(df, values="latency", fill=True, width=360, height=300)
+    ).to_string()
+    var with_rug = render_svg(
+        kdeplot(df, values="latency", rug=True, width=360, height=300)
+    ).to_string()
+    var wider = render_svg(
+        kdeplot(df, values="latency", bandwidth=2.0, width=360, height=300)
+    ).to_string()
+    assert_true(plain != filled, "fill=True changed nothing")
+    assert_true(plain != with_rug, "rug=True changed nothing")
+    assert_true(plain != wider, "bandwidth changed nothing")
+
+
+def test_ecdf_complementary_survives_the_frame_overload() raises:
+    var df = _obs_frame()
+    var normal = render_svg(
+        ecdf(df, values="latency", width=360, height=300)
+    ).to_string()
+    var complementary = render_svg(
+        ecdf(df, values="latency", complementary=True, width=360, height=300)
+    ).to_string()
+    assert_true(normal != complementary, "complementary=True changed nothing")
+
+
+def test_tricontourf_reads_three_columns_and_an_optional_one() raises:
+    var xs: List[Float64] = [0.0, 1.0, 2.0, 0.5, 1.5, 1.0]
+    var ys: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 2.0]
+    var zs: List[Float64] = [1.0, 2.0, 1.5, 3.0, 2.5, 4.0]
+    # One level per row, not three: every column in a frame has the
+    # same length, so a `levels` column is forced to the row count.
+    # That makes the channel close to unusable on real data -- 500
+    # observations would mean 500 contour levels -- and it is inherited
+    # from tricontour()'s own frame overload, which shipped untested.
+    # See #776; this test pins today's behavior, not a design anyone
+    # should copy.
+    var ls: List[Float64] = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    var df = DataFrame(
+        [
+            Series("x", Column[Float64](xs.copy())),
+            Series("y", Column[Float64](ys.copy())),
+            Series("depth", Column[Float64](zs.copy())),
+            Series("cut", Column[Float64](ls.copy())),
+        ]
+    )
+    var by_frame = render_svg(
+        tricontourf(df, x="x", y="y", z="depth", width=360, height=300)
+    ).to_string()
+    var by_list = render_svg(
+        tricontourf(xs, ys, zs, width=360, height=300)
+    ).to_string()
+    assert_equal(by_frame, by_list, "tricontourf: same document")
+
+    # `levels` is the optional channel: named, it must be read; left
+    # empty, it must stay unused rather than picking up a column.
+    var explicit = render_svg(
+        tricontourf(
+            df, x="x", y="y", z="depth", levels="cut", width=360, height=300
+        )
+    ).to_string()
+    var explicit_list = render_svg(
+        tricontourf(xs, ys, zs, levels=ls, width=360, height=300)
+    ).to_string()
+    assert_equal(explicit, explicit_list, "tricontourf levels: same document")
+    assert_true(by_frame != explicit, "naming a levels column changed nothing")
+
+
+def test_a_missing_column_names_the_function_that_was_called() raises:
+    # The caller sees the name they typed, not a helper's.
+    var df = _obs_frame()
+    with assert_raises(contains='ecdf(): no column named "nope"'):
+        _ = ecdf(df, values="nope")
+    with assert_raises(contains='kdeplot(): no column named "nope"'):
+        _ = kdeplot(df, values="nope")
+    with assert_raises(contains='rugplot(): no column named "nope"'):
+        _ = rugplot(df, values="nope")
+    with assert_raises(contains='tricontourf(): no column named "nope"'):
+        _ = tricontourf(df, x="latency", y="latency", z="nope")
+
+
+def test_an_explicit_axis_title_beats_the_column_name() raises:
+    var df = _obs_frame()
+    var defaulted = render_svg(
+        ecdf(df, values="latency", width=360, height=300)
+    ).to_string()
+    var overridden = render_svg(
+        ecdf(
+            df, values="latency", x_title="Latency (ms)", width=360, height=300
+        )
+    ).to_string()
+    assert_true("latency" in defaulted, "column name did not become the title")
+    assert_true("Latency (ms)" in overridden, "explicit x_title was ignored")
 
 
 def main() raises:
