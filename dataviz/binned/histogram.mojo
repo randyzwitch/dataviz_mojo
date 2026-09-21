@@ -1861,8 +1861,9 @@ def histogram(
     Args:
         df: The frame to read.
         data: The numeric column for this channel.
-        weights: The numeric column for this channel; left empty, the channel is unused.
         bins: See the list overload.
+        weights: The numeric column for this channel; left empty,
+            the channel is unused.
         stat: See the list overload.
         cumulative: See the list overload.
         stepfilled: See the list overload.

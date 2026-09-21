@@ -439,7 +439,6 @@ def box(
         df: The frame to read.
         category: The string column naming each observation's group.
         value: The numeric column holding the observations.
-
         theme: Full styling knobs beyond this function's own parameters.
         width: Pixel width of the returned `Plot` (`.size()`).
         height: Pixel height of the returned `Plot` (`.size()`).

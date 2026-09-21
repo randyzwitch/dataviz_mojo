@@ -78,7 +78,7 @@ def facet_by(
             whose level is absent.
     """
     comptime caller = "facet_by()"
-    var levels = List[String]()
+    var levels: List[String]
     if _is_string_column(df, column):
         levels = _frame_strings(df, column, caller, missing, label)
     else:
