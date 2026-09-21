@@ -1,0 +1,28 @@
+name: Feature request
+description: A chart type, an encoding, an output format, or an API this package should have.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to draw
+      description: >
+        The chart or the task, not the API. Knowing what the data looks like
+        and what a reader should take from the picture usually decides the
+        design on its own.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What you do today
+      description: >
+        How you get the closest thing this package can already draw, or why
+        nothing here fits. If another library does it the way you want, name
+        it and say what it gets right.
+  - type: textarea
+    id: shape
+    attributes:
+      label: What the call might look like
+      description: Optional. A sketch is useful even if the names are wrong.
+      render: mojo
