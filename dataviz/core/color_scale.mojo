@@ -22,6 +22,7 @@ from std.math import log10
 from canvas.color import Color
 from canvas.gradient import GradientStops
 from dataviz.core.marker import PointShape, default_marker_shapes
+from dataviz.core.palettes import okabe_ito
 from dataviz.core.scale import MinMax, _min_max
 from dataviz.core.theme import Theme
 
@@ -781,26 +782,13 @@ def categorical_palette_for(theme: Theme) -> List[Color]:
 
 
 def default_categorical_palette() -> List[Color]:
-    """A default qualitative color palette for categorical color encoding: 8
-    visually distinct colors (the common "tab10"-style set), cycled via
-    modulo when a column has more unique categories (see `Plot.encode`).
+    """The eight-color Okabe-Ito palette used for categorical encoding.
 
-    The fallback for `Theme.categorical_palette` (a packed
-    `ColorPalette`, so `Theme` stays implicitly copyable); mark files
-    reach it through `categorical_palette_for(theme)` rather than
-    calling this directly.
+    The fallback for an unset `Theme.categorical_palette`; named
+    alternatives live in `dataviz.core.palettes`. Categories cycle when
+    there are more than eight, so add another visual cue for large sets.
 
     Returns:
-        8 visually distinct colors, cycled via modulo for more
-        categories than that.
+        Eight colors, in the order `okabe_ito()` supplies.
     """
-    return [
-        Color(31, 119, 180),
-        Color(255, 127, 14),
-        Color(44, 160, 44),
-        Color(214, 39, 40),
-        Color(148, 103, 189),
-        Color(140, 86, 75),
-        Color(227, 119, 194),
-        Color(127, 127, 127),
-    ]
+    return okabe_ito()

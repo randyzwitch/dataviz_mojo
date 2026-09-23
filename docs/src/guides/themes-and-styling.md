@@ -22,6 +22,21 @@ def main() raises:
     save(plot, "styled.svg")
 ```
 
+Categorical charts use the eight-color Okabe-Ito palette by default. Named
+alternatives live in `dataviz.core.palettes`:
+
+```mojo
+from dataviz import Theme
+from dataviz.core.palettes import tol_bright
+
+var theme = Theme(categorical_palette=tol_bright())
+```
+
+`tableau_10()` and `tol_muted()` offer more categories, `tol_light()` supplies pale fills behind
+dark labels, and `tab10_legacy()` reproduces the previous default. A palette
+cycles when categories exceed its length, so use labels or another visual cue
+for larger sets.
+
 Theme values cover canvas, axes, typography, marks, legends, annotations, and
 output. Presets provide coherent starting points: `dark()`, `minimal()`,
 `high_contrast()`, and `print_safe()`. Modify the returned `Theme` before

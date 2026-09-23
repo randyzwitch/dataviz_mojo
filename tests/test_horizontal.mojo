@@ -371,30 +371,30 @@ def test_render_svg_horizontal_grouped_bar_matches_hand_derived_rectangles_and_l
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="61" y="32" width="90" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="32" width="90" height="46" fill="#0072b2"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="61" y="78" width="45" height="46" fill="#ff7f0e"/>' in s,
+        '<rect x="61" y="78" width="45" height="46" fill="#d55e00"/>' in s,
         "A/South",
     )
     assert_true(
-        '<rect x="61" y="147" width="180" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="147" width="180" height="46" fill="#0072b2"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="61" y="193" width="135" height="46" fill="#ff7f0e"/>' in s,
+        '<rect x="61" y="193" width="135" height="46" fill="#d55e00"/>' in s,
         "B/South",
     )
 
     # Legend at (frame.x_scale.range_max + margin_right, frame.py0) =
     # (270, 20), the same corner as the vertical test on this canvas.
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "North's legend swatch",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "South's legend swatch",
     )
 
@@ -416,7 +416,7 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="104" y="32" width="69" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="104" y="32" width="69" height="46" fill="#0072b2"/>' in s,
         "A/North (10)",
     )
     assert_true(
@@ -426,7 +426,7 @@ def test_render_svg_horizontal_grouped_bar_supports_show_data_labels_with_mixed_
         "A/North's label, right of its own bar, left-aligned",
     )
     assert_true(
-        '<rect x="69" y="147" width="35" height="46" fill="#1f77b4"/>' in s,
+        '<rect x="69" y="147" width="35" height="46" fill="#0072b2"/>' in s,
         "B/North (-5)",
     )
     assert_true(
@@ -617,28 +617,28 @@ def test_render_svg_horizontal_stacked_bar_matches_hand_derived_rectangles_and_l
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="61" y="32" width="51" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="32" width="51" height="92" fill="#0072b2"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="112" y="32" width="26" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="112" y="32" width="26" height="92" fill="#d55e00"/>' in s,
         "A/South, picks up where North left off",
     )
     assert_true(
-        '<rect x="61" y="147" width="103" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="147" width="103" height="92" fill="#0072b2"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="164" y="147" width="77" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="164" y="147" width="77" height="92" fill="#d55e00"/>' in s,
         "B/South",
     )
 
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "North's legend swatch",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "South's legend swatch",
     )
 
@@ -666,19 +666,19 @@ def test_render_svg_horizontal_stacked_bar_percent_fixes_x_axis_to_0_100() raise
         "the x-axis is fixed to end at exactly 100",
     )
     assert_true(
-        '<rect x="61" y="32" width="63" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="32" width="63" height="92" fill="#0072b2"/>' in s,
         "A/North, 33.3% of A's total",
     )
     assert_true(
-        '<rect x="124" y="32" width="127" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="124" y="32" width="127" height="92" fill="#d55e00"/>' in s,
         "A/South, the remaining 66.7%",
     )
     assert_true(
-        '<rect x="61" y="147" width="142" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="61" y="147" width="142" height="92" fill="#0072b2"/>' in s,
         "B/North, 75% of B's total",
     )
     assert_true(
-        '<rect x="203" y="147" width="48" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="203" y="147" width="48" height="92" fill="#d55e00"/>' in s,
         "B/South, the remaining 25%",
     )
 

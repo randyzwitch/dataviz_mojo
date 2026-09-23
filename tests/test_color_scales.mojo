@@ -6,7 +6,7 @@ compilation, so the suite is organized by family (#605).
 """
 
 from std.collections import Dict
-from std.math import cos, log10, sin
+from std.math import cos, log10, pow, sin
 from std.testing import (
     TestSuite,
     assert_almost_equal,
@@ -15,7 +15,7 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
-from dataviz import LegendPosition, Theme, contour, contourf
+from dataviz import LegendPosition, contour, contourf
 from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
@@ -29,11 +29,94 @@ from dataviz.core.color_scale import (
     symmetric_color_domain,
 )
 from dataviz.core.marker import PointShape, default_marker_shapes
+from dataviz.core.palettes import (
+    okabe_ito,
+    tab10_legacy,
+    tableau_10,
+    tol_bright,
+    tol_light,
+    tol_muted,
+)
 from dataviz.core.theme import Theme
 from dataviz.basic.continuous import scatter
 from dataviz.grid.heatmap import heatmap
 from dataviz.plot import Plot, render, render_svg
 from _test_helpers import _attr_values, _count_color, _count_tag
+
+
+def _linear_srgb(value: UInt8) -> Float64:
+    var channel = Float64(value) / 255.0
+    if channel <= 0.04045:
+        return channel / 12.92
+    return pow((channel + 0.055) / 1.055, 2.4)
+
+
+def _encoded_srgb(value: Float64) -> Float64:
+    var channel = max(0.0, min(1.0, value))
+    if channel <= 0.0031308:
+        return 255.0 * 12.92 * channel
+    return 255.0 * (1.055 * pow(channel, 1.0 / 2.4) - 0.055)
+
+
+def _deuteranopia_rgb(color: Color) -> Tuple[Float64, Float64, Float64]:
+    # Machado et al.'s severity-1 deuteranopia matrix, in linear sRGB.
+    var r = _linear_srgb(color.r)
+    var g = _linear_srgb(color.g)
+    var b = _linear_srgb(color.b)
+    return (
+        _encoded_srgb(0.367322 * r + 0.860646 * g - 0.227968 * b),
+        _encoded_srgb(0.280085 * r + 0.672501 * g + 0.047413 * b),
+        _encoded_srgb(-0.011820 * r + 0.042940 * g + 0.968881 * b),
+    )
+
+
+def _smallest_deuteranopia_distance_squared(palette: List[Color]) -> Float64:
+    var smallest = 1e12
+    for i in range(len(palette)):
+        var a = _deuteranopia_rgb(palette[i])
+        for j in range(i + 1, len(palette)):
+            var b = _deuteranopia_rgb(palette[j])
+            var dr = a[0] - b[0]
+            var dg = a[1] - b[1]
+            var db = a[2] - b[2]
+            smallest = min(smallest, dr * dr + dg * dg + db * db)
+    return smallest
+
+
+def test_default_palette_separates_every_pair_under_deuteranopia() raises:
+    var safe = categorical_palette_for(Theme())
+    assert_equal(len(safe), 8)
+    # A regression proxy in simulated sRGB, not a claim that color
+    # alone conveys every chart. The former tab10 set falls below 30;
+    # Okabe-Ito stays above 50 for all eight colors.
+    var threshold = 45.0 * 45.0
+    assert_true(
+        _smallest_deuteranopia_distance_squared(safe) > threshold,
+        "the default contains a confusing pair under deuteranopia",
+    )
+    assert_true(
+        _smallest_deuteranopia_distance_squared(tab10_legacy()) < threshold,
+        "the test no longer catches the old palette",
+    )
+
+
+def test_named_qualitative_palettes_have_their_published_colors() raises:
+    var okabe = okabe_ito()
+    assert_equal(len(okabe), 8)
+    assert_equal(okabe[0].r, 0)
+    assert_equal(okabe[0].g, 114)
+    assert_equal(okabe[0].b, 178)
+    assert_equal(len(tableau_10()), 10)
+    assert_equal(tableau_10()[0].r, 78)
+    assert_equal(len(tol_bright()), 7)
+    assert_equal(len(tol_muted()), 9)
+    assert_equal(len(tol_light()), 9)
+    var selected = categorical_palette_for(
+        Theme(categorical_palette=tol_bright())
+    )
+    assert_equal(selected[0].r, 68)
+    assert_equal(selected[0].g, 119)
+    assert_equal(selected[0].b, 170)
 
 
 # ==== from test_color_norm.mojo ====
