@@ -37,9 +37,11 @@ Run `pixi run digest-update` to regenerate the file after a change you
 meant to make. Read the diff before committing it: that is the review.
 """
 
-from std.testing import TestSuite, assert_equal, assert_true
+from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 from canvas.buffer import Canvas
+
+from _digest_provenance import _provenance_line, _validate_provenance
 
 from _composition_registry import (
     _COMPOSITION_COUNT,
@@ -142,10 +144,11 @@ def test_every_mark_renders_what_it_rendered_before() raises:
     meant to make, and the two are told apart by whether the commit says
     so.
     """
-    var got = _digest_lines()
     var f = open("tests/output_digest.txt", "r")
     var want_text = f.read()
     f.close()
+    _validate_provenance(want_text)
+    var got = _digest_lines()
 
     var want = List[String]()
     for line in want_text.split("\n"):
@@ -179,6 +182,13 @@ def test_every_mark_renders_what_it_rendered_before() raises:
             + " include the diff in the same commit:"
             + detail
         )
+
+
+def test_a_different_digest_toolchain_is_reported() raises:
+    var wrong = "# toolchain: mojo=0.0.0 canvas_mojo=0.0.0 dataframe_mojo=0.0.0"
+    with assert_raises(contains="output digest toolchain differs: recorded"):
+        _validate_provenance(wrong)
+    _validate_provenance(_provenance_line())
 
 
 def test_the_digest_file_covers_every_mark_and_composition() raises:

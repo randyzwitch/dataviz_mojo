@@ -6,6 +6,7 @@ make, and read the diff before committing it. See
 """
 
 from test_output_digest import _digest_lines
+from _digest_provenance import _provenance_line
 
 
 def main() raises:
@@ -18,6 +19,8 @@ def main() raises:
         "# in tests/_composition_registry.mojo.\n"
         "# Regenerate with `pixi run digest-update`; see"
         " tests/test_output_digest.mojo.\n"
+        + _provenance_line()
+        + "\n"
     )
     for line in lines:
         out += line + "\n"
