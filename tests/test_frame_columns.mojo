@@ -16,6 +16,7 @@ from dataframe import Column, DataFrame, Series
 from _test_helpers import _attr_values
 
 from dataviz import (
+    arc_diagram,
     area,
     calendar_heatmap,
     candlestick,
@@ -120,6 +121,33 @@ def test_three_columns_two_strings_and_a_number() raises:
         heatmap(xs, ys, vs, width=400, height=300)
     ).to_string()
     assert_equal(by_frame, by_list, "heatmap: same document")
+
+
+def test_arc_diagram_edge_columns() raises:
+    var sources: List[String] = ["alpha", "beta", "alpha"]
+    var destinations: List[String] = ["beta", "gamma", "gamma"]
+    var weights: List[Float64] = [1.0, 2.0, 3.0]
+    var df = DataFrame(
+        [
+            Series("source", Column[String](sources.copy())),
+            Series("destination", Column[String](destinations.copy())),
+            Series("weight", Column[Float64](weights.copy())),
+        ]
+    )
+    var by_frame = render_svg(
+        arc_diagram(
+            df,
+            from_categories="source",
+            to_categories="destination",
+            values="weight",
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    var by_list = render_svg(
+        arc_diagram(sources, destinations, weights, width=400, height=300)
+    ).to_string()
+    assert_equal(by_frame, by_list, "arc_diagram: same document")
 
 
 def test_four_numeric_columns() raises:
