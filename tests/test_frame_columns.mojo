@@ -13,6 +13,8 @@ and the list call and demanding the same bytes.
 
 from dataframe import Column, DataFrame, Series
 
+from _test_helpers import _attr_values
+
 from dataviz import (
     area,
     calendar_heatmap,
@@ -23,6 +25,7 @@ from dataviz import (
     histogram,
     kdeplot,
     pie,
+    parallel,
     polar,
     quiver,
     rugplot,
@@ -33,6 +36,8 @@ from dataviz import (
     tricontourf,
     waterfall,
 )
+from dataviz.core.missing import Missing
+from dataviz.core.theme import Theme
 from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
@@ -517,6 +522,80 @@ def test_an_explicit_axis_title_beats_the_column_name() raises:
     ).to_string()
     assert_true("latency" in defaulted, "column name did not become the title")
     assert_true("Latency (ms)" in overridden, "explicit x_title was ignored")
+
+
+def test_parallel_reads_named_metrics_in_row_order() raises:
+    var df = DataFrame(
+        [
+            Series("model", Column[String](["A", "B", "C"])),
+            Series("range", Column[Float64]([3.0, 7.0, 0.0])),
+            Series("cost", Column[Float64]([7.0, 3.0, 10.0])),
+        ]
+    )
+    var dims: List[String] = ["range", "cost"]
+    var names: List[String] = ["A", "B", "C"]
+    var rows: List[List[Float64]] = [[3.0, 7.0], [7.0, 3.0], [0.0, 10.0]]
+    var from_frame = render_svg(
+        parallel(df, dims=dims, row_name="model", width=400, height=300)
+    ).to_string()
+    var from_lists = render_svg(
+        parallel(rows, dims, names, width=400, height=300)
+    ).to_string()
+    assert_equal(from_frame, from_lists, "one frame row becomes one polyline")
+
+
+def test_parallel_missing_metric_breaks_a_line() raises:
+    var df = DataFrame(
+        [
+            Series("model", Column[String](["A", "B"])),
+            Series("a", Column[Float64]([2.0, 0.0])),
+            Series("b", Column[Float64]([7.0, 8.0], [False, True])),
+            Series("c", Column[Float64]([4.0, 6.0])),
+            Series("d", Column[Float64]([5.0, 7.0])),
+        ]
+    )
+    var dims: List[String] = ["a", "b", "c", "d"]
+    var theme = Theme(show_legend=False, show_gridlines=False)
+    var svg = render_svg(
+        parallel(df, dims=dims, row_name="model", theme=theme)
+    ).to_string()
+    var paths = _attr_values(svg, "path", "d")
+    assert_equal(len(paths), 2, "one path per row")
+    assert_equal(paths[0].count("M"), 2, "missing b starts a new run")
+    assert_equal(paths[0].count("L"), 1, "only c to d is joined")
+    assert_equal(paths[1].count("M"), 1, "complete row stays connected")
+    assert_equal(paths[1].count("L"), 3, "complete row has three links")
+    with assert_raises(contains='column "b" has 1 missing value(s)'):
+        _ = parallel(
+            df,
+            dims=dims,
+            row_name="model",
+            theme=Theme(missing=Missing.RAISE),
+        )
+
+
+def test_parallel_all_missing_row_has_no_path() raises:
+    var df = DataFrame(
+        [
+            Series("model", Column[String](["A", "B"])),
+            Series("a", Column[Float64]([2.0, 1.0], [False, True])),
+            Series("b", Column[Float64]([3.0, 4.0], [False, True])),
+        ]
+    )
+    var dims: List[String] = ["a", "b"]
+    var svg = render_svg(
+        parallel(
+            df,
+            dims=dims,
+            row_name="model",
+            theme=Theme(show_legend=False, show_gridlines=False),
+        )
+    ).to_string()
+    assert_equal(
+        len(_attr_values(svg, "path", "d")),
+        1,
+        "the row without observations cannot draw a line",
+    )
 
 
 def main() raises:
