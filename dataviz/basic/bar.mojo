@@ -169,16 +169,19 @@ def _draw_bar_rects[
     baseline_edge: Int,
     orient: _Orientation,
     mut text_requests: List[_TextRequest],
+    group_index: Int = 0,
+    group_count: Int = 1,
 ) raises:
     """Draw categorical bars with the same glyph path as time bars."""
     var starts = List[Float64](capacity=len(plot._categorical.x))
     var widths = List[Float64](capacity=len(plot._categorical.x))
     var centers = List[Float64](capacity=len(plot._categorical.x))
-    var width = band_scale.bandwidth()
+    var width = band_scale.bandwidth() / Float64(group_count)
     for i in range(len(plot._categorical.x)):
-        starts.append(band_scale.band_start(i))
+        var start = band_scale.band_start(i) + Float64(group_index) * width
+        starts.append(start)
         widths.append(width)
-        centers.append(band_scale.center(i))
+        centers.append(start + width / 2.0)
     _draw_bar_rects_at_positions(
         target,
         plot,
