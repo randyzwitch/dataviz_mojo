@@ -28,6 +28,7 @@ Covers:
 from _test_helpers import (
     BG,
     _assert_color,
+    _attr_values,
     _assert_near_color,
     _bbox_of_color,
     _bbox_of_color_in,
@@ -46,6 +47,7 @@ from dataviz.core.color_scale import (
     default_categorical_palette,
 )
 from dataviz.multivariate.barbs import barbs
+from dataviz.basic.arc import pie
 from dataviz.basic.continuous import line, scatter
 from dataviz.multivariate.contour import contour, contourf
 from dataviz.basic.effect_scatter import effect_scatter
@@ -62,6 +64,7 @@ from dataviz.plot import (
     render_facets,
     render_facets_svg,
     render_layers,
+    render_layers_pdf,
     render_layers_svg,
     render_svg,
     _build_line_path,
@@ -1952,6 +1955,77 @@ def _scattered_samples() raises -> List[List[Float64]]:
     out.append(y^)
     out.append(z^)
     return out^
+
+
+def test_arc_layers_draw_concentric_rings_on_all_backends() raises:
+    var first_categories: List[String] = ["a", "b"]
+    var second_categories: List[String] = ["c", "d"]
+    var first_values: List[Float64] = [1.0, 3.0]
+    var second_values: List[Float64] = [3.0, 1.0]
+    var outer = pie(
+        first_categories,
+        first_values,
+        theme=Theme(show_legend=False),
+        width=400,
+        height=300,
+    )
+    var inner_colors: List[Color] = [Color(220, 20, 60), Color(0, 120, 80)]
+    var inner = pie(
+        second_categories,
+        second_values,
+        theme=Theme(
+            show_legend=False,
+            categorical_palette=inner_colors,
+        ),
+        width=400,
+        height=300,
+    )
+    var plots: List[Plot] = [outer^, inner^]
+    var svg = render_layers_svg(plots).to_string()
+    var paths = _attr_values(svg, "path", "d")
+    assert_equal(len(paths), 4, "two wedges in each of two rings")
+    assert_true("A103.500,103.500" in paths[0], "first ring is outermost")
+    assert_true("A64.100,64.100" in paths[0], "first ring has an inner edge")
+    assert_true("A60.100,60.100" in paths[2], "second ring is inset")
+    assert_true("A20.700,20.700" in paths[2], "the center hole remains")
+    var raster = render_layers(plots)
+    var outer_color = default_categorical_palette()[0]
+    _assert_color(raster, 280, 75, outer_color, "outer ring first wedge")
+    _assert_color(raster, 245, 110, Color(220, 20, 60), "inner ring color")
+    _assert_color(raster, 220, 135, BG, "center hole is empty")
+    var pdf = render_layers_pdf(plots)
+    assert_true(len(pdf.to_bytes()) > 100, "PDF carries the same rings")
+
+
+def test_one_arc_layer_matches_standalone_donut() raises:
+    var categories: List[String] = ["a", "b"]
+    var values: List[Float64] = [1.0, 3.0]
+    var donut = pie(
+        categories, values, inner_radius_fraction=0.5, width=400, height=300
+    )
+    var plots: List[Plot] = [donut.copy()]
+    assert_equal(
+        render_layers_svg(plots).to_string(),
+        render_svg(donut).to_string(),
+        "one ARC layer is the standalone donut",
+    )
+
+
+def test_arc_layer_legend_names_each_ring_and_invalid_mix_raises() raises:
+    var cats: List[String] = ["a", "b"]
+    var vals: List[Float64] = [1.0, 2.0]
+    var outer = pie(cats, vals, width=400, height=300)
+    var inner = pie(cats, vals, width=400, height=300)
+    var plots: List[Plot] = [outer^, inner^]
+    var svg = render_layers_svg(plots).to_string()
+    assert_true("Ring 1: a" in svg, "outer ring legend entry")
+    assert_true("Ring 2: b" in svg, "inner ring legend entry")
+    var donut = pie(
+        cats, vals, inner_radius_fraction=0.5, width=400, height=300
+    )
+    var invalid: List[Plot] = [plots[0].copy(), donut^]
+    with assert_raises(contains="inner_radius_fraction"):
+        _ = render_layers_svg(invalid)
 
 
 def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() raises:
