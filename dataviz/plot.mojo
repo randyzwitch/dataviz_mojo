@@ -3261,8 +3261,9 @@ struct Plot(Copyable, Movable):
         """Map a categorical x column and a continuous y column onto the x/y
         channels, for `Mark.BAR` and the other category-plus-value marks.
         `x` is treated as the axis's category order as given, not
-        deduplicated or re-sorted; repeated categories go through
-        `encode_grouped_bar()`.
+        deduplicated or re-sorted; repeated categories raise with their
+        first and second positions. Use `encode_grouped_bar()` for
+        category-by-series values.
 
         `y_err`/`y_err_lower`/`y_err_upper` work exactly as they do on
         `encode()` -- see that method's own docstring for the shared rules
@@ -3274,8 +3275,8 @@ struct Plot(Copyable, Movable):
 
         Args:
             x: One category per entry, in the given order -- treated
-                as already being the axis's category order, not
-                deduplicated or re-sorted.
+                as already being the axis's category order; duplicates
+                are rejected.
             y: Each category's value.
             y_err: Optional symmetric error-bar half-width per bar,
                 continuous only, every value `>= 0`; mutually
@@ -3306,6 +3307,19 @@ struct Plot(Copyable, Movable):
             "mark_bar()",
             _ok_encode_categorical^,
         )
+        var first_position = Dict[String, Int]()
+        for i in range(len(x)):
+            var category = x[i]
+            if category in first_position:
+                raise Error(
+                    'Plot.encode_categorical(): duplicate category "'
+                    + category
+                    + '" at positions '
+                    + String(first_position[category])
+                    + " and "
+                    + String(i)
+                )
+            first_position[category] = i
         self._categorical.x = x.copy()
         self._continuous.x = List[Float64]()
         self._continuous.y = y.copy()

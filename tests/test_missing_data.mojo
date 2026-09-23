@@ -193,11 +193,39 @@ def test_a_frame_s_missing_value_becomes_a_gap() raises:
     assert_equal(svg.count("<path"), 2, "the null row breaks the line")
 
 
+def _frame_with_unique_category_hole() raises -> DataFrame:
+    return DataFrame(
+        [
+            Series(
+                "region",
+                Column[String](
+                    ["north", "south", "east", "west"],
+                    [True, False, True, True],
+                ),
+            ),
+            Series("amount", Column[Float64]([3.0, 4.0, 5.0, 6.0])),
+        ]
+    )
+
+
+def test_a_frame_s_duplicate_category_is_rejected() raises:
+    with assert_raises(
+        contains='duplicate category "north" at positions 0 and 2'
+    ):
+        _ = bar(_frame_with_holes(), x="region", y="amount")
+
+
 def test_a_frame_s_missing_category_becomes_its_own_category() raises:
     """A blank category is a label, and the row's value is perfectly
     good: dropping it would lose a measurement over a missing name."""
     var svg = render_svg(
-        bar(_frame_with_holes(), x="region", y="amount", width=400, height=280)
+        bar(
+            _frame_with_unique_category_hole(),
+            x="region",
+            y="amount",
+            width=400,
+            height=280,
+        )
     ).to_string()
     assert_true(">(missing)</text>" in svg, "the rows get a name of their own")
     assert_true(">south</text>" not in svg, "which is not the name they had")
@@ -206,7 +234,7 @@ def test_a_frame_s_missing_category_becomes_its_own_category() raises:
 def test_the_missing_category_label_is_the_theme_s() raises:
     var svg = render_svg(
         bar(
-            _frame_with_holes(),
+            _frame_with_unique_category_hole(),
             x="region",
             y="amount",
             theme=Theme(missing_category_label="not recorded"),

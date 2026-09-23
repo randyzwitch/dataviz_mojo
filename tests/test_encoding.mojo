@@ -42,7 +42,7 @@ Covers:
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
-from dataviz import Theme
+from dataviz import Theme, bar
 from dataviz.core.colors import TOMATO
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
@@ -56,6 +56,15 @@ from dataviz.plot import (
     save_layers,
 )
 from _test_helpers import _attr_values
+
+
+def test_flat_categorical_encoding_rejects_duplicate_names() raises:
+    var categories: List[String] = ["a", "b", "a"]
+    var values: List[Float64] = [1.0, 2.0, 3.0]
+    with assert_raises(contains='duplicate category "a" at positions 0 and 2'):
+        _ = Plot().mark_bar().encode_categorical(categories, values)
+    with assert_raises(contains='duplicate category "a" at positions 0 and 2'):
+        _ = bar(categories, values)
 
 
 # ---------------------------------------------------------------
