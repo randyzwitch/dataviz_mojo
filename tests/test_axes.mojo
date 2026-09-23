@@ -15,6 +15,7 @@ from dataviz import (
     AxisPosition,
     Theme,
     bar,
+    gantt,
     line,
     pairplot,
     rugplot,
@@ -495,6 +496,44 @@ def test_encode_time_puts_posix_seconds_on_the_axis() raises:
         "one day apart in seconds",
     )
     assert_equal(len(p._continuous.y), 5)
+
+
+def test_time_gantt_spans_real_days_and_labels_dates() raises:
+    var tasks: List[String] = ["A", "B"]
+    var start: List[Morrow] = [Morrow.get(2024, 1, 1), Morrow.get(2024, 1, 4)]
+    var end: List[Morrow] = [Morrow.get(2024, 1, 4), Morrow.get(2024, 1, 5)]
+    var plot = gantt(
+        tasks,
+        start,
+        end,
+        theme=Theme(show_gridlines=False, show_data_labels=True),
+        width=400,
+        height=300,
+    )
+    assert_true(plot._x_time, "Gantt marks its continuous axis as time")
+    assert_equal(plot._gantt.end[0] - plot._gantt.start[0], 3.0 * 86400.0)
+    var s = render_svg(plot).to_string()
+    assert_true(
+        '<rect x="75" y="32" width="218" height="92"' in s,
+        "three-day task spans three days on the axis",
+    )
+    assert_true(
+        '<rect x="293" y="147" width="73" height="92"' in s,
+        "one-day task is one-third as wide",
+    )
+    assert_true(
+        "A: 2024-01-01 00:00 to 2024-01-04 00:00" in s,
+        "task tooltip uses dates",
+    )
+    assert_true(">3 d<" in s, "duration label uses days")
+
+
+def test_time_gantt_rejects_mismatched_date_lengths() raises:
+    var tasks: List[String] = ["A", "B"]
+    var start: List[Morrow] = [Morrow.get(2024, 1, 1)]
+    var end: List[Morrow] = [Morrow.get(2024, 1, 2), Morrow.get(2024, 1, 3)]
+    with assert_raises(contains="must all have the same length"):
+        _ = render_svg(gantt(tasks, start, end))
 
 
 def test_the_one_call_time_overloads_label_dates() raises:

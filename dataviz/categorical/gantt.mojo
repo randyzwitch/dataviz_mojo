@@ -4,6 +4,7 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
+from morrow import Morrow, TimeZone
 
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
@@ -237,7 +238,9 @@ def _render_gantt[
     continuous `x` along the bottom).
 
     The x-domain is `_data_extent` (padded, not forced through zero) over
-    every `start`/`end` value. The categorical marks split on this:
+    every `start`/`end` value. When `encode_gantt_time()` supplied
+    timestamps, the same linear scale labels its ticks as dates.
+    The categorical marks split on this:
     `Mark.BAR`/`LOLLIPOP`/`WATERFALL`/`BULLET` encode magnitude from a
     baseline and force zero into view; `Mark.BOX`/`CANDLESTICK`/`GANTT`
     encode where something falls within a range, where forcing zero would
@@ -273,6 +276,9 @@ def _render_gantt[
     for v in plot._gantt.end:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
+    if plot._x_time:
+        x_scale.is_time = True
+        x_scale.tz_offset = plot._x_tz_offset
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -303,23 +309,54 @@ def _render_gantt[
         var by0 = snap_to_pixel_edge(row_y)
         var by1 = snap_to_pixel_edge(row_y + row_height)
         if tooltips_on:
-            target.begin_annotated_group(
-                _span_tooltip_label(
+            var tooltip = String("")
+            if plot._x_time:
+                var zone = TimeZone(plot._x_tz_offset)
+                tooltip = (
+                    plot._categorical.x[i]
+                    + ": "
+                    + Morrow.fromtimestamp(plot._gantt.start[i], zone).format(
+                        "YYYY-MM-DD HH:mm"
+                    )
+                    + " to "
+                    + Morrow.fromtimestamp(plot._gantt.end[i], zone).format(
+                        "YYYY-MM-DD HH:mm"
+                    )
+                )
+            else:
+                tooltip = _span_tooltip_label(
                     plot._categorical.x[i],
                     plot._gantt.start[i],
                     plot._gantt.end[i],
                 )
-            )
+            target.begin_annotated_group(tooltip)
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
             var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
+            var span_label = _format_fixed(span, _label_decimals(span))
+            if plot._x_time:
+                var divisor = 1.0
+                var unit = String(" s")
+                if span >= 86400.0:
+                    divisor = 86400.0
+                    unit = " d"
+                elif span >= 3600.0:
+                    divisor = 3600.0
+                    unit = " h"
+                elif span >= 60.0:
+                    divisor = 60.0
+                    unit = " min"
+                var amount = span / divisor
+                span_label = (
+                    _format_fixed(amount, _label_decimals(amount)) + unit
+                )
             frame.text_requests.append(
                 _TextRequest(
                     round_to_int(bx1) + frame.sc.label_gap,
                     round_to_int((by0 + by1) / 2.0 + frame.sc.font_size * 0.35),
-                    _format_fixed(span, _label_decimals(span)),
+                    span_label,
                     theme.text_color,
                     frame.sc.font_size,
                     TextAlign.LEFT,
@@ -463,6 +500,45 @@ def gantt[
         .mark_gantt()
         .encode_gantt(categories=categories, start=start_f, end=end_f)
     )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def gantt(
+    categories: List[String],
+    start: List[Morrow],
+    end: List[Morrow],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Gantt tasks at real timestamps with date-aware x-axis ticks.
+
+    Bars span the absolute instants supplied, including weekends and
+    other gaps. The first start's time zone controls tick and tooltip
+    labels. A start after its end still draws the interval between them.
+
+    Args:
+        categories: Task labels, top to bottom.
+        start: One starting timestamp per task.
+        end: One ending timestamp per task.
+        theme: Chart styling.
+        width: Chart width in pixels.
+        height: Chart height in pixels.
+        title: Chart title.
+        subtitle: Chart subtitle.
+        x_title: Time-axis title.
+        y_title: Task-axis title.
+
+    Returns:
+        The unrendered plot.
+    """
+    var plot = Plot().mark_gantt().encode_gantt_time(categories, start, end)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )

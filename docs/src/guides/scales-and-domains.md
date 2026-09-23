@@ -60,6 +60,24 @@ def main() raises:
     save(plot, "scale.svg")
 ```
 
+## Gantt tasks on a time axis
+
+`gantt()` accepts `List[Morrow]` starts and ends. It places bars at real
+instants and labels the horizontal axis with dates, so weekends and other
+gaps keep their duration. Tooltips show each task's dates, and optional data
+labels show the duration in days, hours, minutes, or seconds.
+
+```mojo
+from dataviz import gantt, save
+from morrow import Morrow
+
+def main() raises:
+    var tasks: List[String] = ["Design", "Build"]
+    var start: List[Morrow] = [Morrow.get(2024, 1, 1), Morrow.get(2024, 1, 4)]
+    var end: List[Morrow] = [Morrow.get(2024, 1, 4), Morrow.get(2024, 1, 5)]
+    save(gantt(tasks, start, end), "schedule.svg")
+```
+
 Log-scaled values and annotation positions must be strictly positive. Log y is
 not available for area marks because their domain includes zero. Explicit
 domains apply to continuous-axis marks and facets; layered charts compute a
