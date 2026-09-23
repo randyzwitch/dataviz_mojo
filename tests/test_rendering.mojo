@@ -940,6 +940,25 @@ def test_a_pdf_carries_its_labels_as_embedded_text() raises:
     assert_true(_bytes_have(out, "/ToUnicode"), "with a character map")
 
 
+def test_cjk_title_exports_with_collection_font() raises:
+    # Noto Sans CJK is a .ttc collection on Linux. The fallback face used
+    # to be discovered but then rejected by the font parser (#754).
+    var x: List[Float64] = [0.0, 1.0]
+    var y: List[Float64] = [1.0, 2.0]
+    var p = line(x, y).labels(title="東京")
+
+    var png_path = "/tmp/dataviz_test_cjk_title.png"
+    save(p, png_path)
+    var png = _file_bytes(png_path)
+    assert_equal(Int(png[1]), 80, "CJK title PNG header")
+
+    var pdf_path = "/tmp/dataviz_test_cjk_title.pdf"
+    save(p, pdf_path)
+    var pdf = _file_bytes(pdf_path)
+    assert_equal(Int(pdf[0]), 37, "CJK title PDF header")
+    assert_true(_bytes_have(pdf, "/ToUnicode"), "CJK text has a map")
+
+
 def test_saving_a_pdf_writes_a_pdf() raises:
     var path = "/tmp/dataviz_test_export.pdf"
     save(_pdf_plot(), path)

@@ -42,7 +42,7 @@ Covers:
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
-from dataviz import Theme
+from dataviz import Theme, bar
 from dataviz.core.colors import TOMATO
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
@@ -56,6 +56,15 @@ from dataviz.plot import (
     save_layers,
 )
 from _test_helpers import _attr_values
+
+
+def test_flat_categorical_encoding_rejects_duplicate_names() raises:
+    var categories: List[String] = ["a", "b", "a"]
+    var values: List[Float64] = [1.0, 2.0, 3.0]
+    with assert_raises(contains='duplicate category "a" at positions 0 and 2'):
+        _ = Plot().mark_bar().encode_categorical(categories, values)
+    with assert_raises(contains='duplicate category "a" at positions 0 and 2'):
+        _ = bar(categories, values)
 
 
 # ---------------------------------------------------------------
@@ -111,11 +120,11 @@ def test_render_svg_error_bar_uses_the_points_own_resolved_color() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'stroke="#1f77b4"' in s,
+        'stroke="#0072b2"' in s,
         "the first category's own palette color, reused for its error bar",
     )
     assert_true(
-        'stroke="#ff7f0e"' in s,
+        'stroke="#d55e00"' in s,
         "the second category's own palette color, reused for its error bar",
     )
 
@@ -637,11 +646,11 @@ def test_render_svg_grouped_bar_error_bar_matches_hand_derived_positions() raise
         "s2's lower whisker/cap sits at 20-2's hand-derived row",
     )
     assert_true(
-        'stroke="#1f77b4"' in s,
+        'stroke="#0072b2"' in s,
         "s1's whisker uses its own series palette color",
     )
     assert_true(
-        'stroke="#ff7f0e"' in s,
+        'stroke="#d55e00"' in s,
         "s2's whisker uses its own series palette color",
     )
 
@@ -1568,7 +1577,7 @@ def test_encode_raises_on_labels_with_an_unsupported_mark() raises:
 
 def test_render_svg_color_map_overrides_the_named_category() raises:
     # "b" pinned to crimson (#dc143c); "a" keeps its palette color
-    # (#1f77b4).
+    # (#0072b2).
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [10.0, 20.0]
     var cats: List[String] = ["a", "b"]
@@ -1580,14 +1589,14 @@ def test_render_svg_color_map_overrides_the_named_category() raises:
     )
     var s = render_svg(plot).to_string()
     assert_true(
-        'fill="#1f77b4"' in s,
+        'fill="#0072b2"' in s,
         "unmapped category 'a' keeps its ordinary palette color",
     )
     assert_true(
         'fill="#dc143c"' in s, "mapped category 'b' uses the overridden color"
     )
     assert_true(
-        'fill="#ff7f0e"' not in s,
+        'fill="#d55e00"' not in s,
         "'b' must not also show its ordinary (unoverridden) color",
     )
 

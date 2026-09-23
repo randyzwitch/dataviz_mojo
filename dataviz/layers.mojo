@@ -340,9 +340,10 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        `BARBS`, `TRICONTOUR`, `TRICONTOURF`, `TRIPLOT` and `TRIPCOLOR`
     -- so a rug under a density curve, two KDEs compared on one
        frame, isolines over a filled contour, or a scatter over a
-       triangulated field all draw. Plus at most one `Mark.BAR` layer for a
-       bar-plus-line combo chart (dispatched to `_render_bar_combo_layers`,
-       which has a narrower scope).
+       triangulated field all draw. `Mark.BAR` layers with identical
+       ordered categories share a categorical frame and occupy adjacent
+       subbands; POINT/LINE/AREA layers align to category centers. This
+       path dispatches to `_render_bar_combo_layers` with a narrower scope.
 
        Two or more `Mark.ARC` plots draw concentric rings,
        `plots[0]` outermost. Each ring keeps its own proportions and palette;
@@ -451,9 +452,10 @@ def _render_bar_combo_layers[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """`_render_layers_generic`'s dispatch target when exactly one layer is
-    `Mark.BAR`: a bar-plus-line combo chart sharing the bar layer's
-    categorical x-axis instead of a continuous one.
+    """Render one or more BAR layers on a shared categorical x-axis.
+
+    Matching bar layers occupy adjacent subbands within each category;
+    POINT/LINE/AREA layers align to the full category band center.
 
     Every non-bar layer aligns to the categories by position:
     `plots[j]._continuous.y[k]` plots at category `k`'s band center, and its
@@ -468,13 +470,32 @@ def _render_bar_combo_layers[
     its own `Theme.color_by_sign`/`show_data_labels` through
     `_draw_bar_rects`.
 
-    The bar layer always draws first, beneath every other layer,
-    regardless of its position in `plots`; the others draw in order, each
-    in its own `Theme`. The shared y-domain always includes a zero
-    baseline (`_zero_baseline_y_extent`), as `Mark.BAR` requires.
+    Bar layers draw first, in list order, beneath every continuous layer.
+    The shared y-domain always includes a zero baseline
+    (`_zero_baseline_y_extent`), as `Mark.BAR` requires.
     """
     var bar_categories = plots[bar_index]._categorical.x.copy()
-    _validate_categorical_encoding(plots[bar_index])
+    var bar_count = 0
+    for i in range(len(plots)):
+        if not (plots[i]._mark == Mark.BAR):
+            continue
+        _validate_categorical_encoding(plots[i])
+        if len(plots[i]._categorical.x) != len(bar_categories):
+            raise Error(
+                "render_layers(): every Mark.BAR layer must have the same"
+                " categories in the same order (layer "
+                + String(i)
+                + ")"
+            )
+        for k in range(len(bar_categories)):
+            if plots[i]._categorical.x[k] != bar_categories[k]:
+                raise Error(
+                    "render_layers(): every Mark.BAR layer must have the same"
+                    " categories in the same order (layer "
+                    + String(i)
+                    + ")"
+                )
+        bar_count += 1
 
     for i in range(len(plots)):
         if plots[i]._secondary_axis:
@@ -516,7 +537,7 @@ def _render_bar_combo_layers[
                 + String(i)
                 + ")"
             )
-        if i == bar_index:
+        if plots[i]._mark == Mark.BAR:
             continue
         if not (
             plots[i]._mark == Mark.POINT
@@ -576,7 +597,7 @@ def _render_bar_combo_layers[
     # rejected above, so its own y_data is all it ever contributes.
     var combined_y = List[Float64]()
     for i in range(len(plots)):
-        if i == bar_index:
+        if plots[i]._mark == Mark.BAR:
             for v in _bar_y_domain_data(plots[i]):
                 combined_y.append(v)
         else:
@@ -587,8 +608,7 @@ def _render_bar_combo_layers[
     var theme = plots[0]._theme
     var sc = _Scaled(theme)
 
-    # one legend row per named layer (Plot.series_name()), the bar
-    # layer included, each in that layer's own Theme.mark_color.
+    # One legend row per named layer, including each bar layer, in list order.
     var series_names = List[String]()
     var series_colors = List[Color]()
     for i in range(len(plots)):
@@ -629,18 +649,25 @@ def _render_bar_combo_layers[
             cache=cache,
         )
 
-    _draw_bar_rects(
-        target,
-        plots[bar_index],
-        frame.x_scale,
-        frame.y_scale,
-        frame.py1,
-        _Orientation(False),
-        frame.text_requests,
-    )
+    var bar_slot = 0
+    for i in range(len(plots)):
+        if not (plots[i]._mark == Mark.BAR):
+            continue
+        _draw_bar_rects(
+            target,
+            plots[i],
+            frame.x_scale,
+            frame.y_scale,
+            frame.py1,
+            _Orientation(False),
+            frame.text_requests,
+            group_index=bar_slot,
+            group_count=bar_count,
+        )
+        bar_slot += 1
 
     for i in range(len(plots)):
-        if i == bar_index:
+        if plots[i]._mark == Mark.BAR:
             continue
         var layer_theme = plots[i]._theme
         _check_line_smoothing(layer_theme)
@@ -1197,24 +1224,14 @@ def _render_layers_generic[
             target, plots, ox0, oy0, ox1, oy1, cache=cache
         )
 
-    # Exactly one Mark.BAR layer dispatches to _render_bar_combo_layers (a
-    # categorical x-axis is a different domain shape from this continuous
-    # path). More than one has no shared-axis meaning and is rejected
-    # first.
-    var bar_layer_count = 0
+    # Bar layers share a categorical frame. Multiple bar layers occupy
+    # adjacent subbands in each category; continuous marks stay centered
+    # on the whole category band.
     var bar_layer_index = -1
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR:
-            bar_layer_count += 1
+        if plots[i]._mark == Mark.BAR and bar_layer_index < 0:
             bar_layer_index = i
-    if bar_layer_count > 1:
-        raise Error(
-            "render_layers(): at most one Mark.BAR layer is supported (got "
-            + String(bar_layer_count)
-            + ") -- combining several categorical bar layers has no principled"
-            " shared-axis meaning yet"
-        )
-    if bar_layer_count == 1:
+    if bar_layer_index >= 0:
         return _render_bar_combo_layers(
             target, plots, bar_layer_index, ox0, oy0, ox1, oy1, cache=cache
         )

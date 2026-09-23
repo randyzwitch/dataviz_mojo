@@ -439,9 +439,9 @@ def test_dark_tints_flatten_against_the_dark_ground_not_white() raises:
 def test_print_safe_palette_is_ordered_by_lightness() raises:
     """`print_safe()` sets `Theme.categorical_palette` to grays that a
     grayscale reproduction keeps apart: strictly increasing luma with a
-    gap a photocopy can resolve (#426). The default tab10 set has two
-    pairs of entries within 1.3 luma of each other, which is why a
-    preset needed a palette of its own.
+    gap a photocopy can resolve (#426). Even the default palette does
+    not guarantee distinct lightness in a monochrome printout, so the
+    preset keeps a palette of its own.
     """
     var p = print_safe().categorical_palette
     assert_equal(len(p), 8)
@@ -473,9 +473,9 @@ def test_theme_categorical_palette_colors_a_multi_series_chart() raises:
     assert_true(_count_color(c, Color(200, 0, 0)) > 0, "series a uses entry 0")
     assert_true(_count_color(c, Color(0, 0, 200)) > 0, "series b uses entry 1")
     assert_equal(
-        _count_color(c, Color(31, 119, 180)),
+        _count_color(c, Color(0, 114, 178)),
         0,
-        "the default tab10 blue must not appear when a palette is set",
+        "the default blue must not appear when a palette is set",
     )
 
 
@@ -842,8 +842,8 @@ def test_high_contrast_codes_categories_by_shape_as_well_as_hue() raises:
     # a circle and the second a square, and a square of side `2r` covers
     # `4/pi` (1.27x) the area of a circle of radius `r`, so equal-ish
     # counts mean one shape was used for both.
-    var circles = _count_color(c, Color(31, 119, 180))
-    var squares = _count_color(c, Color(255, 127, 14))
+    var circles = _count_color(c, Color(0, 114, 178))
+    var squares = _count_color(c, Color(213, 94, 0))
     assert_true(circles > 0, "no first-category marks drawn")
     assert_true(squares > 0, "no second-category marks drawn")
     assert_true(
@@ -909,7 +909,7 @@ def test_minimal_keeps_the_legend() raises:
     14 with the legend on.
     """
     var c = _scatter_canvas(minimal())
-    var run = _longest_run_in_row(c, Color(44, 160, 44))
+    var run = _longest_run_in_row(c, Color(0, 158, 115))
     assert_true(
         run >= 10,
         String(

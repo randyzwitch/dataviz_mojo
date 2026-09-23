@@ -123,19 +123,19 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     # Every sub-bar is non-negative, so every bottom edge lands on the axis
     # line and each height is pulled 1px (see _pull_off_axis_line).
     assert_true(
-        '<rect x="70" y="141" width="38" height="109" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="141" width="38" height="109" fill="#0072b2"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="108" y="196" width="38" height="54" fill="#ff7f0e"/>' in s,
+        '<rect x="108" y="196" width="38" height="54" fill="#d55e00"/>' in s,
         "A/South",
     )
     assert_true(
-        '<rect x="165" y="31" width="38" height="219" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="31" width="38" height="219" fill="#0072b2"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="203" y="86" width="38" height="164" fill="#ff7f0e"/>' in s,
+        '<rect x="203" y="86" width="38" height="164" fill="#d55e00"/>' in s,
         "B/South",
     )
 
@@ -143,11 +143,11 @@ def test_render_svg_grouped_bar_matches_confirmed_rects_and_legend() raises:
     # this confirms the labels/palette/start: x=250+20=270, y=20 (row 0),
     # row 1 at y=42.
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "North's legend swatch",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "South's legend swatch",
     )
 
@@ -239,27 +239,27 @@ def test_render_svg_stacked_bar_matches_confirmed_rects_and_legend() raises:
     # Only each column's bottom segment (North, seg_bottom=0) touches the
     # axis line, so only its height is pulled 1px (63->62, 125->124).
     assert_true(
-        '<rect x="70" y="188" width="76" height="62" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="188" width="76" height="62" fill="#0072b2"/>' in s,
         "A/North",
     )
     assert_true(
-        '<rect x="70" y="157" width="76" height="31" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="157" width="76" height="31" fill="#d55e00"/>' in s,
         "A/South",
     )
     assert_true(
-        '<rect x="165" y="125" width="76" height="125" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="125" width="76" height="125" fill="#0072b2"/>' in s,
         "B/North",
     )
     assert_true(
-        '<rect x="165" y="31" width="76" height="94" fill="#ff7f0e"/>' in s,
+        '<rect x="165" y="31" width="76" height="94" fill="#d55e00"/>' in s,
         "B/South",
     )
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "North's legend swatch",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "South's legend swatch",
     )
 
@@ -284,12 +284,12 @@ def test_render_svg_stacked_bar_mixed_sign_stacks_independently_each_direction()
 
     # North: data range [0,10] (positive stack, starts at zero).
     assert_true(
-        '<rect x="80" y="31" width="152" height="139" fill="#1f77b4"/>' in s,
+        '<rect x="80" y="31" width="152" height="139" fill="#0072b2"/>' in s,
         "North, above zero",
     )
     # South: data range [-5,0] (negative stack, starts at zero, extends down).
     assert_true(
-        '<rect x="80" y="170" width="152" height="70" fill="#ff7f0e"/>' in s,
+        '<rect x="80" y="170" width="152" height="70" fill="#d55e00"/>' in s,
         "South, below zero",
     )
 
@@ -347,22 +347,22 @@ def test_render_svg_percent_stacked_bar_matches_hand_derived_rectangles() raises
 
     # A/North: bottom segment, 0..75 -> py 250..78 (230*0.75=172.5), height 171.
     assert_true(
-        '<rect x="70" y="78" width="76" height="172" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="78" width="76" height="172" fill="#0072b2"/>' in s,
         "A/North (75%)",
     )
     # A/South: stacked on top, 75..100 -> py 78..20, height 58.
     assert_true(
-        '<rect x="70" y="21" width="76" height="57" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="21" width="76" height="57" fill="#d55e00"/>' in s,
         "A/South (25%)",
     )
     # B/North: bottom segment, 0..40 -> py 250..158 (230*0.40=92), height 91.
     assert_true(
-        '<rect x="165" y="159" width="76" height="91" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="159" width="76" height="91" fill="#0072b2"/>' in s,
         "B/North (40%)",
     )
     # B/South: stacked on top, 40..100 -> py 158..20, height 138.
     assert_true(
-        '<rect x="165" y="21" width="76" height="138" fill="#ff7f0e"/>' in s,
+        '<rect x="165" y="21" width="76" height="138" fill="#d55e00"/>' in s,
         "B/South (60%)",
     )
 
@@ -385,19 +385,19 @@ def test_render_svg_percent_stacked_bar_all_zero_category_is_an_empty_column() r
     var s = svg.to_string()
 
     assert_true(
-        '<rect x="70" y="113" width="76" height="137" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="113" width="76" height="137" fill="#0072b2"/>' in s,
         "A/North (60%), unaffected",
     )
     assert_true(
-        '<rect x="70" y="21" width="76" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="21" width="76" height="92" fill="#d55e00"/>' in s,
         "A/South (40%), unaffected",
     )
     assert_true(
-        '<rect x="165" y="251" width="76" height="0" fill="#1f77b4"/>' in s,
+        '<rect x="165" y="251" width="76" height="0" fill="#0072b2"/>' in s,
         "B/North, zero-height",
     )
     assert_true(
-        '<rect x="165" y="251" width="76" height="0" fill="#ff7f0e"/>' in s,
+        '<rect x="165" y="251" width="76" height="0" fill="#d55e00"/>' in s,
         "B/South, zero-height",
     )
 
@@ -432,11 +432,11 @@ def test_render_svg_non_percent_stacked_bar_is_unaffected_by_percent_flag() rais
     var s = svg.to_string()
 
     assert_true(
-        '<rect x="70" y="188" width="76" height="62" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="188" width="76" height="62" fill="#0072b2"/>' in s,
         "A/North, raw",
     )
     assert_true(
-        '<rect x="70" y="157" width="76" height="31" fill="#ff7f0e"/>' in s,
+        '<rect x="70" y="157" width="76" height="31" fill="#d55e00"/>' in s,
         "A/South, raw",
     )
 
@@ -451,7 +451,7 @@ def test_stacked_bar_quickplot_accepts_percent_kwarg() raises:
     var svg = render_svg(c)
     var s = svg.to_string()
     assert_true(
-        '<rect x="70" y="78" width="76" height="172" fill="#1f77b4"/>' in s,
+        '<rect x="70" y="78" width="76" height="172" fill="#0072b2"/>' in s,
         "quickplot percent=True",
     )
 
@@ -507,19 +507,19 @@ def test_render_marimekko_svg_matches_confirmed_rects() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="60" y="78" width="160" height="172" fill="#1f77b4"/>' in s,
+        '<rect x="60" y="78" width="160" height="172" fill="#0072b2"/>' in s,
         "column A, X segment",
     )
     assert_true(
-        '<rect x="60" y="20" width="160" height="58" fill="#ff7f0e"/>' in s,
+        '<rect x="60" y="20" width="160" height="58" fill="#d55e00"/>' in s,
         "column A, Y segment",
     )
     assert_true(
-        '<rect x="220" y="193" width="160" height="57" fill="#1f77b4"/>' in s,
+        '<rect x="220" y="193" width="160" height="57" fill="#0072b2"/>' in s,
         "column B, X segment",
     )
     assert_true(
-        '<rect x="220" y="20" width="160" height="173" fill="#ff7f0e"/>' in s,
+        '<rect x="220" y="20" width="160" height="173" fill="#d55e00"/>' in s,
         "column B, Y segment",
     )
 
@@ -622,19 +622,19 @@ def test_render_population_pyramid_svg_matches_confirmed_rects() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="170" y="32" width="51" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="170" y="32" width="51" height="92" fill="#0072b2"/>' in s,
         "A's left bar",
     )
     assert_true(
-        '<rect x="221" y="32" width="101" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="221" y="32" width="101" height="92" fill="#d55e00"/>' in s,
         "A's right bar",
     )
     assert_true(
-        '<rect x="68" y="147" width="153" height="92" fill="#1f77b4"/>' in s,
+        '<rect x="68" y="147" width="153" height="92" fill="#0072b2"/>' in s,
         "B's left bar",
     )
     assert_true(
-        '<rect x="221" y="147" width="50" height="92" fill="#ff7f0e"/>' in s,
+        '<rect x="221" y="147" width="50" height="92" fill="#d55e00"/>' in s,
         "B's right bar",
     )
 
@@ -657,10 +657,10 @@ def test_render_population_pyramid_zero_magnitude_draws_no_bar() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        'fill="#1f77b4"' not in s,
+        'fill="#0072b2"' not in s,
         "zero-magnitude left side draws no rect at all",
     )
-    assert_true('fill="#ff7f0e"' in s, "the non-zero right side still draws")
+    assert_true('fill="#d55e00"' in s, "the non-zero right side still draws")
 
 
 def test_render_population_pyramid_legend_uses_left_right_fallback_names() raises:
@@ -951,19 +951,19 @@ def test_render_funnel_svg_matches_confirmed_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M60.000,20.000 L380.000,20.000 L316.000,96.000'
-        ' L124.000,96.000 Z" fill="#1f77b4"/>'
+        ' L124.000,96.000 Z" fill="#0072b2"/>'
         in s,
         "row 0",
     )
     assert_true(
         '<path d="M124.000,96.000 L316.000,96.000 L252.000,173.000'
-        ' L188.000,173.000 Z" fill="#ff7f0e"/>'
+        ' L188.000,173.000 Z" fill="#d55e00"/>'
         in s,
         "row 1",
     )
     assert_true(
         '<path d="M188.000,173.000 L252.000,173.000 L252.000,250.000'
-        ' L188.000,250.000 Z" fill="#2ca02c"/>'
+        ' L188.000,250.000 Z" fill="#009e73"/>'
         in s,
         "row 2 -- flat bottom, matching its top",
     )

@@ -1094,6 +1094,24 @@ def test_a_symlog_chart_renders_data_that_crosses_zero() raises:
     assert_equal(c.width, 400, "the chart did not render")
 
 
+def test_auto_tick_labels_abbreviate_large_and_small_magnitudes() raises:
+    var millions = LinearScale(0.0, 6000000.0, 0.0, 600.0).ticks()
+    var million_labels = millions.labels()
+    assert_true("2M" in million_labels, "millions should have an SI suffix")
+    assert_true("6M" in million_labels, "the upper tick should be short")
+
+    var billions = LinearScale(-2000000000.0, 2000000000.0, 0.0, 600.0).ticks()
+    var billion_labels = billions.labels()
+    assert_true("-2G" in billion_labels, "negative billions need a suffix")
+    assert_true("0" in billion_labels, "zero needs no suffix")
+    assert_true("2G" in billion_labels, "positive billions need a suffix")
+
+    var microns = LinearScale(0.0, 0.00006, 0.0, 600.0).ticks()
+    var micron_labels = microns.labels()
+    assert_true("20µ" in micron_labels, "small values need a prefix")
+    assert_true("60µ" in micron_labels, "the upper small tick should be short")
+
+
 # ---------------------------------------------------------------
 # Tick counts that fit the axis (#727)
 

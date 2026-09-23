@@ -2,7 +2,8 @@
 core, rendering operations, and commonly used plotting enums.
 
 Specialist vocabulary stays in its named public module: colors in
-`dataviz.core.colors`, colormaps in `dataviz.core.colormaps`, histogram utilities in
+`dataviz.core.colors`, colormaps in `dataviz.core.colormaps`, categorical palettes in
+`dataviz.core.palettes`, histogram utilities in
 `dataviz.binned.histogram`, scales in `dataviz.core.scale`/`dataviz.core.color_scale`, theme
 presets in `dataviz.core.themes`, markers in `dataviz.core.marker`, and custom-container
 traits in `dataviz.core.array_like`.

@@ -28,8 +28,9 @@ def main() raises:
 For SVG, `save()` turns the plot title and description into accessible document
 markup. Descriptions should communicate the takeaway, not enumerate every pixel.
 Check contrast in the final destination and use `high_contrast()` or
-`print_safe()` when appropriate. For categorical series, combine shape,
-position, labels, or line patterns with color.
+`print_safe()` when appropriate. The default categorical palette uses Okabe-Ito
+colors, but color alone is still insufficient. For categorical series, combine
+shape, position, labels, or line patterns with color. See the [named palettes](../../dataviz/core/palettes/).
 
 See [SVG accessibility](../../cookbook/svg_accessibility/),
 [High-contrast theme](../../cookbook/high_contrast_theme/), and

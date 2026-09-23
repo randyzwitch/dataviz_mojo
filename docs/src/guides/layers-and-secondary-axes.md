@@ -25,6 +25,30 @@ def main() raises:
     save_layers([revenue^, growth^], "layers.svg")
 ```
 
+Bar layers with identical categories in the same order share a categorical
+axis. Each bar layer takes one adjacent slot within its category; optional
+point, line, and area layers align to the center of the whole category. Name
+and color each bar layer to make the groups readable:
+
+```mojo
+from dataviz import Plot, Theme, save_layers
+from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
+
+def main() raises:
+    var categories: List[String] = ["North", "South", "West"]
+    var actual: List[Float64] = [18.0, 24.0, 20.0]
+    var plan: List[Float64] = [20.0, 22.0, 21.0]
+    var a = (
+        Plot().mark_bar().encode_categorical(x=categories, y=actual)
+        .series_name("Actual").theme(Theme(mark_color=CORNFLOWERBLUE))
+    )
+    var b = (
+        Plot().mark_bar().encode_categorical(x=categories, y=plan)
+        .series_name("Plan").theme(Theme(mark_color=TOMATO))
+    )
+    save_layers([a^, b^], "bar-layers.svg")
+```
+
 Pies use a separate concentric layout: pass two or more `pie()` plots to
 `save_layers()` with the default `inner_radius_fraction=0`. The first plot
 is the outer ring, each ring keeps its own proportions, and the legend names
