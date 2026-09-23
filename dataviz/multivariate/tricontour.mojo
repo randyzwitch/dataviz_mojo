@@ -725,7 +725,7 @@ def tricontourf(
     x: String,
     y: String,
     z: String,
-    levels: String = "",
+    levels: List[Float64] = List[Float64](),
     level_count: Int = 8,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -736,8 +736,8 @@ def tricontourf(
     y_title: String = "",
 ) raises -> Plot:
     """`tricontourf()` over named columns of a `dataframe_mojo`
-    `DataFrame` (#743). Each argument names a column instead of
-    holding the values.
+    `DataFrame` (#743). `x`, `y`, and `z` name columns; `levels`
+    supplies contour thresholds independently of the rows.
 
     The filled counterpart of `tricontour()`'s own frame overload,
     which this mirrors.
@@ -750,8 +750,7 @@ def tricontourf(
         x: The numeric column for this channel.
         y: The numeric column for this channel.
         z: The numeric column for this channel.
-        levels: The numeric column for this channel; left empty, the
-            channel is unused.
+        levels: Explicit contour levels; empty uses `level_count`.
         level_count: See the list overload.
         theme: See the list overload.
         width: See the list overload.
@@ -771,16 +770,11 @@ def tricontourf(
     var x_values = _frame_floats(df, x, "tricontourf()", theme.missing)
     var y_values = _frame_floats(df, y, "tricontourf()", theme.missing)
     var z_values = _frame_floats(df, z, "tricontourf()", theme.missing)
-    var levels_values = List[Float64]()
-    if levels.byte_length() > 0:
-        levels_values = _frame_floats(
-            df, levels, "tricontourf()", theme.missing
-        )
     return tricontourf(
         x=x_values,
         y=y_values,
         z=z_values,
-        levels=levels_values,
+        levels=levels,
         level_count=level_count,
         theme=theme,
         width=width,
@@ -797,7 +791,7 @@ def tricontour(
     x: String,
     y: String,
     z: String,
-    levels: String = "",
+    levels: List[Float64] = List[Float64](),
     level_count: Int = 8,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -808,8 +802,8 @@ def tricontour(
     y_title: String = "",
 ) raises -> Plot:
     """`tricontour()` over named columns of a `dataframe_mojo`
-    `DataFrame` (#743). Each argument names a column instead of
-    holding the values.
+    `DataFrame` (#743). `x`, `y`, and `z` name columns; `levels`
+    supplies contour thresholds independently of the rows.
 
     See `Plot.encode_frame()` for how columns are read and what a
     column with missing values does.
@@ -819,7 +813,7 @@ def tricontour(
         x: The numeric column for this channel.
         y: The numeric column for this channel.
         z: The numeric column for this channel.
-        levels: The numeric column for this channel; left empty, the channel is unused.
+        levels: Explicit contour levels; empty uses `level_count`.
         level_count: See the list overload.
         theme: See the list overload.
         width: See the list overload.
@@ -839,14 +833,11 @@ def tricontour(
     var x_values = _frame_floats(df, x, "tricontour()", theme.missing)
     var y_values = _frame_floats(df, y, "tricontour()", theme.missing)
     var z_values = _frame_floats(df, z, "tricontour()", theme.missing)
-    var levels_values = List[Float64]()
-    if levels.byte_length() > 0:
-        levels_values = _frame_floats(df, levels, "tricontour()", theme.missing)
     return tricontour(
         x=x_values,
         y=y_values,
         z=z_values,
-        levels=levels_values,
+        levels=levels,
         level_count=level_count,
         theme=theme,
         width=width,
