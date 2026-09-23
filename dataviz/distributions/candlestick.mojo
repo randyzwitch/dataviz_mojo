@@ -6,7 +6,12 @@ from canvas.vector.draw_target import DrawTarget
 from dataframe import DataFrame
 from morrow import Morrow
 
-from dataviz.core.frame_input import _frame_floats, _frame_strings
+from dataviz.core.frame_input import (
+    _frame_column,
+    _frame_floats,
+    _frame_morrow,
+    _frame_strings,
+)
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import (
     Plot,
@@ -323,7 +328,7 @@ def candlestick(
 
     Args:
         df: The frame to read.
-        categories: The string column for this channel.
+        categories: A string category or date/datetime time column.
         open: The numeric column for this channel.
         high: The numeric column for this channel.
         low: The numeric column for this channel.
@@ -343,6 +348,26 @@ def candlestick(
         Error: A named column is missing, has the wrong dtype for
             its channel, or has missing values.
     """
+    var category_dtype = _frame_column(df, categories, "candlestick()").dtype()
+    var open_values = _frame_floats(df, open, "candlestick()", theme.missing)
+    var high_values = _frame_floats(df, high, "candlestick()", theme.missing)
+    var low_values = _frame_floats(df, low, "candlestick()", theme.missing)
+    var close_values = _frame_floats(df, close, "candlestick()", theme.missing)
+    if category_dtype.is_date() or category_dtype.is_datetime():
+        return candlestick(
+            dates=_frame_morrow(df, categories, "candlestick()"),
+            open=open_values,
+            high=high_values,
+            low=low_values,
+            close=close_values,
+            theme=theme,
+            width=width,
+            height=height,
+            title=title,
+            subtitle=subtitle,
+            x_title=x_title if x_title.byte_length() > 0 else categories,
+            y_title=y_title,
+        )
     var categories_values = _frame_strings(
         df,
         categories,
@@ -350,10 +375,6 @@ def candlestick(
         theme.missing,
         theme.missing_category_label,
     )
-    var open_values = _frame_floats(df, open, "candlestick()", theme.missing)
-    var high_values = _frame_floats(df, high, "candlestick()", theme.missing)
-    var low_values = _frame_floats(df, low, "candlestick()", theme.missing)
-    var close_values = _frame_floats(df, close, "candlestick()", theme.missing)
     return candlestick(
         categories=categories_values,
         open=open_values,
