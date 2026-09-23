@@ -497,6 +497,73 @@ def test_encode_time_puts_posix_seconds_on_the_axis() raises:
     assert_equal(len(p._continuous.y), 5)
 
 
+def test_time_bars_leave_a_weekend_gap() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var values: List[Float64] = [10.0, 20.0, 15.0]
+    var plot = bar(
+        dates,
+        values,
+        theme=Theme(show_gridlines=False),
+        width=400,
+        height=300,
+    )
+    assert_true(plot._x_time, "bars use a time axis")
+    assert_equal(plot._continuous.x[1] - plot._continuous.x[0], 3.0 * 86400.0)
+    var s = render_svg(plot).to_string()
+    assert_true(">Mar" in s, "x ticks show dates")
+    assert_true("2024-03-04 00:00:00: 20" in s, "tooltip names its date")
+    assert_true('x="75"' in s, "Friday bar starts at its real date")
+    assert_true('x="250"' in s, "Monday bar leaves a weekend gap")
+    assert_true('x="308"' in s, "Tuesday bar follows one day later")
+
+
+def test_time_bars_reject_duplicate_dates_and_horizontal_orientation() raises:
+    var dates: List[Morrow] = [Morrow.get(2024, 3, 1), Morrow.get(2024, 3, 1)]
+    var values: List[Float64] = [10.0, 12.0]
+    with assert_raises(contains="timestamps must be distinct"):
+        _ = render_svg(bar(dates, values))
+    with assert_raises(contains="horizontal bars cannot use a time x-axis"):
+        _ = bar(dates, values, horizontal=True)
+
+
+def test_one_time_bar_and_error_whisker_render() raises:
+    var dates: List[Morrow] = [Morrow.get(2024, 3, 1)]
+    var values: List[Float64] = [10.0]
+    var errors: List[Float64] = [2.0]
+    var plot = (
+        Plot()
+        .mark_bar()
+        .encode_time_bars(dates, values, y_err=errors)
+        .size(400, 300)
+    )
+    var s = render_svg(plot).to_string()
+    assert_true("2024-03-01 00:00:00: 10" in s, "single dated tooltip")
+    assert_true("<rect " in s, "single date uses the one-day interval")
+    assert_true("<line " in s, "error whisker renders on the dated bar")
+
+
+def test_a_lone_time_bar_layer_keeps_its_time_geometry() raises:
+    var dates: List[Morrow] = [Morrow.get(2024, 3, 1), Morrow.get(2024, 3, 4)]
+    var values: List[Float64] = [10.0, 12.0]
+    var plot = bar(dates, values, width=400, height=300)
+    var standalone = render_svg(plot).to_string()
+    var plots: List[Plot] = [plot^]
+    assert_equal(
+        render_layers_svg(plots).to_string(),
+        standalone,
+        "one time bar layer uses the same dated frame",
+    )
+    var idx: List[Float64] = [0.0, 1.0]
+    var line_y: List[Float64] = [9.0, 11.0]
+    plots.append(line(idx, line_y, width=400, height=300))
+    with assert_raises(contains="time-axis Mark.BAR"):
+        _ = render_layers_svg(plots)
+
+
 def test_the_one_call_time_overloads_label_dates() raises:
     var days = List[Morrow]()
     var vals = List[Float64]()

@@ -1040,6 +1040,22 @@ def _render_layers_generic[
     if len(plots) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
 
+    # A time bar has a continuous date axis, not categorical bands. A lone
+    # time bar follows its standalone renderer; a mixed composition needs
+    # a separate time-bar layout rather than silently spacing dates evenly.
+    for i in range(len(plots)):
+        if plots[i]._mark == Mark.BAR and plots[i]._x_time:
+            if len(plots) == 1:
+                return _render_bar(
+                    target, plots[i], ox0, oy0, ox1, oy1, cache=cache
+                )
+            raise Error(
+                "render_layers(): a time-axis Mark.BAR layer cannot use the"
+                " categorical bar-combo path (layer "
+                + String(i)
+                + "); use render_facets() for now"
+            )
+
     # Exactly one Mark.BAR layer dispatches to _render_bar_combo_layers (a
     # categorical x-axis is a different domain shape from this continuous
     # path). More than one has no shared-axis meaning and is rejected
