@@ -32,16 +32,13 @@ from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
-def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
-    """The value-axis domain for `Mark.STACKED_BAR`, orientation-independent:
-    fixed `[0, 100]` for `percent=True` (every column is exactly 100%
-    long), otherwise `_zero_baseline_y_extent` over each category's final
-    positive and negative running totals, the most extreme point each
-    direction reaches.
-    """
-    if plot._grouped_bar.percent:
-        return LinearScale(0.0, 100.0, 0.0, 1.0)
+def _stacked_bar_domain_data(plot: Plot, n_series: Int) -> List[Float64]:
+    """Each category's positive and negative stack totals for a shared axis."""
     var domain_data = List[Float64]()
+    if plot._grouped_bar.percent:
+        domain_data.append(0.0)
+        domain_data.append(100.0)
+        return domain_data^
     for i in range(len(plot._categorical.x)):
         var pos_total = 0.0
         var neg_total = 0.0
@@ -53,7 +50,14 @@ def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
                 neg_total += v
         domain_data.append(pos_total)
         domain_data.append(neg_total)
-    return _zero_baseline_y_extent(domain_data)
+    return domain_data^
+
+
+def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
+    """The standalone value-axis domain for `Mark.STACKED_BAR`."""
+    if plot._grouped_bar.percent:
+        return LinearScale(0.0, 100.0, 0.0, 1.0)
+    return _zero_baseline_y_extent(_stacked_bar_domain_data(plot, n_series))
 
 
 def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:

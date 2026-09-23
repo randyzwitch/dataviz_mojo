@@ -48,6 +48,25 @@ def main() raises:
     save_layers([a^, b^], "bar-layers.svg")
 ```
 
+
+A grouped or stacked bar plot can also own the categorical frame, with one
+point, line, or area value at each category center. Keep the same category
+order across the plots. A grouped or stacked plot uses the whole category
+band, so combine it with continuous overlays rather than another bar layer:
+
+```mojo
+from dataviz import Plot, save_layers
+
+def main() raises:
+    var categories: List[String] = ["North", "South", "West"]
+    var series: List[String] = ["Product A", "Product B"]
+    var sales: List[List[Float64]] = [[10.0, 12.0, 9.0], [7.0, 6.0, 8.0]]
+    var total: List[Float64] = [17.0, 18.0, 17.0]
+    var bars = Plot().mark_stacked_bar().encode_grouped_bar(categories, series, sales)
+    var line = Plot().mark_line().encode(x=[0.0, 1.0, 2.0], y=total)
+    save_layers([bars^, line^], "stacked-total.svg")
+```
+
 Use a secondary axis only when the layers have different units, and label the
 right axis. At least one layer must remain primary. Layers must share size, and
 categorical, polar, hierarchy, and network marks generally cannot share the
