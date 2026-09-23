@@ -6,7 +6,12 @@ from canvas.vector.draw_target import DrawTarget
 from dataframe import DataFrame
 from morrow import Morrow, TimeZone
 
-from dataviz.core.frame_input import _frame_floats, _frame_strings
+from dataviz.core.frame_input import (
+    _frame_column,
+    _frame_floats,
+    _frame_morrow,
+    _frame_strings,
+)
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import (
@@ -390,8 +395,8 @@ def gantt(
     Args:
         df: The frame to read.
         categories: The string column for this channel.
-        start: The numeric column for this channel.
-        end: The numeric column for this channel.
+        start: A numeric or date/datetime start column.
+        end: A numeric or date/datetime end column.
         theme: See the list overload.
         width: See the list overload.
         height: See the list overload.
@@ -410,6 +415,28 @@ def gantt(
     var categories_values = _frame_strings(
         df, categories, "gantt()", theme.missing, theme.missing_category_label
     )
+    var start_dtype = _frame_column(df, start, "gantt()").dtype()
+    var end_dtype = _frame_column(df, end, "gantt()").dtype()
+    var start_time = start_dtype.is_date() or start_dtype.is_datetime()
+    var end_time = end_dtype.is_date() or end_dtype.is_datetime()
+    if start_time != end_time:
+        raise Error(
+            "gantt(): start and end columns must both be temporal or both"
+            " numeric"
+        )
+    if start_time:
+        return gantt(
+            categories=categories_values,
+            start=_frame_morrow(df, start, "gantt()"),
+            end=_frame_morrow(df, end, "gantt()"),
+            theme=theme,
+            width=width,
+            height=height,
+            title=title,
+            subtitle=subtitle,
+            x_title=x_title if x_title.byte_length() > 0 else start,
+            y_title=y_title,
+        )
     var start_values = _frame_floats(df, start, "gantt()", theme.missing)
     var end_values = _frame_floats(df, end, "gantt()", theme.missing)
     return gantt(
