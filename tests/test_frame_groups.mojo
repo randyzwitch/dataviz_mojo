@@ -14,6 +14,7 @@ from dataviz import (
     beeswarm,
     box,
     boxenplot,
+    eventplot,
     grouped_bar,
     marimekko,
     ridgeline,
@@ -153,6 +154,76 @@ def test_every_distribution_mark_takes_a_long_frame() raises:
     for svg in svgs:
         assert_true(">gentoo<" in svg, "every mark draws the categories")
         assert_true(">species<" in svg, "and titles the axis by the column")
+
+
+def test_eventplot_frame_matches_hand_grouped_events() raises:
+    var df = DataFrame(
+        [
+            Series("sensor", Column[String](["b", "a", "b", "a", "c"])),
+            Series("second", Column[Float64]([4.0, 1.0, 6.0, 3.0, 9.0])),
+        ]
+    )
+    var by_frame = render_svg(
+        eventplot(
+            df,
+            category="sensor",
+            position="second",
+            line_length=0.7,
+            width=420,
+            height=300,
+        )
+    ).to_string()
+    var labels: List[String] = ["b", "a", "c"]
+    var positions: List[List[Float64]] = [[4.0, 6.0], [1.0, 3.0], [9.0]]
+    var by_hand = render_svg(
+        eventplot(
+            labels,
+            positions,
+            line_length=0.7,
+            width=420,
+            height=300,
+            x_title="second",
+            y_title="sensor",
+        )
+    ).to_string()
+    assert_equal(by_frame, by_hand, "frame preserves row and event order")
+
+
+def test_eventplot_frame_skips_missing_positions_and_keeps_rows() raises:
+    var df = DataFrame(
+        [
+            Series("sensor", Column[String](["a", "b", "a"])),
+            Series(
+                "second",
+                Column[Float64]([1.0, 2.0, 3.0], [True, False, True]),
+            ),
+        ]
+    )
+    var by_frame = render_svg(
+        eventplot(
+            df, category="sensor", position="second", width=420, height=300
+        )
+    ).to_string()
+    var labels: List[String] = ["a", "b"]
+    var positions: List[List[Float64]] = [[1.0, 3.0], []]
+    var by_hand = render_svg(
+        eventplot(
+            labels,
+            positions,
+            width=420,
+            height=300,
+            x_title="second",
+            y_title="sensor",
+        )
+    ).to_string()
+    assert_equal(by_frame, by_hand, "a missing event leaves its row visible")
+    with assert_raises(contains='column "second" has 1 missing value(s)'):
+        _ = eventplot(
+            df,
+            category="sensor",
+            position="second",
+            theme=Theme(missing=Missing.RAISE),
+        )
 
 
 def test_a_long_frame_mark_takes_its_own_options() raises:

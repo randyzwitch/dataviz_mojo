@@ -14,6 +14,10 @@ function the rug draws through, so the two marks cannot drift apart on
 the one thing that makes a thin vertical line legible.
 """
 
+from std.utils.numerics import isnan
+
+from dataframe import DataFrame
+
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
@@ -29,6 +33,7 @@ from dataviz.plot import (
     _finished,
     _require_non_empty,
 )
+from dataviz.core.frame_input import _frame_groups
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
@@ -269,4 +274,72 @@ def eventplot(
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def eventplot(
+    df: DataFrame,
+    category: String,
+    position: String,
+    line_length: Float64 = 1.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """An event raster from a long-form frame, one event per row (#743).
+
+    Categories keep first-appearance order. Under `Missing.DRAW`, absent
+    positions are skipped while their category remains; `Missing.RAISE`
+    names the missing column and row. Axis titles default to the column
+    names.
+
+    Args:
+        df: The frame to read.
+        category: String column naming each event's row.
+        position: Numeric column giving each event's x coordinate.
+        line_length: Each tick's height as a fraction of its row band.
+        theme: Colors, sizes, spacing, and missing-value policy.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        subtitle: Smaller line under the title.
+        x_title: X-axis label; defaults to `position`.
+        y_title: Y-axis label; defaults to `category`.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: Invalid columns or no observed event positions.
+    """
+    var groups = _frame_groups(
+        df,
+        category,
+        position,
+        "eventplot()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var positions = List[List[Float64]]()
+    for row in groups[1]:
+        var observed = List[Float64]()
+        for value in row:
+            if not isnan(value):
+                observed.append(value)
+        positions.append(observed^)
+    return eventplot(
+        groups[0],
+        positions,
+        line_length=line_length,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else position,
+        y_title=y_title if y_title.byte_length() > 0 else category,
     )
