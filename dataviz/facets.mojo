@@ -51,8 +51,8 @@ def save_facets(
     Each entry in `plots` is an independent `Plot` (its own data, labels,
     theme, mark), laid out into a grid of `cols` columns;
     `_require_uniform_size` requires every plot to have the same
-    `.size()`. There is no `facet_by()`; build each cell's `Plot` and
-    pass the list. `shared_y_scale` makes every cell share one y-domain
+    `.size()`. Build each cell's `Plot`, or use `scatter_facets()` to
+    make panels from a DataFrame. `shared_y_scale` makes every cell share one y-domain
     (see `_render_facets_generic` for its `Mark.POINT`/`LINE`/
     `EFFECT_SCATTER`-only scope).
 
