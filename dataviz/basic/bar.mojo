@@ -69,6 +69,8 @@ def _draw_bar_rects[
     baseline_edge: Int,
     orient: _Orientation,
     mut text_requests: List[_TextRequest],
+    group_index: Int = 0,
+    group_count: Int = 1,
 ) raises:
     """Draw one `Mark.BAR` plot's rectangles (and, with
         `Theme.show_data_labels`, each one's value label) into an
@@ -98,12 +100,14 @@ def _draw_bar_rects[
     var baseline = _axis_pixel_f(value_scale, 0.0)
     # bandwidth() doesn't depend on the category index, so it's hoisted out
     # of the loop.
-    var band_size = band_scale.bandwidth()
+    var band_size = band_scale.bandwidth() / Float64(group_count)
     var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
     var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
-        var band_pos = band_scale.band_start(i)
+        var band_pos = (
+            band_scale.band_start(i) + Float64(group_index) * band_size
+        )
         var value = plot._continuous.y[i]
         var extent = _pull_off_axis_line_f(
             baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
@@ -123,7 +127,7 @@ def _draw_bar_rects[
             else:
                 lo = value - plot._y_err.lower[i]
                 hi = value + plot._y_err.upper[i]
-            var center_i = band_scale.center(i)
+            var center_i = band_pos + band_size / 2.0
             var py_hi = _axis_pixel_f(value_scale, hi)
             var py_lo = _axis_pixel_f(value_scale, lo)
             orient.value_line(target, py_hi, py_lo, center_i, color, sc.scale)
