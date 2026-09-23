@@ -6,6 +6,7 @@ from dataframe import DataFrame
 from morrow import Morrow
 
 from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.frame_input import _frame_column, _frame_floats, _frame_morrow
 
 from canvas.text.render import TextAlign
 from dataviz.core.ordinal_scale import OrdinalScale
@@ -419,12 +420,13 @@ def bar(
     horizontal: Bool = False,
 ) raises -> Plot:
     """`bar()` over named columns of a `dataframe_mojo` `DataFrame`
-    (#364): a string `x` column is the category axis, a numeric `y`
-    column the bar heights, and the axis titles default to both names.
+    (#364): a string `x` column is categorical, while a date or datetime
+    `x` column uses a real time axis. The numeric `y` column gives bar
+    heights, and axis titles default to both column names.
 
     Args:
         df: The frame to read.
-        x: The string column naming each bar.
+        x: A string category or date/datetime time column.
         y: The numeric column giving each bar's height.
         theme: Full styling knobs beyond this function's own parameters.
         width: Pixel width of the returned `Plot` (`.size()`).
@@ -442,6 +444,20 @@ def bar(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
+    var x_dtype = _frame_column(df, x, "bar()").dtype()
+    if x_dtype.is_date() or x_dtype.is_datetime():
+        return bar(
+            _frame_morrow(df, x, "bar()"),
+            _frame_floats(df, y, "bar()", theme.missing),
+            theme=theme,
+            width=width,
+            height=height,
+            title=title,
+            subtitle=subtitle,
+            x_title=x_title if x_title.byte_length() > 0 else x,
+            y_title=y_title if y_title.byte_length() > 0 else y,
+            horizontal=horizontal,
+        )
     # The theme goes on first: `encode_frame` reads `Theme.missing` and
     # `Theme.missing_category_label` as it reads the columns (#367).
     var plot = (
