@@ -116,13 +116,13 @@ def test_render_svg_arc_mark_matches_confirmed_wedge_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,31.500 A103.500,103.500 0 0,1'
-        ' 323.500,135.000 Z" fill="#1f77b4"/>'
+        ' 323.500,135.000 Z" fill="#0072b2"/>'
         in s,
         "wedge 0 (value 1, span pi/2): small arc, large-arc-flag 0, palette[0]",
     )
     assert_true(
         '<path d="M220.000,135.000 L323.500,135.000 A103.500,103.500 0 1,1'
-        ' 220.000,31.500 Z" fill="#ff7f0e"/>'
+        ' 220.000,31.500 Z" fill="#d55e00"/>'
         in s,
         "wedge 1 (value 3, span 3pi/2): wide arc, large-arc-flag 1, palette[1]",
     )
@@ -175,14 +175,14 @@ def test_render_donut_svg_matches_confirmed_ring_sector_paths() raises:
     assert_true(
         '<path d="M220.000,31.500 A103.500,103.500 0 0,1 323.500,135.000'
         ' L271.750,135.000 A51.750,51.750 0 0,0 220.000,83.250 Z"'
-        ' fill="#1f77b4"/>'
+        ' fill="#0072b2"/>'
         in s,
         "wedge 0's ring-sector path, outer arc forward then inner arc backward",
     )
     assert_true(
         '<path d="M323.500,135.000 A103.500,103.500 0 1,1 220.000,31.500'
         ' L220.000,83.250 A51.750,51.750 0 1,0 271.750,135.000 Z"'
-        ' fill="#ff7f0e"/>'
+        ' fill="#d55e00"/>'
         in s,
         "wedge 1's ring-sector path, wide arc (large-arc-flag 1) on both radii",
     )
@@ -295,13 +295,13 @@ def test_render_nightingale_svg_matches_confirmed_wedge_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M220.000,135.000 L220.000,100.500 A34.500,34.500 0 0,1'
-        ' 220.000,169.500 Z" fill="#1f77b4"/>'
+        ' 220.000,169.500 Z" fill="#0072b2"/>'
         in s,
         "wedge 0 (value 1, frac 1/3, radius 34.5, span -90.90)",
     )
     assert_true(
         '<path d="M220.000,135.000 L220.000,238.500 A103.500,103.500 0 0,1'
-        ' 220.000,31.500 Z" fill="#ff7f0e"/>'
+        ' 220.000,31.500 Z" fill="#d55e00"/>'
         in s,
         "wedge 1 (value 3, frac 1.0, radius 103.5, span 90.270)",
     )
@@ -695,14 +695,14 @@ def test_render_radialbar_svg_matches_confirmed_ring_paths() raises:
     assert_true(
         '<path d="M220.000,37.969 A97.031,97.031 0 0,1 304.032,183.516'
         ' L270.419,164.109 A58.219,58.219 0 0,0 220.000,76.781 Z"'
-        ' fill="#1f77b4"/>'
+        ' fill="#0072b2"/>'
         in s,
         "ring 0's value arc, swept 1/3 of the way around (no large-arc-flag)",
     )
     assert_true(
         '<path d="M220.000,89.719 A45.281,45.281 0 1,1 220.000,89.719'
         ' L220.000,128.531 A6.469,6.469 0 1,0 220.000,128.531 Z"'
-        ' fill="#ff7f0e"/>'
+        ' fill="#d55e00"/>'
         in s,
         (
             "ring 1's value arc, fully swept -- identical shape to its track,"

@@ -164,7 +164,8 @@ struct Theme(ImplicitlyCopyable, Movable):
     """The colors a multi-series or category-colored chart cycles
     through -- grouped and stacked bars, streamgraphs, pies, sunbursts,
     categorical scatter colors and the rest. Empty by default, meaning
-    `default_categorical_palette()`'s eight tab10-style colors. Set it
+    `default_categorical_palette()`'s eight Okabe-Ito colors. Named
+    alternatives live in `dataviz.core.palettes`. Set it
     to make a preset's multi-series charts read on a given ground or in
     grayscale: `print_safe()` uses a lightness-ordered set of grays so
     a photocopy still tells series apart (#426). `Plot.color_map()`

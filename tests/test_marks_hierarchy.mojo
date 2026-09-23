@@ -230,13 +230,13 @@ def test_render_tree_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<line x1="220.000" y1="20.000" x2="60.000" y2="250.000"'
-        ' stroke="#1f77b4"'
+        ' stroke="#0072b2"'
         in s,
         "root->A edge",
     )
     assert_true(
         '<line x1="220.000" y1="20.000" x2="380.000" y2="250.000"'
-        ' stroke="#ff7f0e"'
+        ' stroke="#d55e00"'
         in s,
         "root->B edge",
     )
@@ -245,11 +245,11 @@ def test_render_tree_svg_matches_confirmed_geometry() raises:
         "root's marker",
     )
     assert_true(
-        '<circle cx="60.000" cy="250.000" r="4.000" fill="#1f77b4"/>' in s,
+        '<circle cx="60.000" cy="250.000" r="4.000" fill="#0072b2"/>' in s,
         "A's marker",
     )
     assert_true(
-        '<circle cx="380.000" cy="250.000" r="4.000" fill="#ff7f0e"/>' in s,
+        '<circle cx="380.000" cy="250.000" r="4.000" fill="#d55e00"/>' in s,
         "B's marker",
     )
 
@@ -336,15 +336,15 @@ def test_render_treemap_svg_matches_confirmed_rects() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="60" y="20" width="240" height="153" fill="#1f77b4"/>' in s,
+        '<rect x="60" y="20" width="240" height="153" fill="#0072b2"/>' in s,
         "A1",
     )
     assert_true(
-        '<rect x="60" y="173" width="240" height="77" fill="#1f77b4"/>' in s,
+        '<rect x="60" y="173" width="240" height="77" fill="#0072b2"/>' in s,
         "A2",
     )
     assert_true(
-        '<rect x="300" y="20" width="80" height="230" fill="#ff7f0e"/>' in s,
+        '<rect x="300" y="20" width="80" height="230" fill="#d55e00"/>' in s,
         "B1",
     )
 
@@ -468,9 +468,9 @@ def test_render_chord_svg_writes_ribbon_and_ring_paths() raises:
     assert_true("<path " in s, "at least one ribbon drawn as a real SVG path")
     # default_categorical_palette()'s first three entries:
     # (31,119,180)/(255,127,14)/(44,160,44).
-    assert_true("#1f77b4" in s, "node A's ring sector color appears")
-    assert_true("#ff7f0e" in s, "node B's ring sector color appears")
-    assert_true("#2ca02c" in s, "node C's ring sector color appears")
+    assert_true("#0072b2" in s, "node A's ring sector color appears")
+    assert_true("#d55e00" in s, "node B's ring sector color appears")
+    assert_true("#009e73" in s, "node C's ring sector color appears")
 
 
 def test_render_chord_raises_on_mismatched_length() raises:
@@ -552,13 +552,13 @@ def test_render_arc_diagram_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M60.000,250.000 A80.000,80.000 0 0,1 220.000,250.000"'
-        ' fill="none" stroke="#1f77b4" stroke-width="6.000"'
+        ' fill="none" stroke="#0072b2" stroke-width="6.000"'
         in s,
         "A->B's arc: center (140,250), radius 80, width 6 (frac 1.0)",
     )
     assert_true(
         '<path d="M220.000,250.000 A80.000,80.000 0 0,1 380.000,250.000"'
-        ' fill="none" stroke="#ff7f0e" stroke-width="4.000"'
+        ' fill="none" stroke="#d55e00" stroke-width="4.000"'
         in s,
         "B->C's arc: center (300,250), radius 80, width 4 (frac 0.5)",
     )
@@ -647,7 +647,7 @@ def test_render_graph_svg_matches_confirmed_geometry() raises:
     # symmetric, which is why B and C share a y to the last digit.
     assert_true(
         '<line x1="220.000" y1="31.500" x2="309.634" y2="186.750"'
-        ' stroke="#1f77b4" stroke-width="6.000"'
+        ' stroke="#0072b2" stroke-width="6.000"'
         in s,
         (
             "A->B: node A (220, 31.5) to node B (309.634, 186.75), width 6"
@@ -656,7 +656,7 @@ def test_render_graph_svg_matches_confirmed_geometry() raises:
     )
     assert_true(
         '<line x1="309.634" y1="186.750" x2="130.366" y2="186.750"'
-        ' stroke="#ff7f0e" stroke-width="4.000"'
+        ' stroke="#d55e00" stroke-width="4.000"'
         in s,
         (
             "B->C: node B (309.634, 186.75) to node C (130.366, 186.75),"
@@ -741,16 +741,16 @@ def test_render_sankey_svg_matches_confirmed_geometry() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M71.500,19.500 L71.500,249.500 L367.500,249.500'
-        ' L367.500,19.500 Z" fill="#1f77b4" fill-opacity="0.627"/>'
+        ' L367.500,19.500 Z" fill="#0072b2" fill-opacity="0.627"/>'
         in s,
         "the ribbon, A's column edge to B's column edge",
     )
     assert_true(
-        '<rect x="60" y="20" width="12" height="230" fill="#1f77b4"/>' in s,
+        '<rect x="60" y="20" width="12" height="230" fill="#0072b2"/>' in s,
         "node A",
     )
     assert_true(
-        '<rect x="368" y="20" width="12" height="230" fill="#ff7f0e"/>' in s,
+        '<rect x="368" y="20" width="12" height="230" fill="#d55e00"/>' in s,
         "node B",
     )
 

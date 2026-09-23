@@ -1047,13 +1047,13 @@ def test_render_streamgraph_svg_matches_confirmed_paths() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M140.000,135.000 L300.000,135.000 L300.000,239.545'
-        ' L140.000,239.545 Z" fill="#1f77b4"/>'
+        ' L140.000,239.545 Z" fill="#0072b2"/>'
         in s,
         "A's band",
     )
     assert_true(
         '<path d="M140.000,30.455 L300.000,30.455 L300.000,135.000'
-        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        ' L140.000,135.000 Z" fill="#d55e00"/>'
         in s,
         "B's band",
     )
@@ -1086,7 +1086,7 @@ def test_render_streamgraph_svg_smoothing_matches_confirmed_cubic_path() raises:
         '<path d="M113.333,114.091 C131.111,114.091 184.444,107.818'
         " 220.000,114.091 C255.556,120.364 308.889,145.455 326.667,151.727"
         " L326.667,218.636 C308.889,222.121 255.556,243.030 220.000,239.545"
-        ' C184.444,236.061 131.111,204.697 113.333,197.727 Z" fill="#1f77b4"'
+        ' C184.444,236.061 131.111,204.697 113.333,197.727 Z" fill="#0072b2"'
         "/>"
         in s,
         (
@@ -1157,13 +1157,13 @@ def test_streamgraph_smoothing_zero_reproduces_straight_bands() raises:
     var s = svg.to_string()
     assert_true(
         '<path d="M140.000,135.000 L300.000,135.000 L300.000,239.545'
-        ' L140.000,239.545 Z" fill="#1f77b4"/>'
+        ' L140.000,239.545 Z" fill="#0072b2"/>'
         in s,
         "A's band, straight",
     )
     assert_true(
         '<path d="M140.000,30.455 L300.000,30.455 L300.000,135.000'
-        ' L140.000,135.000 Z" fill="#ff7f0e"/>'
+        ' L140.000,135.000 Z" fill="#d55e00"/>'
         in s,
         "B's band, straight",
     )
@@ -1551,7 +1551,7 @@ def _path_points(d: String) -> List[String]:
 
 def test_stacked_area_step_matches_confirmed_paths() raises:
     # Read off a real render_svg() run, pasted verbatim. Band A is the
-    # bottom series (#1f77b4), band B the one stacked on it (#ff7f0e).
+    # bottom series (#0072b2), band B the one stacked on it (#d55e00).
     #
     # PRE/POST emit 2n-1 = 5 points per edge and MID 2n = 6, so a band
     # is 10 or 12 points; NONE is 3 per edge. The counts are part of
@@ -1562,7 +1562,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         '<path d="M113.333,171.769 L113.333,93.537 L220.000,93.537'
         " L220.000,132.653 L326.667,132.653 L326.667,250.000"
         " L220.000,250.000 L220.000,250.000 L113.333,250.000"
-        ' L113.333,250.000 Z" fill="#1f77b4"/>'
+        ' L113.333,250.000 Z" fill="#0072b2"/>'
         in pre,
         "PRE, band A",
     )
@@ -1570,7 +1570,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         '<path d="M113.333,132.653 L113.333,30.952 L220.000,30.952'
         " L220.000,38.776 L326.667,38.776 L326.667,132.653"
         " L220.000,132.653 L220.000,93.537 L113.333,93.537"
-        ' L113.333,171.769 Z" fill="#ff7f0e"/>'
+        ' L113.333,171.769 Z" fill="#d55e00"/>'
         in pre,
         "PRE, band B",
     )
@@ -1581,7 +1581,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         " L273.333,93.537 L273.333,132.653 L326.667,132.653"
         " L326.667,250.000 L273.333,250.000 L273.333,250.000"
         ' L166.667,250.000 L166.667,250.000 L113.333,250.000 Z"'
-        ' fill="#1f77b4"/>'
+        ' fill="#0072b2"/>'
         in mid,
         "MID, band A",
     )
@@ -1591,7 +1591,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         '<path d="M113.333,171.769 L220.000,171.769 L220.000,93.537'
         " L326.667,93.537 L326.667,132.653 L326.667,250.000"
         " L326.667,250.000 L220.000,250.000 L220.000,250.000"
-        ' L113.333,250.000 Z" fill="#1f77b4"/>'
+        ' L113.333,250.000 Z" fill="#0072b2"/>'
         in post,
         "POST, band A",
     )
@@ -1599,7 +1599,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
         '<path d="M113.333,132.653 L220.000,132.653 L220.000,30.952'
         " L326.667,30.952 L326.667,38.776 L326.667,132.653"
         " L326.667,93.537 L220.000,93.537 L220.000,171.769"
-        ' L113.333,171.769 Z" fill="#ff7f0e"/>'
+        ' L113.333,171.769 Z" fill="#d55e00"/>'
         in post,
         "POST, band B",
     )
@@ -1609,7 +1609,7 @@ def test_stacked_area_step_matches_confirmed_paths() raises:
     assert_true(
         '<path d="M113.333,171.769 L220.000,93.537 L326.667,132.653'
         ' L326.667,250.000 L220.000,250.000 L113.333,250.000 Z"'
-        ' fill="#1f77b4"/>'
+        ' fill="#0072b2"/>'
         in none,
         "NONE, band A",
     )

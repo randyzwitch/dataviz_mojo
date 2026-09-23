@@ -308,7 +308,7 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     #
     # x-domain [-0.5,10.5] with plot_x0=60, plot_x1=250: to_pixel(0)=68.636
     # -> 69, to_pixel(10)=241.364 -> 241; y=0.0 lands at 135. Point 0
-    # ("A") gets #1f77b4, point 1 ("B") #ff7f0e.
+    # ("A") gets #0072b2, point 1 ("B") #d55e00.
     #
     # Legend at legend_x=270, row 0 at y=20, row 1 at y=42.
     var x: List[Float64] = [0.0, 10.0]
@@ -326,19 +326,19 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     var s = svg.to_string()
 
     assert_true(
-        '<circle cx="68.636" cy="135.000" r="4.000" fill="#1f77b4"/>' in s,
+        '<circle cx="68.636" cy="135.000" r="4.000" fill="#0072b2"/>' in s,
         "layered point 0, category A's color",
     )
     assert_true(
-        '<circle cx="241.364" cy="135.000" r="4.000" fill="#ff7f0e"/>' in s,
+        '<circle cx="241.364" cy="135.000" r="4.000" fill="#d55e00"/>' in s,
         "layered point 1, category B's color",
     )
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "legend row 0 -- narrowed plot area makes room for the legend column",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "legend row 1",
     )
 
@@ -1760,7 +1760,7 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
         ),
     )
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         (
             "the legend's first swatch, starting well clear of the secondary"
             " axis's labels"

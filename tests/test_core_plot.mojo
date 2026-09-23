@@ -2054,11 +2054,11 @@ def test_render_point_legend_width_grows_to_fit_long_category_names() raises:
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="235" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="235" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "legend column shifted left to make room for the long label",
     )
     assert_true(
-        '<rect x="235" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="235" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "the long label's legend swatch",
     )
 
@@ -2079,11 +2079,11 @@ def test_render_grouped_bar_legend_width_grows_to_fit_long_series_names() raises
     var svg = render_svg(plot)
     var s = svg.to_string()
     assert_true(
-        '<rect x="235" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="235" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "North's legend swatch, shifted left to make room for the wider label",
     )
     assert_true(
-        '<rect x="235" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="235" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "the long label's legend swatch",
     )
 
@@ -2141,12 +2141,12 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     )
     var s = render_svg(plot).to_string()
 
-    # A -> CIRCLE, palette[0] #1f77b4 -- unchanged fill_circle_aa look.
+    # A -> CIRCLE, palette[0] #0072b2 -- unchanged fill_circle_aa look.
     assert_true(
-        '<circle cx="74.545" cy="135.000" r="4.000" fill="#1f77b4"/>' in s,
+        '<circle cx="74.545" cy="135.000" r="4.000" fill="#0072b2"/>' in s,
         "A -> CIRCLE",
     )
-    # B -> SQUARE, palette[1] #ff7f0e -- an 8x8 rect (2*radius per
+    # B -> SQUARE, palette[1] #d55e00 -- an 8x8 rect (2*radius per
     # side) around (132.727, 135). SQUARE is the one shape drawn as an
     # axis-aligned rect, so both its edges snap to pixel boundaries and
     # it stays crisp; an even side length means the snapped square
@@ -2154,7 +2154,7 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # exactly 135.0, equidistant from the boundaries at 134.5 and
     # 135.5, and the tie resolves upward.
     assert_true(
-        '<rect x="129" y="132" width="8" height="8" fill="#ff7f0e"/>' in s,
+        '<rect x="129" y="132" width="8" height="8" fill="#d55e00"/>' in s,
         "B -> SQUARE",
     )
     # C -> TRIANGLE, palette[2] ca02c -- equilateral, top vertex
@@ -2162,15 +2162,15 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # straight down (cy+r*0.5, cx+-r*cos(30deg), cos(30deg)=0.8660254).
     assert_true(
         '<path d="M190.909,131.000 L194.373,137.000 L187.445,137.000 Z"'
-        ' fill="#2ca02c"/>'
+        ' fill="#009e73"/>'
         in s,
         "C -> TRIANGLE",
     )
-    # D -> DIAMOND, palette[3] #d62728 -- a rotated square, one vertex
+    # D -> DIAMOND, palette[3] #cc79a7 -- a rotated square, one vertex
     # per cardinal direction, each exactly radius from center.
     assert_true(
         '<path d="M249.091,131.000 L253.091,135.000 L249.091,139.000'
-        ' L245.091,135.000 Z" fill="#d62728"/>'
+        ' L245.091,135.000 Z" fill="#cc79a7"/>'
         in s,
         "D -> DIAMOND",
     )
@@ -2180,14 +2180,14 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # is put, so there is no crispness to win by moving it.
     assert_true(
         '<line x1="307.273" y1="131.000" x2="307.273" y2="139.000"'
-        ' stroke="#9467bd'
+        ' stroke="#e69f00'
         '" stroke-width="2.600" stroke-linecap="round"/>'
         in s,
         "E -> CROSS (vertical stroke)",
     )
     assert_true(
         '<line x1="303.273" y1="135.000" x2="311.273" y2="135.000"'
-        ' stroke="#9467bd'
+        ' stroke="#e69f00'
         '" stroke-width="2.600" stroke-linecap="round"/>'
         in s,
         "E -> CROSS (horizontal stroke)",
@@ -2197,14 +2197,14 @@ def test_render_svg_shape_by_category_matches_hand_derived_geometry() raises:
     # the four arms are the same length as each other).
     assert_true(
         '<line x1="362.626" y1="132.172" x2="368.283" y2="137.828"'
-        ' stroke="#8c564b'
+        ' stroke="#56b4e9'
         '" stroke-width="2.600" stroke-linecap="round"/>'
         in s,
         "F -> X (backslash diagonal)",
     )
     assert_true(
         '<line x1="362.626" y1="137.828" x2="368.283" y2="132.172"'
-        ' stroke="#8c564b'
+        ' stroke="#56b4e9'
         '" stroke-width="2.600" stroke-linecap="round"/>'
         in s,
         "F -> X (forward-slash diagonal)",
@@ -2235,21 +2235,21 @@ def test_render_svg_shape_by_category_legend_matches_hand_derived_icons() raises
 
     # Points: A -> CIRCLE (unchanged), B -> SQUARE.
     assert_true(
-        '<circle cx="68.636" cy="135.000" r="4.000" fill="#1f77b4"/>' in s,
+        '<circle cx="68.636" cy="135.000" r="4.000" fill="#0072b2"/>' in s,
         "point A -> CIRCLE",
     )
     assert_true(
-        '<rect x="238" y="132" width="8" height="8" fill="#ff7f0e"/>' in s,
+        '<rect x="238" y="132" width="8" height="8" fill="#d55e00"/>' in s,
         "point B -> SQUARE",
     )
     # Legend row 0 (A): center (270+7, 20+7) = (277, 27).
     assert_true(
-        '<circle cx="277" cy="27" r="7" fill="#1f77b4"/>' in s,
+        '<circle cx="277" cy="27" r="7" fill="#0072b2"/>' in s,
         "legend A -> CIRCLE icon",
     )
     # Legend row 1 (B): row_y = 20+22 = 42, center (277, 49).
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "legend B -> SQUARE icon",
     )
 
@@ -2269,11 +2269,11 @@ def test_render_svg_categorical_color_legend_stays_a_flat_swatch_by_default() ra
     var s = render_svg(plot).to_string()
 
     assert_true(
-        '<rect x="270" y="20" width="14" height="14" fill="#1f77b4"/>' in s,
+        '<rect x="270" y="20" width="14" height="14" fill="#0072b2"/>' in s,
         "legend A stays a flat swatch",
     )
     assert_true(
-        '<rect x="270" y="42" width="14" height="14" fill="#ff7f0e"/>' in s,
+        '<rect x="270" y="42" width="14" height="14" fill="#d55e00"/>' in s,
         "legend B stays a flat swatch",
     )
 
