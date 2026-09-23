@@ -29,6 +29,7 @@ from dataviz import (
     sankey,
     scatter3d,
     treemap,
+    tricontour,
     tricontourf,
     waterfall,
 )
@@ -452,46 +453,43 @@ def test_ecdf_complementary_survives_the_frame_overload() raises:
     assert_true(normal != complementary, "complementary=True changed nothing")
 
 
-def test_tricontourf_reads_three_columns_and_an_optional_one() raises:
+def test_tricontour_frame_levels_are_independent_of_rows() raises:
     var xs: List[Float64] = [0.0, 1.0, 2.0, 0.5, 1.5, 1.0]
     var ys: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 2.0]
     var zs: List[Float64] = [1.0, 2.0, 1.5, 3.0, 2.5, 4.0]
-    # One level per row, not three: every column in a frame has the
-    # same length, so a `levels` column is forced to the row count.
-    # That makes the channel close to unusable on real data -- 500
-    # observations would mean 500 contour levels -- and it is inherited
-    # from tricontour()'s own frame overload, which shipped untested.
-    # See #776; this test pins today's behavior, not a design anyone
-    # should copy.
-    var ls: List[Float64] = [1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    var levels: List[Float64] = [1.5, 2.5, 3.5]
     var df = DataFrame(
         [
             Series("x", Column[Float64](xs.copy())),
             Series("y", Column[Float64](ys.copy())),
             Series("depth", Column[Float64](zs.copy())),
-            Series("cut", Column[Float64](ls.copy())),
         ]
     )
-    var by_frame = render_svg(
-        tricontourf(df, x="x", y="y", z="depth", width=360, height=300)
-    ).to_string()
-    var by_list = render_svg(
-        tricontourf(xs, ys, zs, width=360, height=300)
-    ).to_string()
-    assert_equal(by_frame, by_list, "tricontourf: same document")
 
-    # `levels` is the optional channel: named, it must be read; left
-    # empty, it must stay unused rather than picking up a column.
-    var explicit = render_svg(
+    var filled_frame = render_svg(
         tricontourf(
-            df, x="x", y="y", z="depth", levels="cut", width=360, height=300
+            df, x="x", y="y", z="depth", levels=levels, width=360, height=300
         )
     ).to_string()
-    var explicit_list = render_svg(
-        tricontourf(xs, ys, zs, levels=ls, width=360, height=300)
+    var filled_list = render_svg(
+        tricontourf(xs, ys, zs, levels=levels, width=360, height=300)
     ).to_string()
-    assert_equal(explicit, explicit_list, "tricontourf levels: same document")
-    assert_true(by_frame != explicit, "naming a levels column changed nothing")
+    assert_equal(filled_frame, filled_list, "filled levels: same document")
+
+    var lines_frame = render_svg(
+        tricontour(
+            df, x="x", y="y", z="depth", levels=levels, width=360, height=300
+        )
+    ).to_string()
+    var lines_list = render_svg(
+        tricontour(xs, ys, zs, levels=levels, width=360, height=300)
+    ).to_string()
+    assert_equal(lines_frame, lines_list, "line levels: same document")
+
+    var automatic = render_svg(
+        tricontourf(df, x="x", y="y", z="depth", width=360, height=300)
+    ).to_string()
+    assert_true(automatic != filled_frame, "explicit levels changed nothing")
 
 
 def test_a_missing_column_names_the_function_that_was_called() raises:
