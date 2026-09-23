@@ -36,6 +36,7 @@ from dataviz import (
     render_inset_svg,
     save_grid,
 )
+from dataviz.core.scale import TickFormat
 from dataviz.core.text import _Scaled
 from dataviz.plot import Plot
 
@@ -524,9 +525,9 @@ def _wide_and_narrow_labels() raises -> Tuple[List[Plot], List[GridCell]]:
     """Two cells stacked in one column, whose y-labels differ a lot in
     width: values near 1 above, values in the millions below.
 
-    That width difference is the whole problem. Each cell sizes its own
-    left margin from its own tick labels, so a shared domain puts the
-    two on the same numbers while leaving them on different pixels.
+    FIXED(0) keeps the large labels long even when AUTO abbreviates
+    millions. Each cell sizes its own left margin from its tick labels,
+    so a shared domain can put equal values on different pixels.
     """
     var small = List[Float64]()
     var large = List[Float64]()
@@ -534,18 +535,23 @@ def _wide_and_narrow_labels() raises -> Tuple[List[Plot], List[GridCell]]:
         small.append(Float64(i) * 0.1 + 1.0)
         large.append(Float64(i) * 1000000.0 + 5000000.0)
     var plots = List[Plot]()
+    var wide_label_theme = Theme(
+        show_gridlines=False,
+        show_legend=False,
+        y_tick_format=TickFormat.FIXED(0),
+    )
     plots.append(
         Plot()
         .mark_line()
         .encode(x=_xs(8), y=small)
-        .theme(_theme())
+        .theme(wide_label_theme)
         .size(300, 200)
     )
     plots.append(
         Plot()
         .mark_line()
         .encode(x=_xs(8), y=large)
-        .theme(_theme())
+        .theme(wide_label_theme)
         .size(300, 200)
     )
     var cells = List[GridCell]()

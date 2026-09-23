@@ -71,6 +71,7 @@ from dataviz import (
 )
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.colors import RED
+from dataviz.core.scale import TickFormat
 from dataviz.relationships.edges import _edge_node_index
 from dataviz.plot import (
     Plot,
@@ -529,7 +530,7 @@ def test_render_left_margin_grows_to_fit_wide_y_axis_labels() raises:
     # checked against the y-axis line itself.
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [1000000.0, 2000000.0]
-    var t = Theme(show_gridlines=False)
+    var t = Theme(show_gridlines=False, y_tick_format=TickFormat.FIXED(0))
     var _hoisted1 = Plot().mark_point().encode(x=x, y=y).theme(t).size(400, 300)
     var c = render(_hoisted1)
 
@@ -575,7 +576,7 @@ def test_render_bar_left_margin_also_grows_to_fit_wide_y_axis_labels() raises:
     # apply.
     var x: List[String] = ["a", "b"]
     var y: List[Float64] = [1000000.0, 2000000.0]
-    var t = Theme(show_gridlines=False)
+    var t = Theme(show_gridlines=False, y_tick_format=TickFormat.FIXED(0))
     var _hoisted3 = (
         Plot().mark_bar().encode_categorical(x=x, y=y).theme(t).size(400, 300)
     )

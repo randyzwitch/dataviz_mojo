@@ -269,7 +269,8 @@ struct TickFormat(Copyable, ImplicitlyCopyable, Movable):
     `FIXED()` is a `@staticmethod` rather than a fixed comptime instance,
     since it carries a caller-chosen decimal count.
 
-    - `AUTO` (default): today's behavior, `_format_fixed` at the domain's
+    - `AUTO` (default): SI prefixes at magnitudes >= 1e6 or below
+      1e-3 (except zero); otherwise `_format_fixed` at the domain's
       own nice-step decimal count.
     - `PERCENT`: `value * 100`, suffixed `%` -- `0.25` -> `"25%"`.
     - `THOUSANDS`: comma-grouped -- `1500000` -> `"1,500,000"`.
@@ -452,7 +453,7 @@ def _format_tick(value: Float64, decimals: Int, format: TickFormat) -> String:
     """`value` formatted per `format`, the shared formatter
     `Ticks.labels()`, `Theme.show_data_labels`, and a continuous legend's
     endpoint labels all defer to. `decimals` is the axis's own nice-step
-    decimal count, used as-is for `AUTO` and adjusted for `PERCENT`
+    decimal count, used by `AUTO` at ordinary magnitudes and adjusted for `PERCENT`
     (`value * 100` needs 2 fewer decimal places for the same precision);
     `THOUSANDS`/`SI`/`SCIENTIFIC`/`FIXED` each pick their own decimal
     count instead.
@@ -466,6 +467,8 @@ def _format_tick(value: Float64, decimals: Int, format: TickFormat) -> String:
     if abs(value) > _FORMAT_FIXED_MAX_EXACT_MAGNITUDE:
         return format.prefix + _format_scientific(value) + format.suffix
     if format == TickFormat.AUTO:
+        if abs(value) >= 1e6 or (value != 0.0 and abs(value) < 1e-3):
+            return format.prefix + _format_si(value) + format.suffix
         return format.prefix + _format_fixed(value, decimals) + format.suffix
     if format == TickFormat.PERCENT:
         return (

@@ -279,10 +279,15 @@ def test_ticks_labels_uses_format_fixed_per_tick() raises:
     assert_equal(labels[len(labels) - 1], "0.010")
 
 
-def test_format_tick_auto_matches_format_fixed() raises:
-    # AUTO is _format_fixed unchanged, decimals as given.
+def test_format_tick_auto_switches_only_at_magnitude_thresholds() raises:
     assert_equal(_format_tick(20.0, 0, TickFormat.AUTO), "20")
     assert_equal(_format_tick(0.25, 3, TickFormat.AUTO), "0.250")
+    assert_equal(_format_tick(999999.0, 0, TickFormat.AUTO), "999999")
+    assert_equal(_format_tick(1000000.0, 0, TickFormat.AUTO), "1M")
+    assert_equal(_format_tick(0.001, 3, TickFormat.AUTO), "0.001")
+    assert_equal(_format_tick(0.00002, 5, TickFormat.AUTO), "20µ")
+    assert_equal(_format_tick(0.0, 0, TickFormat.AUTO), "0")
+    assert_equal(_format_tick(1000000.0, 0, TickFormat.FIXED(0)), "1000000")
 
 
 def test_format_tick_percent_matches_hand_computed_strings() raises:
