@@ -1,3 +1,7 @@
+from std.utils.numerics import isnan
+
+from dataframe import DataFrame
+
 from canvas.text.font_cache import FontCache
 from canvas.path import Path
 from canvas.vector.draw_target import DrawTarget
@@ -5,6 +9,7 @@ from canvas.text.render import TextAlign
 
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
+from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -138,14 +143,22 @@ def _render_parallel[
         var row = plot._parallel.data[r].copy()
         var color = palette[r % len(palette)]
         var path = Path()
+        var in_run = False
+        var has_segment = False
         for d in range(n):
+            if isnan(row[d]):
+                in_run = False
+                continue
             var x = _axis_x(plot_x0, plot_x1, n, d)
             var y = _value_y(plot_y0, plot_y1, dim_min[d], dim_max[d], row[d])
-            if d == 0:
-                path.move_to(x, y)
-            else:
+            if in_run:
                 path.line_to(x, y)
-        target.stroke_path_aa(path, color, sc.line_width)
+                has_segment = True
+            else:
+                path.move_to(x, y)
+                in_run = True
+        if has_segment:
+            target.stroke_path_aa(path, color, sc.line_width)
 
     if show_legend:
         _draw_legend_at(
@@ -252,4 +265,77 @@ def parallel[
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def parallel(
+    df: DataFrame,
+    dims: List[String],
+    row_name: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Parallel coordinates from named DataFrame columns (#743).
+
+    `dims` names the numeric columns, in axis order; `row_name` names
+    a string column used by the legend. Each frame row becomes one
+    polyline. Missing metric values break that line at their dimension,
+    while `Missing.RAISE` rejects them at the frame boundary.
+
+    Args:
+        df: The frame to read.
+        dims: Numeric columns, in axis order.
+        row_name: String column naming each polyline.
+        theme: Colors, sizes, spacing, and missing-value policy.
+        width: Canvas width in pixels.
+        height: Canvas height in pixels.
+        title: Chart title.
+        subtitle: Smaller line under the title.
+        x_title: X-axis label.
+        y_title: Y-axis label.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: An invalid column, or a dimension with no observed values.
+    """
+    var names = _frame_strings(
+        df, row_name, "parallel()", theme.missing, theme.missing_category_label
+    )
+    var columns = List[List[Float64]]()
+    for dim in dims:
+        var values = _frame_floats(df, dim, "parallel()", theme.missing)
+        if len(values) != len(names):
+            raise Error(
+                'parallel(): column "'
+                + dim
+                + '" has '
+                + String(len(values))
+                + " rows, expected "
+                + String(len(names))
+            )
+        columns.append(values^)
+    var rows = List[List[Float64]]()
+    for i in range(len(names)):
+        var row = List[Float64]()
+        for column in columns:
+            row.append(column[i])
+        rows.append(row^)
+    return parallel(
+        rows,
+        dims,
+        names,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
