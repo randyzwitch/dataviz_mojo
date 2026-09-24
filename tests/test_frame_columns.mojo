@@ -23,6 +23,7 @@ from dataviz import (
     corrplot,
     ecdf,
     funnel,
+    gantt,
     heatmap,
     histogram,
     kdeplot,
@@ -630,6 +631,47 @@ def test_parallel_all_missing_row_has_no_path() raises:
         1,
         "the row without observations cannot draw a line",
     )
+
+
+def test_gantt_reads_temporal_start_and_end_columns() raises:
+    var tasks: List[String] = ["Build", "Ship"]
+    var start_days: List[Int64] = [19783, 19786]
+    var end_days: List[Int64] = [19786, 19787]
+    var df = DataFrame(
+        [
+            Series("task", Column[String](tasks.copy())),
+            Series("start", Column[Int64](start_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+            Series("end", Column[Int64](end_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+        ]
+    )
+    var expected = render_svg(
+        gantt(
+            tasks,
+            [Morrow.get(2024, 3, 1), Morrow.get(2024, 3, 4)],
+            [Morrow.get(2024, 3, 4), Morrow.get(2024, 3, 5)],
+            x_title="start",
+        )
+    ).to_string()
+    var from_frame = gantt(df, categories="task", start="start", end="end")
+    assert_true(from_frame._x_time, "temporal columns use a time axis")
+    assert_equal(
+        render_svg(from_frame).to_string(), expected, "date columns match lists"
+    )
+    var mismatch = DataFrame(
+        [
+            Series("task", Column[String](tasks.copy())),
+            Series("start", Column[Int64](start_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+            Series("end", Column[Float64]([1.0, 2.0])),
+        ]
+    )
+    with assert_raises(contains="both be temporal or both numeric"):
+        _ = gantt(mismatch, categories="task", start="start", end="end")
 
 
 def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
