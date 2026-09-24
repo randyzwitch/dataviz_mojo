@@ -1,9 +1,10 @@
 """Render dispatch for the tree charts (#524).
 
-Each `Plot.mark_*()` setter registers this family's callback for Canvas,
-SVG, PDF, and BoundsTarget. `_render_generic` invokes the selected callback rather than
-probing every family. Add a mark's render branch here and register these
-adapters in its setter; see `plot.mojo`'s mark-adding checklist.
+`Plot._set_mark()` registers this family's callback for Canvas, SVG,
+PDF, and BoundsTarget for every mark `Mark._family()` assigns here.
+`_render_generic` invokes the selected callback rather than probing
+every family. Add a mark's render branch here and its row in
+`Mark._family()`; see `plot.mojo`'s mark-adding checklist.
 
 The "not mine" answer is an empty `Optional`. `_RenderResult` is
 `Movable` but not `Copyable`, and this function is generic over
