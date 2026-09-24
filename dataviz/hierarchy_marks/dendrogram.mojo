@@ -19,6 +19,10 @@ from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
+
 from dataviz.core.cluster import (
     DistanceMetric,
     Linkage,
@@ -428,4 +432,80 @@ def dendrogram(
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def dendrogram(
+    df: DataFrame,
+    features: List[String],
+    labels: String = "",
+    metric: DistanceMetric = DistanceMetric.EUCLIDEAN,
+    method: Linkage = Linkage.AVERAGE,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Cluster DataFrame rows using named numeric feature columns.
+
+    Each row is one observation. `features` chooses its dimensions in
+    order; `labels` optionally names a string column for leaf labels.
+    Missing numeric values are rejected by the clustering algorithm.
+
+    Args:
+        df: The frame holding observations in rows.
+        features: Nonempty list of numeric columns to cluster by.
+        labels: Optional string column naming each observation.
+        metric: See the list overload.
+        method: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: No feature columns were selected, a column is absent or
+            has the wrong dtype, or clustering cannot use the values.
+    """
+    if len(features) == 0:
+        raise Error("dendrogram(): features must name at least one column")
+    var columns = List[List[Float64]](capacity=len(features))
+    for name in features:
+        columns.append(_frame_floats(df, name, "dendrogram()", theme.missing))
+    var rows = List[List[Float64]](capacity=len(columns[0]))
+    for row in range(len(columns[0])):
+        var values = List[Float64](capacity=len(columns))
+        for col in columns:
+            values.append(col[row])
+        rows.append(values^)
+    var leaf_labels = List[String]()
+    if labels.byte_length() > 0:
+        leaf_labels = _frame_strings(
+            df,
+            labels,
+            "dendrogram()",
+            theme.missing,
+            theme.missing_category_label,
+        )
+    return dendrogram(
+        rows=rows,
+        labels=leaf_labels,
+        metric=metric,
+        method=method,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )
