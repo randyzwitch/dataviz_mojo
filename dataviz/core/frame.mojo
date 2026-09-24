@@ -34,20 +34,11 @@ from dataviz.core.mathtext import (
 from dataviz.core.text import _extend_text_requests
 from dataviz.core.axis_controls import _AxisControls, _override_ticks
 from dataviz.core.axis_position import AxisPosition
-from dataviz.basic.continuous import area, line
-from dataviz.layers import _render_layers_generic
 from dataviz.core.legend import _LegendLayout
 from dataviz.core.mark import Mark
 from dataviz.core.ordinal_scale import OrdinalScale
 from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _data_extent,
-    _render_generic,
-    _zero_baseline_y_extent,
-    render,
-)
+from dataviz.core.render_result import _RenderResult
 from dataviz.core.scale import LinearScale, TickFormat, Ticks
 from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
 from dataviz.core.theme import Theme

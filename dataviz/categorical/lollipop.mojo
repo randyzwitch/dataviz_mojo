@@ -150,7 +150,9 @@ def _render_lollipop[
     `Mark.LINE`/`AREA` do; only the point's center, passed to the
     `Int`-coordinate `fill_circle_aa`, is rounded.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var y_scale = _zero_baseline_y_extent(plot._continuous.y)
@@ -202,7 +204,9 @@ def _render_horizontal_lollipop[
     `_render_lollipop`, for the reasons in `_render_horizontal_bar`'s
     docstring (bar.mojo).
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var x_scale = _zero_baseline_y_extent(plot._continuous.y)

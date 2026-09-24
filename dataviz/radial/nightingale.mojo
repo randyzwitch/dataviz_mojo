@@ -62,7 +62,9 @@ def _render_nightingale[
     Radius mode scales directly by value; area mode uses the square root so
     wedge area is proportional to value. Wedges begin at 12 o'clock.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()

@@ -15,19 +15,8 @@ from dataviz.core.mathtext import (
 from canvas.text.render import FontWeight, TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.basic.continuous import area, line
-from dataviz.facets import render_facets
-from dataviz.layers import render_layers
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _render_generic,
-    _render_into,
-    _render_svg_into,
-    render,
-    render_svg,
-)
+from dataviz.core.plot_fields import _LabelData
 from dataviz.core.theme import Theme
 
 
@@ -322,7 +311,15 @@ struct _LabelsFrame(Movable):
 
 
 def _apply_labels(
-    plot: Plot, ox0: Int, oy0: Int, ox1: Int, oy1: Int, *, mut cache: FontCache
+    labels: _LabelData,
+    mark: Mark,
+    theme: Theme,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _LabelsFrame:
     """Reserve margin space for `Plot.labels()`'s chart/axis titles, given
     the original outer bounds. Called by `_render_into`/
@@ -341,26 +338,24 @@ def _apply_labels(
     plot; `title` works for any mark.
     """
     if (
-        plot._labels.x_title.byte_length() > 0
-        or plot._labels.y_title.byte_length() > 0
-    ) and plot._mark == Mark.ARC:
+        labels.x_title.byte_length() > 0 or labels.y_title.byte_length() > 0
+    ) and mark == Mark.ARC:
         raise Error(
             "Plot.labels(): x_title/y_title don't apply to Mark.ARC (it"
             " has no x/y axes to caption) -- only title applies to a"
             " pie/donut chart"
         )
 
-    var theme = plot._theme
     var sc = _Scaled(theme)
     # Each band is the font size for a plain label, as it always was,
     # and the expression's full height for a math one (#371): a
     # fraction or a superscript reaches past a one-line band and would
     # be clipped by it.
     var extra_top = 0
-    if plot._labels.title.byte_length() > 0:
+    if labels.title.byte_length() > 0:
         extra_top += (
             _reserve_height(
-                plot._labels.title,
+                labels.title,
                 sc.title_font_size,
                 theme.font_family,
                 theme.title_bold,
@@ -368,10 +363,10 @@ def _apply_labels(
             )
             + sc.label_gap
         )
-    if plot._labels.subtitle.byte_length() > 0:
+    if labels.subtitle.byte_length() > 0:
         extra_top += (
             _reserve_height(
-                plot._labels.subtitle,
+                labels.subtitle,
                 sc.subtitle_font_size,
                 theme.font_family,
                 False,
@@ -380,10 +375,10 @@ def _apply_labels(
             + sc.label_gap
         )
     var extra_bottom = 0
-    if plot._labels.x_title.byte_length() > 0:
+    if labels.x_title.byte_length() > 0:
         extra_bottom = (
             _reserve_height(
-                plot._labels.x_title,
+                labels.x_title,
                 sc.axis_title_font_size,
                 theme.font_family,
                 False,
@@ -392,10 +387,10 @@ def _apply_labels(
             + sc.label_gap
         )
     var extra_left = 0
-    if plot._labels.y_title.byte_length() > 0:
+    if labels.y_title.byte_length() > 0:
         extra_left = (
             _reserve_height(
-                plot._labels.y_title,
+                labels.y_title,
                 sc.axis_title_font_size,
                 theme.font_family,
                 False,
@@ -410,7 +405,8 @@ def _apply_labels(
 
 
 def _label_text_requests(
-    plot: Plot,
+    labels: _LabelData,
+    theme: Theme,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -429,7 +425,6 @@ def _label_text_requests(
     centering uses the actual inner plot rect `px0`..`py1` from
     `_RenderResult`.
     """
-    var theme = plot._theme
     var sc = _Scaled(theme)
     var text_requests = List[_TextRequest]()
 
@@ -438,13 +433,13 @@ def _label_text_requests(
     # caption. A math label's baseline is placed by its own ascent and
     # descent instead, so what rises above or hangs below the line
     # stays inside the band `_apply_labels` reserved for it (#371).
-    if plot._labels.title.byte_length() > 0:
+    if labels.title.byte_length() > 0:
         var baseline = Int(sc.title_font_size * 0.8)
-        if _needs_math(plot._labels.title):
+        if _needs_math(labels.title):
             baseline = Int(
                 ceil(
                     _layout_label(
-                        plot._labels.title,
+                        labels.title,
                         sc.title_font_size,
                         theme.font_family,
                         theme.title_bold,
@@ -455,7 +450,7 @@ def _label_text_requests(
         _extend_text_requests(
             text_requests,
             _label_requests(
-                plot._labels.title,
+                labels.title,
                 (px0 + px1) // 2,
                 oy0 + baseline,
                 sc.title_font_size,
@@ -468,14 +463,14 @@ def _label_text_requests(
             ),
         )
 
-    if plot._labels.subtitle.byte_length() > 0:
+    if labels.subtitle.byte_length() > 0:
         # Stacks directly below the title's reserved band, which is 0 when
         # there is no title, so a lone subtitle draws at the very top.
         var title_band = 0
-        if plot._labels.title.byte_length() > 0:
+        if labels.title.byte_length() > 0:
             title_band = (
                 _reserve_height(
-                    plot._labels.title,
+                    labels.title,
                     sc.title_font_size,
                     theme.font_family,
                     theme.title_bold,
@@ -484,11 +479,11 @@ def _label_text_requests(
                 + sc.label_gap
             )
         var baseline = Int(sc.subtitle_font_size * 0.8)
-        if _needs_math(plot._labels.subtitle):
+        if _needs_math(labels.subtitle):
             baseline = Int(
                 ceil(
                     _layout_label(
-                        plot._labels.subtitle,
+                        labels.subtitle,
                         sc.subtitle_font_size,
                         theme.font_family,
                         False,
@@ -499,7 +494,7 @@ def _label_text_requests(
         _extend_text_requests(
             text_requests,
             _label_requests(
-                plot._labels.subtitle,
+                labels.subtitle,
                 (px0 + px1) // 2,
                 oy0 + title_band + baseline,
                 sc.subtitle_font_size,
@@ -512,13 +507,13 @@ def _label_text_requests(
             ),
         )
 
-    if plot._labels.x_title.byte_length() > 0:
+    if labels.x_title.byte_length() > 0:
         var above_bottom = Int(sc.axis_title_font_size * 0.25)
-        if _needs_math(plot._labels.x_title):
+        if _needs_math(labels.x_title):
             above_bottom = Int(
                 ceil(
                     _layout_label(
-                        plot._labels.x_title,
+                        labels.x_title,
                         sc.axis_title_font_size,
                         theme.font_family,
                         False,
@@ -529,7 +524,7 @@ def _label_text_requests(
         _extend_text_requests(
             text_requests,
             _label_requests(
-                plot._labels.x_title,
+                labels.x_title,
                 (px0 + px1) // 2,
                 oy1 - above_bottom,
                 sc.axis_title_font_size,
@@ -542,15 +537,15 @@ def _label_text_requests(
             ),
         )
 
-    if plot._labels.y_title.byte_length() > 0:
+    if labels.y_title.byte_length() > 0:
         # Rotated a quarter turn counterclockwise, the caption's ascent
         # points left, so its anchor sits that far in from the edge.
         var from_edge = Int(sc.axis_title_font_size * 0.8)
-        if _needs_math(plot._labels.y_title):
+        if _needs_math(labels.y_title):
             from_edge = Int(
                 ceil(
                     _layout_label(
-                        plot._labels.y_title,
+                        labels.y_title,
                         sc.axis_title_font_size,
                         theme.font_family,
                         False,
@@ -561,7 +556,7 @@ def _label_text_requests(
         _extend_text_requests(
             text_requests,
             _label_requests(
-                plot._labels.y_title,
+                labels.y_title,
                 ox0 + from_edge,
                 (py0 + py1) // 2,
                 sc.axis_title_font_size,

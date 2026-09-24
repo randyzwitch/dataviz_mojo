@@ -47,17 +47,9 @@ from dataviz.core.stats import (
 )
 from dataviz.core.theme import Theme
 
-# Circular by construction, and resolved within the package: `plot.mojo`
-# imports the six passes back. `_AnnotationData` moved here with them
-# because it is theirs -- `Plot` only stores it.
-from dataviz.plot import (
-    Plot,
-    _CategoricalFrame,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _axis_pixel_f,
-)
+from dataviz.core.frame import _axis_pixel_f
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
 
 
 struct _AnnotationData(Copyable, Movable):
@@ -151,7 +143,7 @@ def _draw_annotation_areas[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -173,7 +165,7 @@ def _draw_annotation_areas[
     its clipped visible portion; one with zero overlap draws nothing.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.area_y0) == 0:
+    if len(annotations.area_y0) == 0:
         return text_requests^
     if not result.has_y_scale:
         raise Error(
@@ -192,16 +184,16 @@ def _draw_annotation_areas[
     # coin flip that can cost a whole row.
     var clip_top = Float64(plot_top) - 0.5
     var clip_bottom = Float64(plot_bottom) + 0.5
-    for i in range(len(plot._annotations.area_y0)):
+    for i in range(len(annotations.area_y0)):
         # A shaded band is an axis-aligned filled rect, so both edges
         # snap to pixel boundaries: it keeps hard edges, and its height
         # comes from the snapped pair rather than from a rounded height
         # laid off a rounded top.
         var py_a = snap_to_pixel_edge(
-            _axis_pixel_f(result.y_scale, plot._annotations.area_y0[i])
+            _axis_pixel_f(result.y_scale, annotations.area_y0[i])
         )
         var py_b = snap_to_pixel_edge(
-            _axis_pixel_f(result.y_scale, plot._annotations.area_y1[i])
+            _axis_pixel_f(result.y_scale, annotations.area_y1[i])
         )
         var band_top = min(py_a, py_b)
         var band_bottom = max(py_a, py_b)
@@ -218,7 +210,7 @@ def _draw_annotation_areas[
             draw_bottom - draw_top,
             theme.annotation_area_color,
         )
-        var label = plot._annotations.area_labels[i]
+        var label = annotations.area_labels[i]
         if label.byte_length() > 0:
             _extend_text_requests(
                 text_requests,
@@ -242,7 +234,7 @@ def _draw_annotation_bands[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -271,7 +263,7 @@ def _draw_annotation_bands[
     and validated, so a raise cannot leave one pushed.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.band_x) == 0:
+    if len(annotations.band_x) == 0:
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -285,10 +277,10 @@ def _draw_annotation_bands[
     var px_right = Float64(max(result.px0, result.px1))
     var py_top = Float64(min(result.py0, result.py1))
     var py_bottom = Float64(max(result.py0, result.py1))
-    for k in range(len(plot._annotations.band_x)):
-        var xs = plot._annotations.band_x[k].copy()
-        var ys_lower = plot._annotations.band_y_lower[k].copy()
-        var ys_upper = plot._annotations.band_y_upper[k].copy()
+    for k in range(len(annotations.band_x)):
+        var xs = annotations.band_x[k].copy()
+        var ys_lower = annotations.band_y_lower[k].copy()
+        var ys_upper = annotations.band_y_upper[k].copy()
         if len(xs) != len(ys_lower) or len(xs) != len(ys_upper):
             raise Error(
                 "Plot.annotate_band(): x/y_lower/y_upper must be the same"
@@ -345,7 +337,7 @@ def _draw_annotation_bands[
         )
         target.pop_clip()
 
-        var label = plot._annotations.band_labels[k]
+        var label = annotations.band_labels[k]
         if label.byte_length() > 0:
             var mid = len(xs) // 2
             # The label's anchor *is* clamped, unlike the polygon's
@@ -377,7 +369,7 @@ def _draw_annotation_lines[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -400,7 +392,7 @@ def _draw_annotation_lines[
     band); an out-of-range target is a legitimate reading, not an error.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.line_values) == 0:
+    if len(annotations.line_values) == 0:
         return text_requests^
     if not result.has_y_scale:
         raise Error(
@@ -412,7 +404,7 @@ def _draw_annotation_lines[
     var sc = _Scaled(theme)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    for i in range(len(plot._annotations.line_values)):
+    for i in range(len(annotations.line_values)):
         # A reference line is a horizontal hairline, so its one fixed
         # coordinate snaps to a pixel center and it covers a single row
         # instead of two half-lit ones. That is what rounding the pixel
@@ -420,7 +412,7 @@ def _draw_annotation_lines[
         # value stay Float64 up to the point where crispness is the
         # reason to move it.
         var py = snap_to_pixel_center(
-            _axis_pixel_f(result.y_scale, plot._annotations.line_values[i])
+            _axis_pixel_f(result.y_scale, annotations.line_values[i])
         )
         if py < Float64(py_top) or py > Float64(py_bottom):
             continue
@@ -433,7 +425,7 @@ def _draw_annotation_lines[
             width=sc.scale,
             dashes=theme.annotation_line_style.dashes(sc.scale),
         )
-        var label = plot._annotations.line_labels[i]
+        var label = annotations.line_labels[i]
         if label.byte_length() > 0:
             _extend_text_requests(
                 text_requests,
@@ -457,7 +449,7 @@ def _draw_annotation_vlines[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -470,7 +462,7 @@ def _draw_annotation_vlines[
     of the line near its top (`px + label_gap`, `py0 + font_size`).
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.vline_values) == 0:
+    if len(annotations.vline_values) == 0:
         return text_requests^
     if not result.has_x_scale:
         raise Error(
@@ -484,11 +476,11 @@ def _draw_annotation_vlines[
     var px_right = max(result.px0, result.px1)
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
-    for i in range(len(plot._annotations.vline_values)):
+    for i in range(len(annotations.vline_values)):
         # A vertical hairline: same rule as annotate_hline, on the other
         # axis.
         var px = snap_to_pixel_center(
-            _axis_pixel_f(result.x_scale, plot._annotations.vline_values[i])
+            _axis_pixel_f(result.x_scale, annotations.vline_values[i])
         )
         if px < Float64(px_left) or px > Float64(px_right):
             continue
@@ -501,7 +493,7 @@ def _draw_annotation_vlines[
             width=sc.scale,
             dashes=theme.annotation_line_style.dashes(sc.scale),
         )
-        var label = plot._annotations.vline_labels[i]
+        var label = annotations.vline_labels[i]
         if label.byte_length() > 0:
             _extend_text_requests(
                 text_requests,
@@ -525,7 +517,7 @@ def _draw_annotation_points[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -542,7 +534,7 @@ def _draw_annotation_points[
     just above the marker.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.point_x) == 0:
+    if len(annotations.point_x) == 0:
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -557,9 +549,9 @@ def _draw_annotation_points[
     var py_top = min(result.py0, result.py1)
     var py_bottom = max(result.py0, result.py1)
     var radius = Float64(round_to_int(sc.point_radius))
-    for i in range(len(plot._annotations.point_x)):
-        var px = _axis_pixel_f(result.x_scale, plot._annotations.point_x[i])
-        var py = _axis_pixel_f(result.y_scale, plot._annotations.point_y[i])
+    for i in range(len(annotations.point_x)):
+        var px = _axis_pixel_f(result.x_scale, annotations.point_x[i])
+        var py = _axis_pixel_f(result.y_scale, annotations.point_y[i])
         if (
             px < Float64(px_left)
             or px > Float64(px_right)
@@ -568,7 +560,7 @@ def _draw_annotation_points[
         ):
             continue
         target.fill_circle_aa(px, py, radius, theme.annotation_color)
-        var label = plot._annotations.point_labels[i]
+        var label = annotations.point_labels[i]
         if label.byte_length() > 0:
             _extend_text_requests(
                 text_requests,
@@ -592,7 +584,7 @@ def _draw_annotation_arrows[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
     result: _RenderResult,
     theme: Theme,
     *,
@@ -621,7 +613,7 @@ def _draw_annotation_arrows[
     an arrow points at nothing.
     """
     var text_requests = List[_TextRequest]()
-    if len(plot._annotations.arrow_x) == 0:
+    if len(annotations.arrow_x) == 0:
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -639,15 +631,11 @@ def _draw_annotation_arrows[
     var head_len = _ARROW_HEAD_LENGTH * theme.scale
     var head_half = _ARROW_HEAD_HALF_WIDTH * theme.scale
 
-    for i in range(len(plot._annotations.arrow_x)):
-        var tx = _axis_pixel_f(result.x_scale, plot._annotations.arrow_x[i])
-        var ty = _axis_pixel_f(result.y_scale, plot._annotations.arrow_y[i])
-        var lx = _axis_pixel_f(
-            result.x_scale, plot._annotations.arrow_text_x[i]
-        )
-        var ly = _axis_pixel_f(
-            result.y_scale, plot._annotations.arrow_text_y[i]
-        )
+    for i in range(len(annotations.arrow_x)):
+        var tx = _axis_pixel_f(result.x_scale, annotations.arrow_x[i])
+        var ty = _axis_pixel_f(result.y_scale, annotations.arrow_y[i])
+        var lx = _axis_pixel_f(result.x_scale, annotations.arrow_text_x[i])
+        var ly = _axis_pixel_f(result.y_scale, annotations.arrow_text_y[i])
         var inside = (
             tx >= px_left
             and tx <= px_right
@@ -661,7 +649,7 @@ def _draw_annotation_arrows[
         if not inside:
             continue
 
-        var label_text = plot._annotations.arrow_labels[i]
+        var label_text = annotations.arrow_labels[i]
         var dx = tx - lx
         var dy = ty - ly
         var length = sqrt(dx * dx + dy * dy)
@@ -735,7 +723,14 @@ def _draw_annotation_arrows[
 
 def _draw_annotation_smooth[
     T: DrawTarget
-](mut target: T, plot: Plot, result: _RenderResult, theme: Theme) raises:
+](
+    mut target: T,
+    annotations: _AnnotationData,
+    x_data: List[Float64],
+    y_data: List[Float64],
+    result: _RenderResult,
+    theme: Theme,
+) raises:
     """Draw `Plot.annotate_smooth()`'s fitted curve (#147).
 
     Sampled at 128 evenly spaced x values across the data's own range --
@@ -750,7 +745,7 @@ def _draw_annotation_smooth[
         Error: The mark has no continuous x/y axes, or the fit cannot be
             made from the data (see `_poly_fit`/`_loess_at`).
     """
-    if not plot._annotations.smooth:
+    if not annotations.smooth:
         return
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -761,7 +756,7 @@ def _draw_annotation_smooth[
     # A row missing either coordinate says nothing about the
     # relationship between them, so the curve is fitted through the
     # pairs that are whole (#367).
-    var pairs = _present_pairs(plot._continuous.x, plot._continuous.y)
+    var pairs = _present_pairs(x_data, y_data)
     ref x = pairs[0]
     ref y = pairs[1]
     if len(x) < 2:
@@ -779,8 +774,8 @@ def _draw_annotation_smooth[
             "Plot.annotate_smooth(): every x value is the same, so no curve"
             " fits"
         )
-    var method = plot._annotations.smooth_method
-    var degree = plot._annotations.smooth_degree
+    var method = annotations.smooth_method
+    var degree = annotations.smooth_degree
     var steps = 128
     var xs = List[Float64](capacity=steps + 1)
     var ys = List[Float64](capacity=steps + 1)
@@ -795,9 +790,7 @@ def _draw_annotation_smooth[
             for i in range(steps + 1):
                 var xv = lo + (hi - lo) * Float64(i) / Float64(steps)
                 xs.append(xv)
-                ys.append(
-                    _loess_at(x, y, xv, plot._annotations.smooth_span, degree)
-                )
+                ys.append(_loess_at(x, y, xv, annotations.smooth_span, degree))
     except e:
         raise Error("Plot.annotate_smooth(): " + String(e))
     var sc = _Scaled(theme)
@@ -825,7 +818,9 @@ def _draw_annotation_best_fit[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    annotations: _AnnotationData,
+    x_data: List[Float64],
+    y_data: List[Float64],
     result: _RenderResult,
     theme: Theme,
     *,
@@ -834,7 +829,7 @@ def _draw_annotation_best_fit[
     """Draw `Plot.annotate_best_fit()`'s ordinary-least-squares line and
     return its optional label/equation/R-squared text as `_TextRequest`s.
 
-    The regression is computed here from `plot._continuous.x`/`plot._continuous.y`, so
+    The regression is computed here from `x_data`/`y_data`, so
     the fit sees whatever data the plot ends up with regardless of call
     order, by `_ols_fit` (stats.mojo): closed-form OLS, `slope =
     (n*sum_xy - sum_x*sum_y) / (n*sum_xx - sum_x^2)`, `intercept =
@@ -849,7 +844,7 @@ def _draw_annotation_best_fit[
     clamped into the plot rect so a steep fit doesn't project outside it.
     """
     var text_requests = List[_TextRequest]()
-    if not plot._annotations.best_fit:
+    if not annotations.best_fit:
         return text_requests^
     if not result.has_x_scale or not result.has_y_scale:
         raise Error(
@@ -859,7 +854,7 @@ def _draw_annotation_best_fit[
         )
     var fit: _OlsFit
     try:
-        fit = _ols_fit(plot._continuous.x, plot._continuous.y)
+        fit = _ols_fit(x_data, y_data)
     except e:
         raise Error("Plot.annotate_best_fit(): " + String(e))
     var slope = fit.slope
@@ -880,7 +875,7 @@ def _draw_annotation_best_fit[
     # the hourglass shape -- narrowest at mean_x, flaring at the ends --
     # is drawn as it is rather than as a constant-width strip. Each
     # edge is clamped into the plot rect the way the line's ends are.
-    var ci = plot._annotations.best_fit_ci
+    var ci = annotations.best_fit_ci
     # Two points have no residual degrees of freedom, so there is no
     # band to size; the line draws alone rather than the default ci
     # turning a two-point fit into an error.
@@ -967,11 +962,11 @@ def _draw_annotation_best_fit[
 
     var text_x = max(result.px0, result.px1) - sc.label_gap
     var text_y = py_top + Int(sc.font_size)
-    if plot._annotations.best_fit_label.byte_length() > 0:
+    if annotations.best_fit_label.byte_length() > 0:
         _extend_text_requests(
             text_requests,
             _label_requests(
-                plot._annotations.best_fit_label,
+                annotations.best_fit_label,
                 text_x,
                 text_y,
                 sc.font_size,
@@ -984,7 +979,7 @@ def _draw_annotation_best_fit[
             ),
         )
         text_y += Int(sc.font_size) + sc.label_gap
-    if plot._annotations.best_fit_show_equation:
+    if annotations.best_fit_show_equation:
         var slope_str = _format_fixed(slope, 3)
         var eq: String
         if intercept >= 0.0:
@@ -1007,16 +1002,16 @@ def _draw_annotation_best_fit[
             ),
         )
         text_y += Int(sc.font_size) + sc.label_gap
-    if plot._annotations.best_fit_show_r_squared:
+    if annotations.best_fit_show_r_squared:
         # R-squared = 1 - SS_res/SS_tot. SS_tot == 0.0 (every y identical) is
         # defined as exactly 1.0 rather than 0/0.
         var ss_res = 0.0
         var ss_tot = 0.0
         for i in range(n_points):
-            var predicted = slope * plot._continuous.x[i] + intercept
-            var residual = plot._continuous.y[i] - predicted
+            var predicted = slope * x_data[i] + intercept
+            var residual = y_data[i] - predicted
             ss_res += residual * residual
-            var deviation = plot._continuous.y[i] - mean_y
+            var deviation = y_data[i] - mean_y
             ss_tot += deviation * deviation
         var r_squared = 1.0 if ss_tot == 0.0 else 1.0 - ss_res / ss_tot
         _extend_text_requests(
@@ -1037,7 +1032,9 @@ def _draw_annotation_best_fit[
     return text_requests^
 
 
-def _validate_log_scale_annotations(plot: Plot) raises:
+def _validate_log_scale_annotations(
+    annotations: _AnnotationData, x_log: Bool, y_log: Bool
+) raises:
     """Every `annotate_line()`/`annotate_area()`/`annotate_vline()`/
     `annotate_point()` value on a log-scaled axis must be strictly
     positive, the same requirement `_log_data_extent()` enforces for the
@@ -1045,8 +1042,8 @@ def _validate_log_scale_annotations(plot: Plot) raises:
     front here because `to_pixel()` isn't `raises`. A no-op when neither
     axis is log-scaled.
     """
-    if plot._y_log:
-        for v in plot._annotations.line_values:
+    if y_log:
+        for v in annotations.line_values:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_line(): value must be > 0 when"
@@ -1054,7 +1051,7 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                     + String(v)
                     + ")"
                 )
-        for v in plot._annotations.area_y0:
+        for v in annotations.area_y0:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_area(): y0 must be > 0 when"
@@ -1062,7 +1059,7 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                     + String(v)
                     + ")"
                 )
-        for v in plot._annotations.area_y1:
+        for v in annotations.area_y1:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_area(): y1 must be > 0 when"
@@ -1070,7 +1067,7 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                     + String(v)
                     + ")"
                 )
-        for v in plot._annotations.point_y:
+        for v in annotations.point_y:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_point(): y must be > 0 when"
@@ -1078,8 +1075,8 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                     + String(v)
                     + ")"
                 )
-    if plot._x_log:
-        for v in plot._annotations.vline_values:
+    if x_log:
+        for v in annotations.vline_values:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_vline(): value must be > 0 when"
@@ -1087,7 +1084,7 @@ def _validate_log_scale_annotations(plot: Plot) raises:
                     + String(v)
                     + ")"
                 )
-        for v in plot._annotations.point_x:
+        for v in annotations.point_x:
             if v <= 0.0:
                 raise Error(
                     "Plot.annotate_point(): x must be > 0 when"

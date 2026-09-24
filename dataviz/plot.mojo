@@ -30,8 +30,8 @@ circular import Mojo resolves within one package.
 
 ## Where the rest of it went
 
-What every mark shares was split out along its own seams, each
-module importing from here and imported back the same way:
+What every mark shares was split out along its own seams and
+imported back here:
 
 - `annotations.mojo` -- the `annotate_*()` overlays and their passes
 - `text.mojo` -- `_TextRequest`, the replay, and `_Scaled`
@@ -43,9 +43,13 @@ module importing from here and imported back the same way:
 - `layers.mojo` and `facets.mojo` -- `render_layers()` and
   `render_facets()`
 - `validate.mojo` -- the encoding checks `render()` runs first
-- `rendering.mojo` -- `_render_generic`'s dispatch, `_RenderResult`,
-  and the entry points (`render`/`render_svg`/`render_pdf`/`save` and
-  the tight and accessible variants)
+- `rendering.mojo` -- `_render_generic`'s dispatch and the entry
+  points (`render`/`render_svg`/`render_pdf`/`save` and the tight and
+  accessible variants)
+- `render_result.mojo` -- `_RenderResult`, what every `_render_*`
+  returns
+- `point_channels.mojo` -- `_PointChannels`, a point mark's resolved
+  color, shape and size channels
 - `extent.mojo` -- the padded data extents marks lay out against
 - `tooltip_labels.mojo` -- the hover text of each kind of datum
 - `plot_fields.mojo` -- the channel and settings structs `Plot` holds
@@ -53,6 +57,12 @@ module importing from here and imported back the same way:
 Every one of those names is imported back into this module, so where a
 symbol lives is not something a caller has to know: `from dataviz.plot
 import _Orientation` still resolves, as it did before the split.
+
+The modules under `dataviz/core/` import nothing from the rest of the
+package (#824). A core function that needs something from a `Plot`
+takes that field (`_apply_labels` takes the `_LabelData`, the mark and
+the theme), never the `Plot`; `scripts/check_import_direction.py`
+fails on the first import that comes back, and `format-check` runs it.
 
 ## Render binding
 
@@ -159,7 +169,6 @@ from dataviz.core.color_scale import (
 
 from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
 from dataviz.basic.continuous import (
-    _PointChannels,
     _build_line_path,
     _decimate_to_pixel_columns,
     _draw_area_layer,
@@ -169,6 +178,7 @@ from dataviz.basic.continuous import (
     line,
     scatter,
 )
+from dataviz.core.point_channels import _PointChannels
 from dataviz.layout import (
     Figure,
     render_grid,
@@ -332,7 +342,8 @@ from dataviz.core.cluster import Dendrogram
 from dataviz.hierarchy_marks.dendrogram import _DendrogramData
 from dataviz.multivariate.triplot import _TriplotData
 from dataviz.grid.marimekko import _MarimekkoData
-from dataviz.relationships.edges import GraphLayout, _EdgeData
+from dataviz.core.graph_layout import GraphLayout
+from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 from dataviz.distributions.box import _box_stats, _render_horizontal_box
 

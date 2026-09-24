@@ -13,7 +13,7 @@ from dataviz.core.line_style import LineStyle
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from dataviz.core.marker import PointShape
-from dataviz.relationships.edges import GraphLayout
+from dataviz.core.graph_layout import GraphLayout
 
 
 struct _ContinuousData(Copyable, Movable):

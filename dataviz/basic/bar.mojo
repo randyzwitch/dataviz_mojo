@@ -228,7 +228,9 @@ def _render_time_bar[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Vertical bars on a dated linear x-axis with one interval per bar."""
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
     if len(plot._continuous.x) != len(plot._continuous.y):
         raise Error(
             "Plot.encode_time_bars(): dates and values must have the same"
@@ -322,7 +324,9 @@ def _render_bar[
     """
     if plot._x_time:
         return _render_time_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     # y-domain computed before the frame's dynamic left margin is
@@ -383,7 +387,9 @@ def _render_horizontal_bar[
         `_Orientation(True)`. No y-gridlines, mirroring `_render_bar`'s no
         x-gridlines.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))

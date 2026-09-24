@@ -1,7 +1,7 @@
 """Ready-made dark, minimal, high-contrast, and print-safe themes.
 
 ```mojo
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.themes import dark
 
 var plot = Plot().mark_line().encode(x=x, y=y).theme(dark())

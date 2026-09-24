@@ -185,7 +185,9 @@ def _render_pointplot[
     points, and `_pointplot_value_extent` says why the value axis does
     not start at zero.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
     var frame = _draw_categorical_axis_frame(
         target,
         plot._categorical.x,
@@ -222,7 +224,9 @@ def _render_horizontal_pointplot[
     orientation for long category names, which a vertical categorical
     axis crowds.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         plot._categorical.x,

@@ -45,7 +45,9 @@ def _render_polar_bar[
     Categories receive equal angular slots, and radius scales linearly against
     the largest value.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
