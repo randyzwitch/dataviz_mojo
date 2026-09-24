@@ -15,6 +15,7 @@ from dataviz import (
     AxisPosition,
     Theme,
     bar,
+    candlestick,
     line,
     pairplot,
     rugplot,
@@ -562,6 +563,49 @@ def test_a_lone_time_bar_layer_keeps_its_time_geometry() raises:
     plots.append(line(idx, line_y, width=400, height=300))
     with assert_raises(contains="time-axis Mark.BAR"):
         _ = render_layers_svg(plots)
+
+
+def test_time_candles_leave_a_weekend_gap() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var open: List[Float64] = [10.0, 12.0, 14.0]
+    var high: List[Float64] = [15.0, 16.0, 17.0]
+    var low: List[Float64] = [8.0, 9.0, 11.0]
+    var close: List[Float64] = [13.0, 14.0, 12.0]
+    var plot = candlestick(
+        dates,
+        open,
+        high,
+        low,
+        close,
+        theme=Theme(show_gridlines=False),
+        width=400,
+        height=300,
+    )
+    assert_true(plot._x_time, "candlestick uses a temporal axis")
+    assert_equal(
+        plot._continuous.x[1] - plot._continuous.x[0],
+        3.0 * 86400.0,
+        "weekend remains three real days",
+    )
+    var s = render_svg(plot).to_string()
+    assert_true('x1="106.000"' in s, "Friday wick on its timestamp")
+    assert_true('x1="277.000"' in s, "Monday wick after the weekend")
+    assert_true('x1="334.000"' in s, "Tuesday wick one day later")
+    assert_true("2024-03-04" in s, "dated candle tooltip")
+
+
+def test_time_candles_reject_duplicate_dates() raises:
+    var dates: List[Morrow] = [Morrow.get(2024, 3, 1), Morrow.get(2024, 3, 1)]
+    var open: List[Float64] = [10.0, 12.0]
+    var high: List[Float64] = [15.0, 16.0]
+    var low: List[Float64] = [8.0, 9.0]
+    var close: List[Float64] = [13.0, 14.0]
+    with assert_raises(contains="timestamps must be distinct"):
+        _ = render_svg(candlestick(dates, open, high, low, close))
 
 
 def test_the_one_call_time_overloads_label_dates() raises:
