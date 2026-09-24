@@ -54,6 +54,7 @@ from dataviz.plot import (
 )
 from dataviz.spatial.scatter3d import _draw_box, _tick_labels
 from dataviz.spatial.surface3d import _depth_sorted_faces
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Bars3D(Copyable, Movable):
@@ -951,3 +952,35 @@ def voxels(
         title=title,
         subtitle=subtitle,
     )
+
+
+def _encode_bars3d(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    z: List[Float64],
+) raises:
+    """`Plot.encode_bars3d()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_bars3d = List[Mark]()
+    _ok_encode_bars3d.append(Mark.BAR3D)
+    _require_mark(
+        plot._mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^
+    )
+    plot._bars3d.x = x.copy()
+    plot._bars3d.y = y.copy()
+    plot._bars3d.z = z.copy()
+
+
+def _encode_voxels(
+    mut plot: Plot,
+    filled: List[List[List[Bool]]],
+) raises:
+    """`Plot.encode_voxels()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_voxels = List[Mark]()
+    _ok_encode_voxels.append(Mark.VOXELS)
+    _require_mark(
+        plot._mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^
+    )
+    plot._voxels.filled = filled.copy()

@@ -18,6 +18,7 @@ from dataviz.plot import (
     _require_non_empty,
     _require_non_negative,
 )
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct GraphLayout(Copyable, ImplicitlyCopyable, Movable):
@@ -137,3 +138,25 @@ def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
         "Plot.encode_chord() (" + mark_name + ")",
     )
     _require_non_negative(plot._edges.values, mark_name)
+
+
+def _encode_chord(
+    mut plot: Plot,
+    from_categories: List[String],
+    to_categories: List[String],
+    values: List[Float64],
+) raises:
+    """`Plot.encode_chord()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_chord = List[Mark]()
+    _ok_encode_chord.append(Mark.CHORD)
+    _ok_encode_chord.append(Mark.ARC_DIAGRAM)
+    _ok_encode_chord.append(Mark.GRAPH)
+    _ok_encode_chord.append(Mark.SANKEY)
+    _require_mark(plot._mark, "encode_chord", "mark_chord()", _ok_encode_chord^)
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._edges.from_categories = from_categories.copy()
+    plot._edges.to_categories = to_categories.copy()
+    plot._edges.values = values.copy()

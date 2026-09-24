@@ -26,6 +26,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import _format_fixed
 from dataviz.core.theme import Theme
+from dataviz.core.mark import _require_mark
 
 
 struct _CorrplotData(Copyable, Movable):
@@ -378,3 +379,17 @@ def corrplot(
         x_title=x_title,
         y_title=y_title,
     )
+
+
+def _encode_corrplot(
+    mut plot: Plot,
+    variables: List[String],
+    matrix: List[List[Float64]],
+) raises:
+    """`Plot.encode_corrplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT
+    )
+    plot._corrplot.variables = variables.copy()
+    plot._corrplot.matrix = matrix.copy()

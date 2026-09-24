@@ -22,6 +22,8 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BoxData(Copyable, Movable):
@@ -558,3 +560,60 @@ def box[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_boxplot(
+    mut plot: Plot,
+    categories: List[String],
+    values: List[List[Float64]],
+) raises:
+    """`Plot.encode_boxplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_boxplot", "mark_box()", Mark.BOX)
+    if len(categories) != len(values):
+        raise Error(
+            "Plot.encode_boxplot(): categories and values must have"
+            " the same length (got "
+            + String(len(categories))
+            + " and "
+            + String(len(values))
+            + ")"
+        )
+    _require_non_empty(len(categories), "Plot.encode_boxplot()")
+
+    var q1 = List[Float64]()
+    var median = List[Float64]()
+    var q3 = List[Float64]()
+    var low = List[Float64]()
+    var high = List[Float64]()
+    var outlier_cat = List[Int]()
+    var outlier_value = List[Float64]()
+
+    for i in range(len(values)):
+        if len(values[i]) == 0:
+            raise Error(
+                "Plot.encode_boxplot(): category '"
+                + categories[i]
+                + "' has no values -- can't compute a box plot from"
+                " an empty distribution"
+            )
+        var stats = _box_stats(values[i])
+        q1.append(stats.q1)
+        median.append(stats.median)
+        q3.append(stats.q3)
+        low.append(stats.low)
+        high.append(stats.high)
+        for v in stats.outliers:
+            outlier_cat.append(i)
+            outlier_value.append(v)
+
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._box.q1 = q1^
+    plot._box.median = median^
+    plot._box.q3 = q3^
+    plot._box.low = low^
+    plot._box.high = high^
+    plot._box.outlier_cat = outlier_cat^
+    plot._box.outlier_value = outlier_value^

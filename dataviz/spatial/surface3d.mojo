@@ -59,6 +59,7 @@ from dataviz.spatial.scatter3d import (
     _validate_xyz,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Surface(Copyable, Movable):
@@ -885,3 +886,25 @@ def trisurf3d[
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
     )
+
+
+def _encode_surface(
+    mut plot: Plot,
+    z: List[List[Float64]],
+    x: List[Float64],
+    y: List[Float64],
+) raises:
+    """`Plot.encode_surface()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_surface = List[Mark]()
+    _ok_encode_surface.append(Mark.SURFACE3D)
+    _ok_encode_surface.append(Mark.WIRE3D)
+    _require_mark(
+        plot._mark,
+        "encode_surface",
+        "mark_surface3d()",
+        _ok_encode_surface^,
+    )
+    plot._surface.z = z.copy()
+    plot._surface.x = x.copy()
+    plot._surface.y = y.copy()

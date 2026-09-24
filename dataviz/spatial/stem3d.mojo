@@ -56,6 +56,7 @@ from dataviz.spatial.scatter3d import (
     _tick_labels,
     _validate_xyz,
 )
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Vectors3D(Copyable, Movable):
@@ -976,3 +977,57 @@ def fill_between3d[
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
     )
+
+
+def _encode_vectors3d(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    z: List[Float64],
+    u: List[Float64],
+    v: List[Float64],
+    w: List[Float64],
+) raises:
+    """`Plot.encode_vectors3d()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_vectors3d = List[Mark]()
+    _ok_encode_vectors3d.append(Mark.QUIVER3D)
+    _require_mark(
+        plot._mark,
+        "encode_vectors3d",
+        "mark_quiver3d()",
+        _ok_encode_vectors3d^,
+    )
+    plot._vectors3d.x = x.copy()
+    plot._vectors3d.y = y.copy()
+    plot._vectors3d.z = z.copy()
+    plot._vectors3d.u = u.copy()
+    plot._vectors3d.v = v.copy()
+    plot._vectors3d.w = w.copy()
+
+
+def _encode_ribbon3d(
+    mut plot: Plot,
+    x1: List[Float64],
+    y1: List[Float64],
+    z1: List[Float64],
+    x2: List[Float64],
+    y2: List[Float64],
+    z2: List[Float64],
+) raises:
+    """`Plot.encode_ribbon3d()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_ribbon3d = List[Mark]()
+    _ok_encode_ribbon3d.append(Mark.FILL_BETWEEN3D)
+    _require_mark(
+        plot._mark,
+        "encode_ribbon3d",
+        "mark_fill_between3d()",
+        _ok_encode_ribbon3d^,
+    )
+    plot._ribbon3d.x1 = x1.copy()
+    plot._ribbon3d.y1 = y1.copy()
+    plot._ribbon3d.z1 = z1.copy()
+    plot._ribbon3d.x2 = x2.copy()
+    plot._ribbon3d.y2 = y2.copy()
+    plot._ribbon3d.z2 = z2.copy()

@@ -25,6 +25,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _CalendarData(Copyable, Movable):
@@ -518,3 +519,23 @@ def calendar_heatmap[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_calendar(
+    mut plot: Plot,
+    dates: List[String],
+    values: List[Float64],
+) raises:
+    """`Plot.encode_calendar()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_calendar",
+        "mark_calendar_heatmap()",
+        Mark.CALENDAR_HEATMAP,
+    )
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._calendar.dates = dates.copy()
+    plot._calendar.values = values.copy()

@@ -1,6 +1,8 @@
 """Shared hierarchy validation and indexing for sunburst, tree, and treemap."""
 
 from std.collections import Dict
+from dataviz.core.mark import Mark, _require_mark
+from dataviz.plot import Plot
 
 
 struct _HierarchyData(Copyable, Movable):
@@ -142,3 +144,26 @@ def _build_hierarchy_index(
             subtree_value[node] = total
 
     return _HierarchyIndex(children^, subtree_value^, depth^, root, max_depth)
+
+
+def _encode_hierarchy(
+    mut plot: Plot,
+    ids: List[String],
+    parent_ids: List[String],
+    values: List[Float64],
+) raises:
+    """`Plot.encode_hierarchy()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_hierarchy = List[Mark]()
+    _ok_encode_hierarchy.append(Mark.TREEMAP)
+    _ok_encode_hierarchy.append(Mark.TREE)
+    _ok_encode_hierarchy.append(Mark.SUNBURST)
+    _require_mark(
+        plot._mark,
+        "encode_hierarchy",
+        "mark_treemap()",
+        _ok_encode_hierarchy^,
+    )
+    plot._hierarchy.ids = ids.copy()
+    plot._hierarchy.parent_ids = parent_ids.copy()
+    plot._hierarchy.values = values.copy()
