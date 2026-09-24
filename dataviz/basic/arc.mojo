@@ -62,6 +62,72 @@ def _arc_share_label(
     )
 
 
+def _arc_total(plot: Plot) raises -> Float64:
+    """Validate an arc layer and return its positive total."""
+    _validate_categorical_encoding(plot)
+
+    _require_non_negative(plot._continuous.y, "Mark.ARC")
+    var total = 0.0
+    for v in plot._continuous.y:
+        total += v
+    if total <= 0.0:
+        raise Error(
+            "Plot: Mark.ARC requires at least one positive value"
+            " (all values summed to "
+            + String(total)
+            + ")"
+        )
+    return total
+
+
+def _draw_arc_wedges[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    cx: Float64,
+    cy: Float64,
+    inner_radius: Float64,
+    radius: Float64,
+    total: Float64,
+    mut text_requests: List[_TextRequest],
+) raises:
+    """The same wedge geometry for standalone arcs and concentric layers."""
+    var theme = plot._theme
+    var sc = _Scaled(theme)
+    var palette = categorical_palette_for(theme)
+    var start = -pi / 2.0
+    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    for i in range(len(plot._categorical.x)):
+        var span = (plot._continuous.y[i] / total) * 2.0 * pi
+        var end = start + span
+        var color = palette[i % len(palette)]
+        if tooltips_on:
+            target.begin_annotated_group(
+                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+            )
+        if inner_radius > 0.0:
+            target.fill_ring_sector_aa(
+                cx, cy, inner_radius, radius, start, end, color
+            )
+        else:
+            target.fill_arc_aa(cx, cy, radius, start, end, color)
+        if tooltips_on:
+            target.end_annotated_group()
+        if theme.show_data_labels:
+            _arc_share_label(
+                cx,
+                cy,
+                (start + end) / 2.0,
+                (inner_radius + radius) / 2.0,
+                (plot._continuous.y[i] / total) * 100.0,
+                theme,
+                sc,
+                text_requests,
+            )
+        start = end
+
+
 def _render_arc[
     T: DrawTarget
 ](
@@ -80,22 +146,9 @@ def _render_arc[
     categorical palette, and a positive inner-radius fraction selects donut
     sectors. Values must have a positive total.
     """
-    _validate_categorical_encoding(plot)
-
+    var total = _arc_total(plot)
     var theme = plot._theme
     var text_requests = List[_TextRequest]()
-
-    _require_non_negative(plot._continuous.y, "Mark.ARC")
-    var total = 0.0
-    for v in plot._continuous.y:
-        total += v
-    if total <= 0.0:
-        raise Error(
-            "Plot: Mark.ARC requires at least one positive value"
-            " (all values summed to "
-            + String(total)
-            + ")"
-        )
     if (
         plot._mark_style.donut_inner_radius_fraction < 0.0
         or plot._mark_style.donut_inner_radius_fraction >= 1.0
@@ -126,40 +179,11 @@ def _render_arc[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var is_donut = plot._mark_style.donut_inner_radius_fraction > 0.0
     var inner_radius = radius * plot._mark_style.donut_inner_radius_fraction
-
+    _draw_arc_wedges(
+        target, plot, cx, cy, inner_radius, radius, total, text_requests
+    )
     var palette = categorical_palette_for(theme)
-    var start = -pi / 2.0
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
-        var span = (plot._continuous.y[i] / total) * 2.0 * pi
-        var end = start + span
-        var color = palette[i % len(palette)]
-        if tooltips_on:
-            target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
-            )
-        if is_donut:
-            target.fill_ring_sector_aa(
-                cx, cy, inner_radius, radius, start, end, color
-            )
-        else:
-            target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if tooltips_on:
-            target.end_annotated_group()
-        if theme.show_data_labels:
-            _arc_share_label(
-                cx,
-                cy,
-                (start + end) / 2.0,
-                (inner_radius + radius) / 2.0,
-                (plot._continuous.y[i] / total) * 100.0,
-                theme,
-                sc,
-                text_requests,
-            )
-        start = end
 
     if show_legend:
         _draw_legend_at(

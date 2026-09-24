@@ -4,9 +4,13 @@ from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
 from std.utils.numerics import isnan
+from std.collections import Dict
+from dataframe import DataFrame
 
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
+from dataviz.core.frame_input import _frame_floats
+from dataviz.core.stats import _pearson_correlation
 from dataviz.grid.heatmap import _draw_grid_axis_frame
 from dataviz.core.mark import Mark
 from dataviz.plot import (
@@ -285,4 +289,92 @@ def corrplot[
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def corrplot(
+    df: DataFrame,
+    columns: List[String],
+    layout: String = "full",
+    diag: Bool = True,
+    labels: Bool = True,
+    bubble_fraction: Float64 = 0.42,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Correlation plot computed from named numeric DataFrame columns.
+
+    Pearson correlations use rows where both columns are present. At least
+    two complete rows with variation in each column are required for each
+    pair. `Theme(missing=Missing.RAISE)` rejects nulls on read instead.
+
+    Args:
+        df: Observations, one row per sample.
+        columns: Numeric column names, in plot order.
+        layout: See the matrix overload.
+        diag: See the matrix overload.
+        labels: See the matrix overload.
+        bubble_fraction: See the matrix overload.
+        theme: See the matrix overload.
+        width: See the matrix overload.
+        height: See the matrix overload.
+        title: See the matrix overload.
+        subtitle: See the matrix overload.
+        x_title: See the matrix overload.
+        y_title: See the matrix overload.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: A column is missing, nonnumeric, repeated, constant, or
+            has too few paired observations with another column.
+    """
+    if len(columns) == 0:
+        raise Error("corrplot(): columns must not be empty")
+    var seen = Dict[String, Int]()
+    var values = List[List[Float64]]()
+    for i in range(len(columns)):
+        var name = columns[i]
+        if name in seen:
+            raise Error('corrplot(): duplicate column "' + name + '"')
+        seen[name] = i
+        values.append(_frame_floats(df, name, "corrplot()", theme.missing))
+    var matrix = List[List[Float64]]()
+    for row in range(len(columns)):
+        var correlations = List[Float64]()
+        for col in range(len(columns)):
+            try:
+                correlations.append(
+                    _pearson_correlation(values[row], values[col])
+                )
+            except e:
+                raise Error(
+                    'corrplot(): columns "'
+                    + columns[row]
+                    + '" and "'
+                    + columns[col]
+                    + '": '
+                    + String(e)
+                )
+        matrix.append(correlations^)
+    return corrplot(
+        columns,
+        matrix,
+        layout=layout,
+        diag=diag,
+        labels=labels,
+        bubble_fraction=bubble_fraction,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

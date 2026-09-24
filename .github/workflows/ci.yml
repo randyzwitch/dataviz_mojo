@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -83,7 +83,11 @@ jobs:
 
   package:
     name: Build the package and compile a consumer against it
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -105,12 +109,17 @@ jobs:
       - name: Create a throwaway consumer workspace
         run: |
           mkdir -p "$RUNNER_TEMP/consumer"
+          case "$(uname -m)" in
+            x86_64) consumer_platform=linux-64 ;;
+            aarch64) consumer_platform=linux-aarch64 ;;
+            *) echo "unsupported consumer architecture: $(uname -m)"; exit 1 ;;
+          esac
           cat > "$RUNNER_TEMP/consumer/pixi.toml" <<EOF
           [workspace]
           name = "dataviz-consumer-check"
           version = "0.0.0"
           channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
-          platforms = ["linux-64"]
+          platforms = ["$consumer_platform"]
           preview = ["pixi-build"]
 
           [dependencies]
