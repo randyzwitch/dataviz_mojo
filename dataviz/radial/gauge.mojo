@@ -1,9 +1,13 @@
-from std.math import pi
+from std.math import isnan, pi
 
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 from canvas.text.render import TextAlign
+
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats
 
 from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
 from dataviz.radial.polar import _polar_point
@@ -273,4 +277,85 @@ def gauge(
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def gauge(
+    df: DataFrame,
+    value: String,
+    min_value: Float64 = 0.0,
+    max_value: Float64 = 100.0,
+    breakpoints: List[Float64] = List[Float64](),
+    band_colors: List[Color] = List[Color](),
+    band_inner_fraction: Float64 = 0.7,
+    needle_fraction: Float64 = 0.9,
+    start_angle: Float64 = 3.0 * pi / 4.0,
+    sweep_angle: Float64 = 3.0 * pi / 2.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Draw a gauge from one row in a named numeric DataFrame column.
+
+    A gauge shows one reading, so the selected column must contain
+    exactly one row. A missing reading cannot produce a gauge. The
+    dial has no axes, so column
+    names do not become axis titles.
+
+    Args:
+        df: The frame holding the reading.
+        value: Name of the numeric reading column.
+        min_value: See the scalar overload.
+        max_value: See the scalar overload.
+        breakpoints: See the scalar overload.
+        band_colors: See the scalar overload.
+        band_inner_fraction: See the scalar overload.
+        needle_fraction: See the scalar overload.
+        start_angle: See the scalar overload.
+        sweep_angle: See the scalar overload.
+        theme: See the scalar overload.
+        width: See the scalar overload.
+        height: See the scalar overload.
+        title: See the scalar overload.
+        subtitle: See the scalar overload.
+        x_title: See the scalar overload.
+        y_title: See the scalar overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: The column is absent, nonnumeric, missing a reading,
+            or contains anything other than one row.
+    """
+    var readings = _frame_floats(df, value, "gauge()", theme.missing)
+    if len(readings) != 1:
+        raise Error(
+            "gauge(): column must contain exactly one reading (got "
+            + String(len(readings))
+            + ")"
+        )
+    if isnan(readings[0]):
+        raise Error("gauge(): reading is missing")
+    return gauge(
+        value=readings[0],
+        min_value=min_value,
+        max_value=max_value,
+        breakpoints=breakpoints,
+        band_colors=band_colors,
+        band_inner_fraction=band_inner_fraction,
+        needle_fraction=needle_fraction,
+        start_angle=start_angle,
+        sweep_angle=sweep_angle,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
     )

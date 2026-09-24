@@ -13,6 +13,7 @@ and the list call and demanding the same bytes.
 
 from dataframe import Column, DataFrame, DataType, Series
 from morrow import Morrow
+from std.math import nan
 
 from _test_helpers import _attr_values
 
@@ -25,6 +26,7 @@ from dataviz import (
     dendrogram,
     ecdf,
     funnel,
+    gauge,
     gantt,
     heatmap,
     histogram,
@@ -763,6 +765,28 @@ def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
         expected,
         "datetime column matches list",
     )
+
+
+def test_gauge_reads_exactly_one_frame_row() raises:
+    var one = DataFrame([Series("reading", Column[Float64]([42.0]))])
+    assert_equal(
+        render_svg(
+            gauge(one, value="reading", width=300, height=300)
+        ).to_string(),
+        render_svg(gauge(42.0, width=300, height=300)).to_string(),
+        "frame gauge uses its sole reading",
+    )
+    var empty = DataFrame([Series("reading", Column[Float64](List[Float64]()))])
+    with assert_raises(contains="exactly one reading"):
+        _ = gauge(empty, value="reading")
+    var two = DataFrame([Series("reading", Column[Float64]([42.0, 43.0]))])
+    with assert_raises(contains="exactly one reading"):
+        _ = gauge(two, value="reading")
+    var missing = DataFrame(
+        [Series("reading", Column[Float64]([nan[DType.float64]()]))]
+    )
+    with assert_raises(contains="reading is missing"):
+        _ = gauge(missing, value="reading")
 
 
 def test_dendrogram_clusters_frame_rows_by_named_features() raises:
