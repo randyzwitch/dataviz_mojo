@@ -110,3 +110,24 @@ shared domain instead of accepting per-layer overrides.
 See the [log-x](../../cookbook/log_scale_x/) and
 [log-y](../../cookbook/log_scale_y/) recipes, and the
 [`Plot` scale methods](../../dataviz/plot/Plot/).
+
+## Bars on a time axis
+
+`bar()` accepts `List[Morrow]` dates for a vertical time-series bar chart.
+Each bar is centered on its date and spans the shortest observed interval;
+missing days remain blank instead of being compressed into categorical slots.
+Dates must be distinct. A single dated bar uses a one-day width.
+
+```mojo
+from dataviz import bar, save
+from morrow import Morrow
+
+def main() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var orders: List[Float64] = [12.0, 18.0, 15.0]
+    save(bar(dates, orders), "orders.svg")
+```

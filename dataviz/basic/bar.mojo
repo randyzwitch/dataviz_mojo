@@ -3,8 +3,10 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
+from morrow import Morrow
 
 from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.frame_input import _frame_column, _frame_floats, _frame_morrow
 
 from canvas.text.render import TextAlign
 from dataviz.core.ordinal_scale import OrdinalScale
@@ -18,6 +20,9 @@ from dataviz.plot import (
     _TextRequest,
     _axis_pixel_f,
     _draw_categorical_axis_frame,
+    _draw_continuous_axis_frame,
+    _LegendLayout,
+    _data_extent,
     _pull_off_axis_line_f,
     _finished,
     _zero_baseline_y_extent,
@@ -59,55 +64,33 @@ def _bar_y_domain_data(plot: Plot) -> List[Float64]:
     return domain_data^
 
 
-def _draw_bar_rects[
+def _draw_bar_rects_at_positions[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
-    band_scale: OrdinalScale,
+    band_starts: List[Float64],
+    band_widths: List[Float64],
+    band_centers: List[Float64],
     value_scale: LinearScale,
     baseline_edge: Int,
     orient: _Orientation,
     mut text_requests: List[_TextRequest],
-    group_index: Int = 0,
-    group_count: Int = 1,
 ) raises:
-    """Draw one `Mark.BAR` plot's rectangles (and, with
-        `Theme.show_data_labels`, each one's value label) into an
-        already-laid-out categorical axis frame. Written once for both
-        orientations; `_Orientation` carries the two differences (which way a
-        rect is emitted, where its label sits).
+    """Draw bar values at pixel positions supplied by either x-axis.
 
-        Factored out of `_render_bar` so `render_layers()`'s bar-combo path
-        (`_render_bar_combo_layers`, layers.mojo) can draw a `Mark.BAR` layer
-        against a frame it built, the same split `_draw_point_layer`/
-        `_draw_line_layer`/`_draw_area_layer` use. That combo path is
-        vertical-only and passes `_Orientation(False)`.
-
-        `band_scale`/`value_scale` come from the caller's frame, and
-        `baseline_edge` is that frame's axis line (`py1` vertically, `px0`
-        horizontally) for `_pull_off_axis_line`. Color-by-sign and label
-        sizing read `plot._theme` through this function's own
-        `_Scaled(theme)`, so a layered bar follows its own `Theme.scale`.
-
-        `Plot.encode_categorical()`'s `y_err`/`y_err_lower`/`y_err_upper`
-    , when set, draws a capped whisker at each bar's value edge
-        first, in that bar's own resolved color, the same "whisker first,
-        mark on top" order `_draw_point_layer` uses.
+    This keeps colors, error bars, tooltips, and data labels identical
+    for categorical bands and timestamp intervals.
     """
     var theme = plot._theme
     var sc = _Scaled(theme)
     var baseline = _axis_pixel_f(value_scale, 0.0)
-    # bandwidth() doesn't depend on the category index, so it's hoisted out
-    # of the loop.
-    var band_size = band_scale.bandwidth() / Float64(group_count)
     var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
     var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
-        var band_pos = (
-            band_scale.band_start(i) + Float64(group_index) * band_size
-        )
+        var band_pos = band_starts[i]
+        var band_size = band_widths[i]
         var value = plot._continuous.y[i]
         var extent = _pull_off_axis_line_f(
             baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
@@ -127,7 +110,7 @@ def _draw_bar_rects[
             else:
                 lo = value - plot._y_err.lower[i]
                 hi = value + plot._y_err.upper[i]
-            var center_i = band_pos + band_size / 2.0
+            var center_i = band_centers[i]
             var py_hi = _axis_pixel_f(value_scale, hi)
             var py_lo = _axis_pixel_f(value_scale, lo)
             orient.value_line(target, py_hi, py_lo, center_i, color, sc.scale)
@@ -176,6 +159,131 @@ def _draw_bar_rects[
             )
 
 
+def _draw_bar_rects[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    band_scale: OrdinalScale,
+    value_scale: LinearScale,
+    baseline_edge: Int,
+    orient: _Orientation,
+    mut text_requests: List[_TextRequest],
+    group_index: Int = 0,
+    group_count: Int = 1,
+) raises:
+    """Draw categorical bars with the same glyph path as time bars."""
+    var starts = List[Float64](capacity=len(plot._categorical.x))
+    var widths = List[Float64](capacity=len(plot._categorical.x))
+    var centers = List[Float64](capacity=len(plot._categorical.x))
+    var width = band_scale.bandwidth() / Float64(group_count)
+    for i in range(len(plot._categorical.x)):
+        var start = band_scale.band_start(i) + Float64(group_index) * width
+        starts.append(start)
+        widths.append(width)
+        centers.append(start + width / 2.0)
+    _draw_bar_rects_at_positions(
+        target,
+        plot,
+        starts,
+        widths,
+        centers,
+        value_scale,
+        baseline_edge,
+        orient,
+        text_requests,
+    )
+
+
+def _time_bar_interval(seconds: List[Float64]) raises -> Float64:
+    """Shortest observed interval, so time bars cannot overlap."""
+    if len(seconds) == 1:
+        return 86400.0
+    var sorted = seconds.copy()
+    sort(sorted)
+    var shortest = sorted[1] - sorted[0]
+    if shortest <= 0.0:
+        raise Error("Plot.encode_time_bars(): timestamps must be distinct")
+    for i in range(2, len(sorted)):
+        var gap = sorted[i] - sorted[i - 1]
+        if gap <= 0.0:
+            raise Error("Plot.encode_time_bars(): timestamps must be distinct")
+        shortest = min(shortest, gap)
+    return shortest
+
+
+def _render_time_bar[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """Vertical bars on a dated linear x-axis with one interval per bar."""
+    _validate_categorical_encoding(plot)
+    if len(plot._continuous.x) != len(plot._continuous.y):
+        raise Error(
+            "Plot.encode_time_bars(): dates and values must have the same"
+            " length (got "
+            + String(len(plot._continuous.x))
+            + " and "
+            + String(len(plot._continuous.y))
+            + ")"
+        )
+    var interval = _time_bar_interval(plot._continuous.x)
+    var earliest = plot._continuous.x[0]
+    var latest = earliest
+    for seconds in plot._continuous.x:
+        earliest = min(earliest, seconds)
+        latest = max(latest, seconds)
+    var bounds: List[Float64] = [
+        earliest - interval / 2.0,
+        latest + interval / 2.0,
+    ]
+    var x_scale = _data_extent(bounds)
+    x_scale.is_time = True
+    x_scale.tz_offset = plot._x_tz_offset
+    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    var frame = _draw_continuous_axis_frame(
+        target,
+        x_scale,
+        y_scale,
+        plot._theme,
+        _LegendLayout(),
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+    var starts = List[Float64](capacity=len(plot._continuous.x))
+    var widths = List[Float64](capacity=len(plot._continuous.x))
+    var centers = List[Float64](capacity=len(plot._continuous.x))
+    for seconds in plot._continuous.x:
+        var left = _axis_pixel_f(frame.x_scale, seconds - interval / 2.0)
+        var right = _axis_pixel_f(frame.x_scale, seconds + interval / 2.0)
+        starts.append(left)
+        widths.append(right - left)
+        centers.append(_axis_pixel_f(frame.x_scale, seconds))
+    _draw_bar_rects_at_positions(
+        target,
+        plot,
+        starts,
+        widths,
+        centers,
+        frame.y_scale,
+        frame.py1,
+        _Orientation(False),
+        frame.text_requests,
+    )
+    return frame.result()
+
+
 def _render_bar[
     T: DrawTarget
 ](
@@ -188,8 +296,11 @@ def _render_bar[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render a `Mark.BAR` plot: a categorical x-axis (`OrdinalScale`, one
-    evenly spaced band per category) and a continuous y-axis whose domain
+    """Render a `Mark.BAR` plot on categorical bands or real timestamps.
+
+    `_x_time` dispatches to `_render_time_bar`. The categorical path uses
+    an `OrdinalScale` with one evenly spaced band per category and a
+    continuous y-axis whose domain
     always includes a zero baseline (`_zero_baseline_y_extent`, not the
     continuous marks' `_data_extent`). Generic over `T: DrawTarget`,
     returning axis/tick labels as `_TextRequest`s rather than drawing
@@ -206,6 +317,8 @@ def _render_bar[
     for a negative value). No x-gridlines: the bars already separate
     categories.
     """
+    if plot._x_time:
+        return _render_time_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     _validate_categorical_encoding(plot)
 
     var theme = plot._theme
@@ -310,12 +423,13 @@ def bar(
     horizontal: Bool = False,
 ) raises -> Plot:
     """`bar()` over named columns of a `dataframe_mojo` `DataFrame`
-    (#364): a string `x` column is the category axis, a numeric `y`
-    column the bar heights, and the axis titles default to both names.
+    (#364): a string `x` column is categorical, while a date or datetime
+    `x` column uses a real time axis. The numeric `y` column gives bar
+    heights, and axis titles default to both column names.
 
     Args:
         df: The frame to read.
-        x: The string column naming each bar.
+        x: A string category or date/datetime time column.
         y: The numeric column giving each bar's height.
         theme: Full styling knobs beyond this function's own parameters.
         width: Pixel width of the returned `Plot` (`.size()`).
@@ -333,6 +447,20 @@ def bar(
         Error: A named column is missing, has the wrong dtype for its
             channel, or has missing values.
     """
+    var x_dtype = _frame_column(df, x, "bar()").dtype()
+    if x_dtype.is_date() or x_dtype.is_datetime():
+        return bar(
+            _frame_morrow(df, x, "bar()"),
+            _frame_floats(df, y, "bar()", theme.missing),
+            theme=theme,
+            width=width,
+            height=height,
+            title=title,
+            subtitle=subtitle,
+            x_title=x_title if x_title.byte_length() > 0 else x,
+            y_title=y_title if y_title.byte_length() > 0 else y,
+            horizontal=horizontal,
+        )
     # The theme goes on first: `encode_frame` reads `Theme.missing` and
     # `Theme.missing_category_label` as it reads the columns (#367).
     var plot = (
@@ -444,6 +572,52 @@ def bar[
         Plot()
         .mark_bar(horizontal=horizontal)
         .encode_categorical(x=categories, y=values_f)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def bar[
+    dtype: DType
+](
+    dates: List[Morrow],
+    values: List[Scalar[dtype]],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+    horizontal: Bool = False,
+) raises -> Plot:
+    """Vertical bars one observed interval wide on a real time axis.
+
+    A bar is centered on each timestamp. Its width is the shortest gap
+    between dates, so missing days leave blank space and bars never
+    overlap. A single date receives a one-day width. Dates must be
+    distinct; `horizontal=True` is not supported on a time x-axis.
+
+    Args:
+        dates: One timestamp per bar.
+        values: Bar heights.
+        theme: Chart styling.
+        width: Chart width in pixels.
+        height: Chart height in pixels.
+        title: Chart title.
+        subtitle: Chart subtitle.
+        x_title: Time-axis title.
+        y_title: Value-axis title.
+        horizontal: Must be false for time bars.
+
+    Returns:
+        The unrendered plot.
+    """
+    var plot = (
+        Plot()
+        .mark_bar(horizontal=horizontal)
+        .encode_time_bars(dates, _materialize_scalar_list(values))
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle

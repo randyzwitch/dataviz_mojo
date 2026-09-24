@@ -1303,6 +1303,21 @@ def _render_layers_generic[
             target, plots, ox0, oy0, ox1, oy1, cache=cache
         )
 
+    # Time bars need a continuous date axis; mixed time-bar layers need a
+    # separate layout. Categorical bars share adjacent subbands.
+    for i in range(len(plots)):
+        if plots[i]._mark == Mark.BAR and plots[i]._x_time:
+            if len(plots) == 1:
+                return _render_bar(
+                    target, plots[i], ox0, oy0, ox1, oy1, cache=cache
+                )
+            raise Error(
+                "render_layers(): a time-axis Mark.BAR layer cannot use the"
+                " categorical bar-combo path (layer "
+                + String(i)
+                + "); use render_facets() for now"
+            )
+
     # Bar layers share a categorical frame. Multiple bar layers occupy
     # adjacent subbands in each category; continuous marks stay centered
     # on the whole category band.

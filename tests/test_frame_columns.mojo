@@ -20,6 +20,7 @@ from _test_helpers import _attr_values
 from dataviz import (
     arc_diagram,
     area,
+    bar,
     calendar_heatmap,
     candlestick,
     corrplot,
@@ -588,6 +589,49 @@ def test_an_explicit_axis_title_beats_the_column_name() raises:
     ).to_string()
     assert_true("latency" in defaulted, "column name did not become the title")
     assert_true("Latency (ms)" in overridden, "explicit x_title was ignored")
+
+
+def test_bar_reads_date_and_datetime_columns_as_time() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var values: List[Float64] = [10.0, 20.0, 15.0]
+    var day_values: List[Int64] = [19783, 19786, 19787]
+    var date_frame = DataFrame(
+        [
+            Series("day", Column[Int64](day_values.copy())).with_dtype(
+                DataType.DATE
+            ),
+            Series("amount", Column[Float64](values.copy())),
+        ]
+    )
+    var by_date = bar(date_frame, x="day", y="amount")
+    assert_true(by_date._x_time, "date column uses a time axis")
+    assert_equal(
+        by_date._continuous.x[1] - by_date._continuous.x[0], 3.0 * 86400.0
+    )
+    var expected = render_svg(
+        bar(dates, values, x_title="day", y_title="amount")
+    ).to_string()
+    assert_equal(
+        render_svg(by_date).to_string(), expected, "date column matches list"
+    )
+    var millis: List[Int64] = [1709251200000, 1709510400000, 1709596800000]
+    var stamp_frame = DataFrame(
+        [
+            Series("day", Column[Int64](millis.copy())).with_dtype(
+                DataType.datetime("ms")
+            ),
+            Series("amount", Column[Float64](values.copy())),
+        ]
+    )
+    assert_equal(
+        render_svg(bar(stamp_frame, x="day", y="amount")).to_string(),
+        expected,
+        "datetime column matches list",
+    )
 
 
 def test_parallel_reads_named_metrics_in_row_order() raises:

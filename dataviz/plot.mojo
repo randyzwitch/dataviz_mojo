@@ -3327,6 +3327,44 @@ struct Plot(Copyable, Movable):
         self._y_err.symmetric = y_err.copy()
         self._y_err.lower = y_err_lower.copy()
         self._y_err.upper = y_err_upper.copy()
+        self._x_time = False
+        return self^
+
+    def encode_time_bars(
+        var self,
+        dates: List[Morrow],
+        values: List[Float64],
+        y_err: List[Float64] = List[Float64](),
+        y_err_lower: List[Float64] = List[Float64](),
+        y_err_upper: List[Float64] = List[Float64](),
+    ) raises -> Self:
+        """Map bars to real timestamps on a continuous time x-axis.
+
+        Each bar is centered on its timestamp and spans one observed
+        interval. Dates must be distinct; the interval is inferred from
+        their spacing at render time. The three error channels follow
+        `encode_categorical()`'s rules. Only vertical bars have a time x-axis.
+        """
+        _require_mark(self._mark, "encode_time_bars", "mark_bar()", Mark.BAR)
+        if self._horizontal:
+            raise Error(
+                "Plot.encode_time_bars(): horizontal bars cannot use a time"
+                " x-axis"
+            )
+        var seconds = List[Float64](capacity=len(dates))
+        var labels = List[String](capacity=len(dates))
+        for date in dates:
+            seconds.append(date.timestamp())
+            labels.append(date.format("YYYY-MM-DD HH:mm:ss"))
+        self._categorical.x = labels^
+        self._continuous.x = seconds^
+        self._continuous.y = values.copy()
+        self._y_err.symmetric = y_err.copy()
+        self._y_err.lower = y_err_lower.copy()
+        self._y_err.upper = y_err_upper.copy()
+        self._x_time = True
+        if len(dates) > 0:
+            self._x_tz_offset = dates[0].tz.offset
         return self^
 
     def encode_categorical[
