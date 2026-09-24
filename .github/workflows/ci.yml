@@ -181,6 +181,51 @@ jobs:
           echo "--- python linkage ---"
           ldd consumer_bin | grep -i python || echo "no libpython in the consumer's dynamic dependencies"
 
+
+  fontless-export:
+    name: Export PNG and PDF without system fonts
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
+    timeout-minutes: 30
+    steps:
+      - name: Install checkout prerequisites without fonts
+        run: apt-get update && apt-get install -y git ca-certificates curl
+
+      - uses: actions/checkout@v7
+
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: v0.78.0
+          cache: true
+
+      - name: Assert the image has no system font files
+        run: |
+          found=$(find /usr/share/fonts /usr/local/share/fonts /usr/share/X11/fonts \
+            -type f \( -iname '*.ttf' -o -iname '*.ttc' -o -iname '*.otf' -o -iname '*.otc' \) \
+            2>/dev/null | head -n 1 || true)
+          test -z "$found" || { echo "system font found: $found"; exit 1; }
+
+      - name: Compile a package consumer and export both formats
+        run: |
+          mkdir -p "$RUNNER_TEMP/fontless-consumer"
+          cat > "$RUNNER_TEMP/fontless-consumer/pixi.toml" <<EOF
+          [workspace]
+          name = "fontless-consumer"
+          version = "0.0.0"
+          channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
+          platforms = ["linux-64"]
+          preview = ["pixi-build"]
+
+          [dependencies]
+          dataviz_mojo = { path = "$GITHUB_WORKSPACE" }
+          EOF
+          cp tests/fontless_consumer.mojo "$RUNNER_TEMP/fontless-consumer/consumer.mojo"
+          cd "$RUNNER_TEMP/fontless-consumer"
+          pixi run sh -c 'test -s "$CONDA_PREFIX/fonts/DejaVuSans.ttf"'
+          pixi run mojo run consumer.mojo
+          test -s fontless.png
+          test -s fontless.pdf
+
   docs-build:
     name: Docs build (status check)
     runs-on: ubuntu-latest
