@@ -735,3 +735,24 @@ def _encode_binned_categories(
     plot._categorical.x = binned.labels.copy()
     plot._continuous.x = List[Float64]()
     plot._continuous.y = binned.counts.copy()
+
+
+def _render_bar_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.BAR`'s renderer, the one its setter binds: `_render_horizontal_bar`
+    when the plot is horizontal, `_render_bar` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_bar(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)

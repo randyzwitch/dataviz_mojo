@@ -617,3 +617,24 @@ def _encode_boxplot(
     plot._box.high = high^
     plot._box.outlier_cat = outlier_cat^
     plot._box.outlier_value = outlier_value^
+
+
+def _render_box_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.BOX`'s renderer, the one its setter binds: `_render_horizontal_box`
+    when the plot is horizontal, `_render_box` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_box(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_box(target, plot, ox0, oy0, ox1, oy1, cache=cache)

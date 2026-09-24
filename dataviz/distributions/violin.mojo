@@ -454,3 +454,24 @@ def _encode_distribution(
     plot._continuous.x = List[Float64]()
     plot._continuous.y = List[Float64]()
     plot._distribution.values = values.copy()
+
+
+def _render_violin_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.VIOLIN`'s renderer, the one its setter binds: `_render_horizontal_violin`
+    when the plot is horizontal, `_render_violin` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_violin(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_violin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
