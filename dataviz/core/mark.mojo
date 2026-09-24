@@ -66,8 +66,8 @@ variant.
 
 Adding a mark requires its constant and name, an updated `COUNT`, a
 representative plot in `tests/_mark_registry.mojo`, and a reviewed output
-digest. Its `Plot.mark_*()` setter must bind its family's Canvas, SVG,
-PDF, and BoundsTarget callbacks; see the checklist in `plot.mojo`.
+digest, and a row in `_family()`, from which `Plot._set_mark()` binds its
+family's render callbacks; see the checklist in `plot.mojo`.
 """
 
 
@@ -346,6 +346,182 @@ struct Mark(Copyable, ImplicitlyCopyable, Movable):
         if self == Self.EVENTPLOT:
             return "Mark.EVENTPLOT"
         return "Mark(" + String(self._value) + ")"
+
+    def _family(self) -> _MarkFamily:
+        """Which family renders this mark. `Plot._set_mark()` binds
+        that family's callbacks, so this table is the whole of a mark's
+        render registration.
+
+        Returns:
+            The family, or `_MarkFamily.UNASSIGNED` for a value with no
+            row here -- which `test_every_mark_has_a_family` rejects for
+            every mark below `COUNT`.
+        """
+        if (
+            self == Self.POINT
+            or self == Self.LINE
+            or self == Self.AREA
+            or self == Self.EFFECT_SCATTER
+            or self == Self.HISTOGRAM
+        ):
+            return _MarkFamily.CONTINUOUS
+        if self == Self.BAR or self == Self.ARC or self == Self.SINGLE_AXIS:
+            return _MarkFamily.BASIC
+        if (
+            self == Self.LOLLIPOP
+            or self == Self.WATERFALL
+            or self == Self.BULLET
+            or self == Self.GANTT
+            or self == Self.GROUPED_BAR
+            or self == Self.STACKED_BAR
+            or self == Self.POPULATION_PYRAMID
+            or self == Self.FUNNEL
+            or self == Self.BUMP
+            or self == Self.STREAMGRAPH
+            or self == Self.SPAN_CHART
+        ):
+            return _MarkFamily.CATEGORICAL
+        if (
+            self == Self.BOX
+            or self == Self.CANDLESTICK
+            or self == Self.BEESWARM
+            or self == Self.VIOLIN
+            or self == Self.RIDGELINE
+            or self == Self.KDE
+            or self == Self.RUG
+            or self == Self.ECDF
+            or self == Self.EVENTPLOT
+            or self == Self.BOXENPLOT
+        ):
+            return _MarkFamily.DISTRIBUTIONS
+        if self == Self.HEXBIN:
+            return _MarkFamily.BINNED
+        if self == Self.POINTPLOT:
+            return _MarkFamily.AGGREGATION
+        if (
+            self == Self.CHORD
+            or self == Self.ARC_DIAGRAM
+            or self == Self.GRAPH
+            or self == Self.SANKEY
+        ):
+            return _MarkFamily.RELATIONSHIPS
+        if (
+            self == Self.NIGHTINGALE
+            or self == Self.POLAR_BAR
+            or self == Self.POLAR
+            or self == Self.RADAR
+            or self == Self.GAUGE
+            or self == Self.RADIALBAR
+        ):
+            return _MarkFamily.RADIAL
+        if (
+            self == Self.PARALLEL
+            or self == Self.BARBS
+            or self == Self.CONTOUR
+            or self == Self.CONTOURF
+            or self == Self.TRICONTOUR
+            or self == Self.TRICONTOURF
+            or self == Self.TRIPLOT
+            or self == Self.TRIPCOLOR
+            or self == Self.QUIVER
+            or self == Self.STREAMPLOT
+        ):
+            return _MarkFamily.MULTIVARIATE
+        if (
+            self == Self.SCATTER3D
+            or self == Self.PLOT3D
+            or self == Self.SURFACE3D
+            or self == Self.WIRE3D
+            or self == Self.TRISURF3D
+            or self == Self.BAR3D
+            or self == Self.VOXELS
+            or self == Self.STEM3D
+            or self == Self.QUIVER3D
+            or self == Self.FILL_BETWEEN3D
+        ):
+            return _MarkFamily.SPATIAL
+        if (
+            self == Self.HEATMAP
+            or self == Self.CALENDAR_HEATMAP
+            or self == Self.CORRPLOT
+            or self == Self.PUNCHCARD
+            or self == Self.MARIMEKKO
+            or self == Self.IMSHOW
+            or self == Self.PCOLORMESH
+            or self == Self.HIST2D
+        ):
+            return _MarkFamily.GRID
+        if (
+            self == Self.SUNBURST
+            or self == Self.TREE
+            or self == Self.TREEMAP
+            or self == Self.DENDROGRAM
+        ):
+            return _MarkFamily.HIERARCHY_MARKS
+        return _MarkFamily.UNASSIGNED
+
+
+struct _MarkFamily(Copyable, ImplicitlyCopyable, Movable):
+    """Which `dataviz/<family>/` package renders a mark: the one whose
+    `_callback_<family>` adapters `Plot._set_mark()` binds. CONTINUOUS
+    is the shared point/line/area path in rendering.mojo rather than a
+    package of its own.
+    """
+
+    var _value: Int
+
+    comptime CONTINUOUS = Self(0)
+    comptime BASIC = Self(1)
+    comptime CATEGORICAL = Self(2)
+    comptime DISTRIBUTIONS = Self(3)
+    comptime BINNED = Self(4)
+    comptime AGGREGATION = Self(5)
+    comptime RELATIONSHIPS = Self(6)
+    comptime RADIAL = Self(7)
+    comptime MULTIVARIATE = Self(8)
+    comptime SPATIAL = Self(9)
+    comptime GRID = Self(10)
+    comptime HIERARCHY_MARKS = Self(11)
+    comptime UNASSIGNED = Self(-1)
+    """What `Mark._family()` answers for a mark it has no row for."""
+
+    def __init__(out self, value: Int):
+        self._value = value
+
+    def __eq__(self, other: Self) -> Bool:
+        return self._value == other._value
+
+    def name(self) -> String:
+        """The family's package name, for error messages.
+
+        Returns:
+            The package name, or `"unassigned"`.
+        """
+        if self == Self.CONTINUOUS:
+            return "continuous"
+        if self == Self.BASIC:
+            return "basic"
+        if self == Self.CATEGORICAL:
+            return "categorical"
+        if self == Self.DISTRIBUTIONS:
+            return "distributions"
+        if self == Self.BINNED:
+            return "binned"
+        if self == Self.AGGREGATION:
+            return "aggregation"
+        if self == Self.RELATIONSHIPS:
+            return "relationships"
+        if self == Self.RADIAL:
+            return "radial"
+        if self == Self.MULTIVARIATE:
+            return "multivariate"
+        if self == Self.SPATIAL:
+            return "spatial"
+        if self == Self.GRID:
+            return "grid"
+        if self == Self.HIERARCHY_MARKS:
+            return "hierarchy_marks"
+        return "unassigned"
 
 
 def _require_mark(
