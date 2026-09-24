@@ -641,7 +641,7 @@ def _cookbook_api_links(category: String) -> String:
             "[Colors](../../dataviz/core/colors/)"
         )
     if category == "Layout, facets, and layers":
-        return "[Rendering and composition](../../dataviz/plot/)"
+        return "[Rendering and composition](../../dataviz/rendering/)"
     if category == "Statistics and uncertainty":
         return "[Plot encodings](../../dataviz/plot/Plot/)"
     if category == "Export and presentation":

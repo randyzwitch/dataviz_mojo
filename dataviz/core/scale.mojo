@@ -1039,7 +1039,7 @@ struct LinearScale(ImplicitlyCopyable, Movable):
     """`False` (the default) for a plain linear scale. `True` for a
     log10-scaled axis (`Plot.scale_y_log()`/`scale_x_log()`):
     `domain_min`/`domain_max` are then in log10-space (see
-    `_log_data_extent()`, plot.mojo) and `to_pixel()` takes `log10()` of
+    `_log_data_extent()`, core/extent.mojo) and `to_pixel()` takes `log10()` of
     the real-unit value it's given before applying the affine map, so
     every caller keeps passing real-unit values.
     """

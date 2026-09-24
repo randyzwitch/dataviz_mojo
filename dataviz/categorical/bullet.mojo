@@ -57,7 +57,7 @@ def _bullet_tooltip_label(
     category: String, measure: Float64, target: Float64
 ) -> String:
     """One row's hover text: `"Revenue: 72 (target 80)"`. Its own helper
-    rather than `_tooltip_label` (plot.mojo) because a bullet row encodes
+    rather than `_tooltip_label` (core/tooltip_labels.mojo) because a bullet row encodes
     two numbers against each other, the way `Mark.BOX`'s tooltip carries
     its whole five-number summary.
     """

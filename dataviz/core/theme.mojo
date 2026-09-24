@@ -380,7 +380,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     are sized from the band width instead.
     """
     var output_format: OutputFormat
-    """The file format `save()` (plot.mojo) writes when given a `Plot` and a
+    """The file format `save()` (rendering.mojo) writes when given a `Plot` and a
     path; defaults to `OutputFormat.SVG`. `render()`/`render_svg()`
     ignore this field.
     """

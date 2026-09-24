@@ -28,6 +28,23 @@ from dataviz.radial.polar import _radial_value_label
 from dataviz.core.theme import Theme
 
 
+struct _NightingaleData(Copyable, Movable):
+    """Which of ECharts' two `rose_type` radius formulas each wedge of a
+    `Mark.NIGHTINGALE` uses. See `mark_nightingale()`. Stored on
+    `Plot._nightingale`.
+
+    The wedge values themselves are `_categorical.x`/`_continuous.y`, shared with
+    the other categorical marks, so this struct holds only the setting.
+    """
+
+    var area: Bool
+    """False scales a wedge's radius by `value / max` ("radius"); True
+    scales its area instead, `sqrt(value / max)` ("area")."""
+
+    def __init__(out self):
+        self.area = False
+
+
 def _render_nightingale[
     T: DrawTarget
 ](
