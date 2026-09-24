@@ -20,7 +20,10 @@ parabola; the scatter is where you see which one you have.
 """
 
 
+from dataframe import DataFrame
+
 from dataviz.core.array_like import _materialize_scalar_list
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import bin_edges, histogram_bins
@@ -157,6 +160,53 @@ def _pairplot_panels[
                     .labels(x_title=names[j], y_title=names[i])
                 )
     return plots^
+
+
+def pairplot(
+    df: DataFrame,
+    columns: List[String],
+    theme: Theme = Theme(),
+    cell_width: Int = 220,
+    cell_height: Int = 180,
+    bins: Int = 10,
+    title: String = "",
+) raises -> Figure:
+    """Make a pairplot from named numeric DataFrame columns (#743).
+
+    The requested column names become the titles of both axes in each
+    cell, in the order supplied.
+
+    Args:
+        df: The frame containing the variables.
+        columns: Numeric column names, in display order.
+        theme: Figure styling and missing-value policy.
+        cell_width: Width of each panel in pixels.
+        cell_height: Height of each panel in pixels.
+        bins: Number of bins on each diagonal histogram.
+        title: Figure title.
+
+    Returns:
+        The unrendered figure.
+
+    Raises:
+        Error: Fewer than two columns are requested, or a named column
+            is absent, nonnumeric, or has missing values under the
+            default missing-value policy.
+    """
+    if len(columns) < 2:
+        raise Error("pairplot(): at least two columns are required")
+    var values = List[List[Float64]]()
+    for name in columns:
+        values.append(_frame_floats(df, name, "pairplot()", theme.missing))
+    return pairplot(
+        values^,
+        columns,
+        theme=theme,
+        cell_width=cell_width,
+        cell_height=cell_height,
+        bins=bins,
+        title=title,
+    )
 
 
 def pairplot[

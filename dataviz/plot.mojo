@@ -3837,6 +3837,45 @@ struct Plot(Copyable, Movable):
         self._candle.high = high.copy()
         self._candle.low = low.copy()
         self._candle.close_price = close.copy()
+        self._x_time = False
+        return self^
+
+    def encode_candlestick_time(
+        var self,
+        dates: List[Morrow],
+        open: List[Float64],
+        high: List[Float64],
+        low: List[Float64],
+        close: List[Float64],
+    ) raises -> Self:
+        """Map OHLC prices onto real timestamps for `Mark.CANDLESTICK`.
+
+        Dates occupy their actual positions on a linear time axis, so
+        weekends and other gaps are visible. The first date's zone sets
+        the time tick labels, as with `encode_time()`. Length and spacing
+        checks happen when the chart is rendered.
+        """
+        _require_mark(
+            self._mark,
+            "encode_candlestick_time",
+            "mark_candlestick()",
+            Mark.CANDLESTICK,
+        )
+        var seconds = List[Float64](capacity=len(dates))
+        var labels = List[String](capacity=len(dates))
+        for i in range(len(dates)):
+            seconds.append(dates[i].timestamp())
+            labels.append(dates[i].format("YYYY-MM-DD HH:mm"))
+        self._continuous.x = seconds^
+        self._categorical.x = labels^
+        self._continuous.y = List[Float64]()
+        self._candle.open_price = open.copy()
+        self._candle.high = high.copy()
+        self._candle.low = low.copy()
+        self._candle.close_price = close.copy()
+        self._x_time = True
+        if len(dates) > 0:
+            self._x_tz_offset = dates[0].tz.offset
         return self^
 
     def encode_bullet(
