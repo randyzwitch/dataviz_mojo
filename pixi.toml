@@ -79,7 +79,7 @@ digest-update = "mojo run -I . -I tests -I scripts scripts/write_digest.mojo"
 test-changed = "bash scripts/test_changed.sh"
 # Format source, or format and fail if tracked files change.
 format = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart"
-format-check = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && bash scripts/check_docstring_terms.sh && bash scripts/check_pixi_pins.sh && python3 scripts/check_dependency_pins.py && bash scripts/check_doc_warnings.sh && bash scripts/check_install_tag.sh && bash scripts/check_doc_counts.sh"
+format-check = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && bash scripts/check_docstring_terms.sh && bash scripts/check_pixi_pins.sh && python3 scripts/check_dependency_pins.py && bash scripts/check_doc_warnings.sh && bash scripts/check_install_tag.sh && bash scripts/check_doc_counts.sh && python3 scripts/check_import_direction.py"
 # Render representative marks; `--check` also detects quadratic scaling.
 bench = "mojo run -I . -I scripts scripts/bench.mojo"
 # Regenerate untracked site content after `pixi run example`.
@@ -97,6 +97,7 @@ check-version = "bash scripts/check_version.sh"
 # A one-mark program must compile no other mark's renderer (#607); see the
 # script for why the suite cannot see this.
 check-mark-isolation = "bash scripts/check_mark_isolation.sh"
+check-import-direction = "python3 scripts/check_import_direction.py"
 # Bump version fields, commit, and tag without pushing.
 release = "bash scripts/release.sh"
 

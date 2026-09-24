@@ -21,11 +21,10 @@ from canvas.vector.draw_target import DrawTarget
 from dataviz.core.mathtext import _label_requests
 from dataviz.core.text import _extend_text_requests
 from dataviz.core.color_scale import ColorScale
-from dataviz.basic.continuous import _PointChannels
+from dataviz.core.point_channels import _PointChannels
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.mark import Mark
 from dataviz.core.marker import PointShape, _fill_shape_aa
-from dataviz.plot import Plot, render
 from dataviz.core.scale import LinearScale, MinMax, _format_tick
 from dataviz.core.text import (
     _Scaled,
@@ -1079,9 +1078,14 @@ def _levels_descending(levels: List[Float64]) -> List[Float64]:
 
 
 def _legend_reserve_for(
-    plot: Plot, ch: _PointChannels, sc: _Scaled, *, mut cache: FontCache
+    mark: Mark,
+    theme: Theme,
+    ch: _PointChannels,
+    sc: _Scaled,
+    *,
+    mut cache: FontCache,
 ) raises -> _LegendLayout:
-    """How much room `plot`'s point-mark legend needs and on which edge,
+    """How much room a point mark's legend needs and on which edge,
     or an inactive layout when it has no legend (`Theme.show_legend` off,
     not a point mark, or no data-driven channel). A plot combining
     continuous color and size stacks both sections vertically in one
@@ -1098,12 +1102,12 @@ def _legend_reserve_for(
     and not two.
     """
     var layout = _LegendLayout()
-    if not plot._theme.show_legend:
+    if not theme.show_legend:
         return layout^
     if not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.SINGLE_AXIS
-        or plot._mark == Mark.EFFECT_SCATTER
+        mark == Mark.POINT
+        or mark == Mark.SINGLE_AXIS
+        or mark == Mark.EFFECT_SCATTER
     ):
         return layout^
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
@@ -1117,39 +1121,33 @@ def _legend_reserve_for(
                 ch.cat.domain,
                 sc.legend_swatch_size,
                 sc,
-                family=plot._theme.font_family,
+                family=theme.font_family,
                 cache=cache,
             ),
         )
     elif ch.has_color:
-        var color_labels = _continuous_legend_labels(
-            ch.color_scale, plot._theme
-        )
+        var color_labels = _continuous_legend_labels(ch.color_scale, theme)
         reserve = max(
             reserve,
             _dynamic_legend_width(
                 color_labels,
                 sc.continuous_legend_bar_width,
                 sc,
-                family=plot._theme.font_family,
+                family=theme.font_family,
                 cache=cache,
             ),
         )
     if ch.has_size:
         var size_labels = List[String]()
-        size_labels.append(
-            _format_tick(ch.size_mm.max, 1, plot._theme.y_tick_format)
-        )
+        size_labels.append(_format_tick(ch.size_mm.max, 1, theme.y_tick_format))
         size_labels.append(
             _format_tick(
                 (ch.size_mm.min + ch.size_mm.max) / 2.0,
                 1,
-                plot._theme.y_tick_format,
+                theme.y_tick_format,
             )
         )
-        size_labels.append(
-            _format_tick(ch.size_mm.min, 1, plot._theme.y_tick_format)
-        )
+        size_labels.append(_format_tick(ch.size_mm.min, 1, theme.y_tick_format))
         var circle_content_width = 2 * round_to_int(sc.size_range_max)
         reserve = max(
             reserve,
@@ -1157,18 +1155,18 @@ def _legend_reserve_for(
                 size_labels,
                 circle_content_width,
                 sc,
-                family=plot._theme.font_family,
+                family=theme.font_family,
                 cache=cache,
             ),
         )
 
     layout.active = True
-    layout.position = plot._theme.legend_position
-    if plot._theme.legend_position == LegendPosition.TOP:
+    layout.position = theme.legend_position
+    if theme.legend_position == LegendPosition.TOP:
         layout.top = _continuous_legend_row_height(sc, ch.has_size)
-    elif plot._theme.legend_position == LegendPosition.BOTTOM:
+    elif theme.legend_position == LegendPosition.BOTTOM:
         layout.bottom = _continuous_legend_row_height(sc, ch.has_size)
-    elif plot._theme.legend_position == LegendPosition.LEFT:
+    elif theme.legend_position == LegendPosition.LEFT:
         layout.left = reserve
     else:
         layout.right = reserve

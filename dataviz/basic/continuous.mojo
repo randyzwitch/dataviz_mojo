@@ -58,6 +58,7 @@ from dataviz.plot import (
     render_svg,
     save,
 )
+from dataviz.core.point_channels import _PointChannels
 from dataviz.core.scale import LinearScale, MinMax, _min_max
 from dataviz.core.step_style import StepStyle
 from dataviz.core.text import _Scaled, _TextRequest, _text_advance
@@ -296,103 +297,6 @@ def _decimate_to_pixel_columns(
     return _Decimated(out_x^, out_y^, True)
 
 
-struct _PointChannels(Movable):
-    """Every derived value `Mark.POINT`'s optional data-driven channels
-    (categorical color, continuous color, continuous size; see
-    `Plot.encode`) need: which are encoded, the categorical domain and
-    palette a discrete color column indexes into, and the `ColorScale`/
-    `LinearScale` a continuous column maps through. Built
-    unconditionally, with placeholder scales when a channel isn't
-    encoded.
-
-    A struct because these are needed at two points in one render:
-    before the plot rect is finalized, to size the legend column
-    (`_legend_reserve_for`), and after, to color/size each point and draw
-    the legend (`_draw_point_layer`). Computing them once keeps the two
-    consistent.
-    """
-
-    var has_color: Bool
-    var has_color_categories: Bool
-    var has_size: Bool
-    # The categorical color column's domain and each row's index into it,
-    # resolved once (`_categorical_indices`). Held as the whole
-    # `_CategoricalIndex` since Mojo won't let a returned struct's fields
-    # be moved out individually. Both halves are empty when the channel
-    # isn't encoded.
-    var cat: _CategoricalIndex
-    # One color per `cat.domain` entry, sized to the domain exactly with
-    # `Plot.encode()`'s `color_map` overrides folded in, so readers index
-    # it directly by domain position.
-    var palette: List[Color]
-    # One shape per `cat.domain` entry, same indexing as `palette`; empty
-    # unless both `has_color_categories` and `Theme.shape_by_category` are
-    # true. `has_shapes` names that combination.
-    var has_shapes: Bool
-    var shapes: List[PointShape]
-    var color_scale: ColorScale
-    var size_mm: MinMax
-    var size_scale: LinearScale
-
-    def __init__(out self, plot: Plot, sc: _Scaled) raises:
-        self.has_color = len(plot._channels.color) > 0
-        self.has_color_categories = len(plot._channels.color_categories) > 0
-        self.has_size = len(plot._channels.size) > 0
-        # Branch rather than resolving an empty column: `plot` is borrowed, so
-        # a ternary would need a full copy of `color_categories`.
-        if self.has_color_categories:
-            self.cat = _categorical_indices(plot._channels.color_categories)
-        else:
-            self.cat = _CategoricalIndex(List[String](), List[Int]())
-        self.palette = List[Color]()
-        if self.has_color_categories:
-            var default_palette = categorical_palette_for(plot._theme)
-            for i in range(len(self.cat.domain)):
-                var name = self.cat.domain[i]
-                if name in plot._channels.color_map:
-                    self.palette.append(plot._channels.color_map[name])
-                else:
-                    self.palette.append(
-                        default_palette[i % len(default_palette)]
-                    )
-        self.has_shapes = (
-            self.has_color_categories and plot._theme.shape_by_category
-        )
-        self.shapes = List[PointShape]()
-        if self.has_shapes:
-            var default_shapes = default_marker_shapes()
-            for i in range(len(self.cat.domain)):
-                # By name first, by position otherwise -- the same rule
-                # the palette above follows, so a figure can pin both
-                # channels the same way (#365).
-                var name = self.cat.domain[i]
-                if name in plot._channels.shape_map:
-                    self.shapes.append(plot._channels.shape_map[name])
-                else:
-                    self.shapes.append(default_shapes[i % len(default_shapes)])
-        var color_mm = _min_max(
-            plot._channels.color
-        ) if self.has_color else MinMax(0.0, 1.0)
-        # Only a numeric color channel has a domain for an override to
-        # act on; a categorical or absent one leaves the scale unused, so
-        # asking `_color_scale_for` about it would raise over a setting
-        # `_validate_color_domain` has already refused for this plot.
-        self.color_scale = _color_scale_for(
-            plot._theme, plot._color_domain, color_mm.min, color_mm.max
-        ) if self.has_color else ColorScale.from_theme(
-            plot._theme, color_mm.min, color_mm.max
-        )
-        self.size_mm = _min_max(
-            plot._channels.size
-        ) if self.has_size else MinMax(0.0, 1.0)
-        self.size_scale = LinearScale(
-            self.size_mm.min,
-            self.size_mm.max,
-            sc.size_range_min,
-            sc.size_range_max,
-        )
-
-
 def _lighten(color: Color, alpha: UInt8, background: Color) -> Color:
     """`color` at `alpha` flattened over `background`, kept fully opaque
     -- for `Mark.EFFECT_SCATTER`'s halo (`Theme.halo_alpha`) and
@@ -612,7 +516,15 @@ def _draw_point_layer[
         # text is replayed after this pass (see _TextRequest).
         var tooltip = plot._tooltips_on(len(plot._continuous.y))
         if tooltip:
-            target.begin_annotated_group(_point_tooltip_label(plot, i))
+            target.begin_annotated_group(
+                _point_tooltip_label(
+                    plot._channels,
+                    plot._continuous.x,
+                    plot._continuous.y,
+                    plot._mark,
+                    i,
+                )
+            )
         if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
             # Whisker first, point on top, in this point's own resolved `color`.
             # y_err and y_err_lower/y_err_upper are mutually exclusive, so exactly

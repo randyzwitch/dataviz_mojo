@@ -9,7 +9,20 @@ show that the numbers reached the glyph.
 from std.utils.numerics import isfinite, isnan
 from std.math import sqrt
 
-from dataviz.distributions.box import _percentile
+
+def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
+    """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values` (already
+    sorted ascending by the caller) via linear interpolation between the
+    two nearest ranks, `numpy.percentile`'s default method.
+    `sorted_values` must be non-empty; `Plot.encode_boxplot()` raises
+    before that can happen.
+    """
+    var n = len(sorted_values)
+    var idx = p * Float64(n - 1)
+    var lo = Int(idx)
+    var hi = lo + 1 if lo + 1 < n else lo
+    var frac = idx - Float64(lo)
+    return sorted_values[lo] + frac * (sorted_values[hi] - sorted_values[lo])
 
 
 def _pearson_correlation(x: List[Float64], y: List[Float64]) raises -> Float64:

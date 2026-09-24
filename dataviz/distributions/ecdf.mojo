@@ -186,7 +186,14 @@ def _render_ecdf[
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _position_x_extent(plot, values),
+        _position_x_extent(
+            values,
+            mark=plot._mark,
+            x_log=plot._x_log,
+            x_symlog=plot._x_symlog,
+            x_symlog_linthresh=plot._x_symlog_linthresh,
+            y_symlog=plot._y_symlog,
+        ),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,
         _LegendLayout(),

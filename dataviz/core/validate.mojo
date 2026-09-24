@@ -3,23 +3,15 @@
 from std.math import log10
 from std.utils.numerics import isfinite, isnan
 
-from dataviz.basic.continuous import (
-    _draw_area_layer,
-    _draw_line_layer,
-    area,
-    line,
-)
-from dataviz.layers import _render_layers_generic, render_layers
 from dataviz.core.axis_controls import _TickOverride
+from dataviz.core.color_scale import _ColorDomainOverride
 from dataviz.core.mark import Feature, Mark, _supporting_names
-from dataviz.plot import (
-    Plot,
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ChannelData,
+    _ContinuousData,
     _DomainOverride,
-    _RenderResult,
-    _data_extent,
-    _log_data_extent,
-    _render_generic,
-    render,
+    _ErrorBarData,
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
@@ -36,7 +28,12 @@ def _require_non_empty(count: Int, context: String) raises:
         )
 
 
-def _validate_categorical_encoding(plot: Plot) raises:
+def _validate_categorical_encoding(
+    categorical: _CategoricalData,
+    continuous: _ContinuousData,
+    y_err: _ErrorBarData,
+    mark: Mark,
+) raises:
     """`Plot.encode_categorical()`'s length check plus its empty-data check
        (`_require_non_empty`), shared by every mark reading a
        category/value pair. Also validates `y_err`/`y_err_lower`/`y_err_upper`
@@ -44,19 +41,19 @@ def _validate_categorical_encoding(plot: Plot) raises:
        `encode()`'s same three channels but against `_categorical.x`' length and
        restricted to `Mark.BAR` -- the only categorical mark drawing them today.
     """
-    if len(plot._categorical.x) != len(plot._continuous.y):
+    if len(categorical.x) != len(continuous.y):
         raise Error(
             "Plot.encode_categorical(): x and y must have the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " and "
-            + String(len(plot._continuous.y))
+            + String(len(continuous.y))
             + ")"
         )
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_categorical()")
+    _require_non_empty(len(categorical.x), "Plot.encode_categorical()")
 
-    var has_y_err = len(plot._y_err.symmetric) > 0
-    var has_y_err_lower = len(plot._y_err.lower) > 0
-    var has_y_err_upper = len(plot._y_err.upper) > 0
+    var has_y_err = len(y_err.symmetric) > 0
+    var has_y_err_lower = len(y_err.lower) > 0
+    var has_y_err_upper = len(y_err.upper) > 0
     if not (has_y_err or has_y_err_lower or has_y_err_upper):
         return
 
@@ -70,48 +67,48 @@ def _validate_categorical_encoding(plot: Plot) raises:
             "Plot.encode_categorical(): y_err and y_err_lower/y_err_upper are"
             " mutually exclusive -- pass one or the other, not both"
         )
-    if not (plot._mark == Mark.BAR or plot._mark == Mark.POINTPLOT):
+    if not (mark == Mark.BAR or mark == Mark.POINTPLOT):
         raise Error(
             "Plot.encode_categorical(): y_err/y_err_lower/y_err_upper is only"
             " supported for Mark.BAR and Mark.POINTPLOT today"
         )
-    if has_y_err and len(plot._y_err.symmetric) != len(plot._categorical.x):
+    if has_y_err and len(y_err.symmetric) != len(categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err must be the same length as"
             " x/y (got "
-            + String(len(plot._y_err.symmetric))
+            + String(len(y_err.symmetric))
             + " and "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + ")"
         )
     if has_y_err:
-        for v in plot._y_err.symmetric:
+        for v in y_err.symmetric:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err values must be >= 0 (got "
                     + String(v)
                     + ")"
                 )
-    if has_y_err_lower and len(plot._y_err.lower) != len(plot._categorical.x):
+    if has_y_err_lower and len(y_err.lower) != len(categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err_lower must be the same length"
             " as x/y (got "
-            + String(len(plot._y_err.lower))
+            + String(len(y_err.lower))
             + " and "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + ")"
         )
-    if has_y_err_upper and len(plot._y_err.upper) != len(plot._categorical.x):
+    if has_y_err_upper and len(y_err.upper) != len(categorical.x):
         raise Error(
             "Plot.encode_categorical(): y_err_upper must be the same length"
             " as x/y (got "
-            + String(len(plot._y_err.upper))
+            + String(len(y_err.upper))
             + " and "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + ")"
         )
     if has_y_err_lower:
-        for v in plot._y_err.lower:
+        for v in y_err.lower:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err_lower values must be"
@@ -120,7 +117,7 @@ def _validate_categorical_encoding(plot: Plot) raises:
                     + ")"
                 )
     if has_y_err_upper:
-        for v in plot._y_err.upper:
+        for v in y_err.upper:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_categorical(): y_err_upper values must be"
@@ -168,7 +165,13 @@ def _require_some_positive(
     return largest
 
 
-def _validate_continuous_encoding(plot: Plot, context: String) raises:
+def _validate_continuous_encoding(
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    mark: Mark,
+    context: String,
+) raises:
     """Every check `Plot.encode()`'s channels need before a continuous-axis
     render starts, shared by `_render_generic` and
     `_render_layers_generic`. `context` prefixes each message
@@ -176,36 +179,36 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     `render_layers()` enforces is specific to layering and stays at its
     call site (`_is_layerable_mark`, layers.mojo).
     """
-    if len(plot._continuous.x) != len(plot._continuous.y):
+    if len(continuous.x) != len(continuous.y):
         raise Error(
             context
             + ": x and y must have the same length (got "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + " and "
-            + String(len(plot._continuous.y))
+            + String(len(continuous.y))
             + ")"
         )
-    var has_color = len(plot._channels.color) > 0
-    var has_color_categories = len(plot._channels.color_categories) > 0
-    var has_size = len(plot._channels.size) > 0
-    if has_color and len(plot._channels.color) != len(plot._continuous.x):
+    var has_color = len(channels.color) > 0
+    var has_color_categories = len(channels.color_categories) > 0
+    var has_size = len(channels.size) > 0
+    if has_color and len(channels.color) != len(continuous.x):
         raise Error(
             context
             + ": color must be the same length as x/y (got "
-            + String(len(plot._channels.color))
+            + String(len(channels.color))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
-    if has_color_categories and len(plot._channels.color_categories) != len(
-        plot._continuous.x
+    if has_color_categories and len(channels.color_categories) != len(
+        continuous.x
     ):
         raise Error(
             context
             + ": color_categories must be the same length as x/y (got "
-            + String(len(plot._channels.color_categories))
+            + String(len(channels.color_categories))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
     if has_color and has_color_categories:
@@ -214,17 +217,17 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ": color and color_categories are mutually exclusive -- pass"
             " one or the other, not both"
         )
-    if has_size and len(plot._channels.size) != len(plot._continuous.x):
+    if has_size and len(channels.size) != len(continuous.x):
         raise Error(
             context
             + ": size must be the same length as x/y (got "
-            + String(len(plot._channels.size))
+            + String(len(channels.size))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
-        plot._mark.supports(Feature.COLOR_SIZE)
+        mark.supports(Feature.COLOR_SIZE)
     ):
         raise Error(
             context
@@ -232,18 +235,18 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + _supporting_names(Feature.COLOR_SIZE)
             + " today"
         )
-    var has_y_err = len(plot._y_err.symmetric) > 0
-    if has_y_err and len(plot._y_err.symmetric) != len(plot._continuous.x):
+    var has_y_err = len(y_err.symmetric) > 0
+    if has_y_err and len(y_err.symmetric) != len(continuous.x):
         raise Error(
             context
             + ": y_err must be the same length as x/y (got "
-            + String(len(plot._y_err.symmetric))
+            + String(len(y_err.symmetric))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
     if has_y_err:
-        for v in plot._y_err.symmetric:
+        for v in y_err.symmetric:
             if v < 0.0:
                 raise Error(
                     context
@@ -256,9 +259,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
     # per-point confidence whisker on a line is common (see
     # _draw_line_layer).
     if has_y_err and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.EFFECT_SCATTER
+        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
             context
@@ -266,8 +267,8 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " today"
         )
 
-    var has_y_err_lower = len(plot._y_err.lower) > 0
-    var has_y_err_upper = len(plot._y_err.upper) > 0
+    var has_y_err_lower = len(y_err.lower) > 0
+    var has_y_err_upper = len(y_err.upper) > 0
     if has_y_err_lower != has_y_err_upper:
         raise Error(
             context
@@ -280,26 +281,26 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             + ": y_err and y_err_lower/y_err_upper are mutually exclusive --"
             " pass one or the other, not both"
         )
-    if has_y_err_lower and len(plot._y_err.lower) != len(plot._continuous.x):
+    if has_y_err_lower and len(y_err.lower) != len(continuous.x):
         raise Error(
             context
             + ": y_err_lower must be the same length as x/y (got "
-            + String(len(plot._y_err.lower))
+            + String(len(y_err.lower))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
-    if has_y_err_upper and len(plot._y_err.upper) != len(plot._continuous.x):
+    if has_y_err_upper and len(y_err.upper) != len(continuous.x):
         raise Error(
             context
             + ": y_err_upper must be the same length as x/y (got "
-            + String(len(plot._y_err.upper))
+            + String(len(y_err.upper))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
     if has_y_err_lower:
-        for v in plot._y_err.lower:
+        for v in y_err.lower:
             if v < 0.0:
                 raise Error(
                     context
@@ -308,7 +309,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
                     + ")"
                 )
     if has_y_err_upper:
-        for v in plot._y_err.upper:
+        for v in y_err.upper:
             if v < 0.0:
                 raise Error(
                     context
@@ -317,9 +318,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
                     + ")"
                 )
     if (has_y_err_lower or has_y_err_upper) and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.EFFECT_SCATTER
+        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
     ):
         raise Error(
             context
@@ -327,7 +326,7 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " Mark.POINT/LINE/EFFECT_SCATTER today"
         )
 
-    if len(plot._channels.color_map) > 0 and not has_color_categories:
+    if len(channels.color_map) > 0 and not has_color_categories:
         raise Error(
             context
             + ": color_map is only meaningful alongside color_categories --"
@@ -335,21 +334,17 @@ def _validate_continuous_encoding(plot: Plot, context: String) raises:
             " color_map with color_categories empty"
         )
 
-    var has_labels = len(plot._channels.point_labels) > 0
-    if has_labels and len(plot._channels.point_labels) != len(
-        plot._continuous.x
-    ):
+    var has_labels = len(channels.point_labels) > 0
+    if has_labels and len(channels.point_labels) != len(continuous.x):
         raise Error(
             context
             + ": labels must be the same length as x/y (got "
-            + String(len(plot._channels.point_labels))
+            + String(len(channels.point_labels))
             + " and "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + ")"
         )
-    if has_labels and not (
-        plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER
-    ):
+    if has_labels and not (mark == Mark.POINT or mark == Mark.EFFECT_SCATTER):
         raise Error(
             context
             + ": labels is only supported for Mark.POINT/EFFECT_SCATTER today"
@@ -444,7 +439,7 @@ def _validate_domain_override(
         )
 
 
-def _mark_colors_by_value(plot: Plot) -> Bool:
+def _mark_colors_by_value(mark: Mark, channels: _ChannelData) -> Bool:
     """Whether this plot's colors encode a continuous data value, and so
     whether `Plot.scale_color_domain()`/`scale_color_center()` have
     anything to act on.
@@ -461,36 +456,39 @@ def _mark_colors_by_value(plot: Plot) -> Bool:
     accepting one would be accepting a setting that does nothing.
 
     Args:
-        plot: The chart about to be rendered.
+        mark: The mark about to be rendered.
+        channels: Its color channel.
 
     Returns:
         True when a continuous color domain applies.
     """
     if (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.SINGLE_AXIS
-        or plot._mark == Mark.EFFECT_SCATTER
+        mark == Mark.POINT
+        or mark == Mark.SINGLE_AXIS
+        or mark == Mark.EFFECT_SCATTER
     ):
-        return len(plot._channels.color) > 0
+        return len(channels.color) > 0
     return (
-        plot._mark == Mark.HEATMAP
-        or plot._mark == Mark.CALENDAR_HEATMAP
-        or plot._mark == Mark.CORRPLOT
-        or plot._mark == Mark.IMSHOW
-        or plot._mark == Mark.PCOLORMESH
-        or plot._mark == Mark.HIST2D
-        or plot._mark == Mark.HEXBIN
-        or plot._mark == Mark.CONTOUR
-        or plot._mark == Mark.CONTOURF
-        or plot._mark == Mark.TRICONTOUR
-        or plot._mark == Mark.TRICONTOURF
-        or plot._mark == Mark.TRIPCOLOR
-        or plot._mark == Mark.QUIVER
-        or plot._mark == Mark.STREAMPLOT
+        mark == Mark.HEATMAP
+        or mark == Mark.CALENDAR_HEATMAP
+        or mark == Mark.CORRPLOT
+        or mark == Mark.IMSHOW
+        or mark == Mark.PCOLORMESH
+        or mark == Mark.HIST2D
+        or mark == Mark.HEXBIN
+        or mark == Mark.CONTOUR
+        or mark == Mark.CONTOURF
+        or mark == Mark.TRICONTOUR
+        or mark == Mark.TRICONTOURF
+        or mark == Mark.TRIPCOLOR
+        or mark == Mark.QUIVER
+        or mark == Mark.STREAMPLOT
     )
 
 
-def _validate_color_domain(plot: Plot) raises:
+def _validate_color_domain(
+    color_domain: _ColorDomainOverride, mark: Mark, channels: _ChannelData
+) raises:
     """Refuse a color-domain override on a mark that has no continuous
     color channel to apply it to.
 
@@ -502,13 +500,13 @@ def _validate_color_domain(plot: Plot) raises:
     never reach `_color_scale_for()` at all, and an ignored setting is
     exactly the failure this API exists to prevent.
     """
-    if not (plot._color_domain.has or plot._color_domain.has_center):
+    if not (color_domain.has or color_domain.has_center):
         return
-    if _mark_colors_by_value(plot):
+    if _mark_colors_by_value(mark, channels):
         return
     raise Error(
         "Plot.scale_color_domain()/scale_color_center(): "
-        + plot._mark.name()
+        + mark.name()
         + " has no continuous color channel for a color domain to apply to"
         " -- these apply to the marks that color by a value (HEATMAP,"
         " CALENDAR_HEATMAP, CORRPLOT, IMSHOW, PCOLORMESH, HIST2D, HEXBIN,"
@@ -715,7 +713,9 @@ def _check_grid_coordinates(
             )
 
 
-def _check_missing_policy(plot: Plot) raises:
+def _check_missing_policy(
+    theme: Theme, continuous: _ContinuousData, channels: _ChannelData
+) raises:
     """Refuse missing values when the theme asks for strictness (#367).
 
     `Missing.DRAW`, the default, lets a `NaN` through to the marks,
@@ -728,18 +728,20 @@ def _check_missing_policy(plot: Plot) raises:
     a number no axis can place.
 
     Args:
-        plot: The chart about to render.
+        theme: The theme, for its missing-data policy.
+        continuous: The x and y channels.
+        channels: The color and size channels.
 
     Raises:
         Error: `Theme.missing` is `Missing.RAISE` and a numeric channel
             holds a missing value.
     """
-    if plot._theme.missing != Missing.RAISE:
+    if theme.missing != Missing.RAISE:
         return
-    _reject_missing(plot._continuous.x, "x")
-    _reject_missing(plot._continuous.y, "y")
-    _reject_missing(plot._channels.color, "color")
-    _reject_missing(plot._channels.size, "size")
+    _reject_missing(continuous.x, "x")
+    _reject_missing(continuous.y, "y")
+    _reject_missing(channels.color, "color")
+    _reject_missing(channels.size, "size")
 
 
 def _reject_missing(values: List[Float64], channel: String) raises:
@@ -763,7 +765,9 @@ def _reject_missing(values: List[Float64], channel: String) raises:
             )
 
 
-def _check_unsupported_flags(plot: Plot) raises:
+def _check_unsupported_flags(
+    mark: Mark, theme: Theme, horizontal: Bool, tooltip_policy: Tooltips
+) raises:
     """Raise when `Theme.show_data_labels`, `horizontal=True` or
     `Tooltips.ON` is set on a mark that ignores it (#676, #700).
 
@@ -782,36 +786,35 @@ def _check_unsupported_flags(plot: Plot) raises:
     orientation in their own encoders' data, and both support it.
 
     Args:
-        plot: The chart about to render.
+        mark: The mark about to render.
+        theme: Its theme, for `show_data_labels`.
+        horizontal: Whether `horizontal=True` was set.
+        tooltip_policy: The tooltip policy in force.
 
     Raises:
         Error: Any of the three set on a mark that does not support it, naming
             the mark and the marks that do.
     """
-    if plot._theme.show_data_labels and not plot._mark.supports(
-        Feature.DATA_LABELS
-    ):
+    if theme.show_data_labels and not mark.supports(Feature.DATA_LABELS):
         raise Error(
             "Theme.show_data_labels: "
-            + plot._mark.name()
+            + mark.name()
             + " draws no data labels. It is supported for "
             + _supporting_names(Feature.DATA_LABELS)
             + " today"
         )
-    if plot._horizontal and not plot._mark.supports(Feature.HORIZONTAL):
+    if horizontal and not mark.supports(Feature.HORIZONTAL):
         raise Error(
             "horizontal=True: "
-            + plot._mark.name()
+            + mark.name()
             + " has no horizontal form. It is supported for "
             + _supporting_names(Feature.HORIZONTAL)
             + " today"
         )
-    if plot._tooltip_policy() == Tooltips.ON and not plot._mark.supports(
-        Feature.TOOLTIPS
-    ):
+    if tooltip_policy == Tooltips.ON and not mark.supports(Feature.TOOLTIPS):
         raise Error(
             "Tooltips.ON: "
-            + plot._mark.name()
+            + mark.name()
             + " draws no tooltips. They are supported for "
             + _supporting_names(Feature.TOOLTIPS)
             + " today"

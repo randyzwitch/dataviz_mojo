@@ -5,7 +5,7 @@ back."""
 
 from dataviz.core.mark import Mark
 from dataviz.core.scale import _format_fixed, _label_decimals
-from dataviz.plot import Plot
+from dataviz.core.plot_fields import _ChannelData
 
 
 def _tooltip_label(category: String, value: Float64) -> String:
@@ -33,7 +33,13 @@ def _series_tooltip_label(
     )
 
 
-def _point_tooltip_label(plot: Plot, i: Int) -> String:
+def _point_tooltip_label(
+    channels: _ChannelData,
+    x_data: List[Float64],
+    y_data: List[Float64],
+    mark: Mark,
+    i: Int,
+) -> String:
     """One scatter point's hover text: the row's `encode(labels=...)` entry
     when it has one, otherwise its coordinates, `"3.5, 12"`.
 
@@ -42,23 +48,12 @@ def _point_tooltip_label(plot: Plot, i: Int) -> String:
     column zero -- so the pair form read `"3.5, 0"` and reported a
     coordinate the chart does not have (#683).
     """
-    if (
-        len(plot._channels.point_labels) > 0
-        and plot._channels.point_labels[i] != ""
-    ):
-        return plot._channels.point_labels[i]
-    var x = _format_fixed(
-        plot._continuous.x[i], _label_decimals(plot._continuous.x[i])
-    )
-    if plot._mark == Mark.SINGLE_AXIS:
+    if len(channels.point_labels) > 0 and channels.point_labels[i] != "":
+        return channels.point_labels[i]
+    var x = _format_fixed(x_data[i], _label_decimals(x_data[i]))
+    if mark == Mark.SINGLE_AXIS:
         return x
-    return (
-        x
-        + ", "
-        + _format_fixed(
-            plot._continuous.y[i], _label_decimals(plot._continuous.y[i])
-        )
-    )
+    return x + ", " + _format_fixed(y_data[i], _label_decimals(y_data[i]))
 
 
 def _xyz_tooltip_label(x: Float64, y: Float64, z: Float64) -> String:

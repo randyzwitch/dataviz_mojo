@@ -50,7 +50,6 @@ from dataviz.categorical.stacked_bar import (
 from dataviz.multivariate.barbs import _draw_barbs_layer, _validate_barbs
 from dataviz.binned.histogram import _draw_histogram_layer
 from dataviz.basic.continuous import (
-    _PointChannels,
     _build_line_path,
     _draw_area_layer,
     _draw_line_layer,
@@ -59,6 +58,7 @@ from dataviz.basic.continuous import (
     area,
     line,
 )
+from dataviz.core.point_channels import _PointChannels
 from dataviz.facets import _require_uniform_size
 from dataviz.core.frame import (
     _Orientation,
@@ -254,7 +254,16 @@ def _draw_layers_figure[
         target.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
     var sc = _Scaled(plots[0]._theme)
     var y2_title = _secondary_axis_y_title(plots)
-    var frame = _apply_labels(plots[0], 0, 0, cx1, cy1, cache=cache)
+    var frame = _apply_labels(
+        plots[0]._labels,
+        plots[0]._mark,
+        plots[0]._theme,
+        0,
+        0,
+        cx1,
+        cy1,
+        cache=cache,
+    )
     if y2_title.byte_length() > 0:
         # Mirrors _apply_labels's extra_left reservation for the primary
         # y_title, on the right edge; _apply_labels only sees plots[0], not the
@@ -270,7 +279,8 @@ def _draw_layers_figure[
         cache=cache,
     )
     var label_requests = _label_text_requests(
-        plots[0],
+        plots[0]._labels,
+        plots[0]._theme,
         0,
         0,
         cx1,
@@ -498,7 +508,12 @@ def _render_bar_combo_layers[
         ):
             continue
         if mark == Mark.BAR:
-            _validate_categorical_encoding(plots[i])
+            _validate_categorical_encoding(
+                plots[i]._categorical,
+                plots[i]._continuous,
+                plots[i]._y_err,
+                plots[i]._mark,
+            )
             bar_count += 1
         else:
             _validate_grouped_bar_series(plots[i])
@@ -779,7 +794,12 @@ def _render_bar_combo_layers[
             # signature is shared with the continuous path, so a
             # placeholder domain goes in rather than an Optional.
             var unused_x = LinearScale(0.0, 1.0, 0.0, 1.0)
-            var ch = _PointChannels(plots[i], layer_sc)
+            var ch = _PointChannels(
+                plots[i]._channels,
+                plots[i]._theme,
+                plots[i]._color_domain,
+                layer_sc,
+            )
             var unused_legend = List[_TextRequest]()
             _ = _draw_point_layer(
                 target,
@@ -1422,7 +1442,9 @@ def _render_layers_generic[
         # Color domains are per-layer, not merged: each layer draws its
         # own mark with its own colors, and only one layer in an overlay
         # normally carries a continuous color channel at all.
-        _validate_color_domain(plots[i])
+        _validate_color_domain(
+            plots[i]._color_domain, plots[i]._mark, plots[i]._channels
+        )
         if plots[i]._x_domain.has:
             _validate_domain_override(
                 plots[i]._x_domain, plots[i]._x_log, "Plot.scale_x_domain"
@@ -1490,9 +1512,15 @@ def _render_layers_generic[
                 + ")"
             )
         _validate_continuous_encoding(
-            plots[i], "render_layers(): layer " + String(i)
+            plots[i]._continuous,
+            plots[i]._channels,
+            plots[i]._y_err,
+            plots[i]._mark,
+            "render_layers(): layer " + String(i),
         )
-        _validate_log_scale_annotations(plots[i])
+        _validate_log_scale_annotations(
+            plots[i]._annotations, plots[i]._x_log, plots[i]._y_log
+        )
         # Last in the loop so the layering-specific rejections above are
         # what a caller meets first; this is where a layer's own
         # encode-time checks (column lengths, level counts) run.
@@ -1685,9 +1713,11 @@ def _render_layers_generic[
     var legend_width = 0
     for j in range(len(plots)):
         var p_sc_j = _Scaled(plots[j]._theme)
-        var ch_j = _PointChannels(plots[j], p_sc_j)
+        var ch_j = _PointChannels(
+            plots[j]._channels, plots[j]._theme, plots[j]._color_domain, p_sc_j
+        )
         var layer_legend = _legend_reserve_for(
-            plots[j], ch_j, p_sc_j, cache=cache
+            plots[j]._mark, plots[j]._theme, ch_j, p_sc_j, cache=cache
         )
         legend_width = max(legend_width, layer_legend.left + layer_legend.right)
     if len(series_names) > 0:
@@ -1831,12 +1861,20 @@ def _render_layers_generic[
             True,
         )
         var under_areas = _draw_annotation_areas(
-            target, plots[j], under_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            under_result,
+            plots[j]._theme,
+            cache=cache,
         )
         for k in range(len(under_areas)):
             text_requests.append(under_areas[k].copy())
         var under_bands = _draw_annotation_bands(
-            target, plots[j], under_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            under_result,
+            plots[j]._theme,
+            cache=cache,
         )
         for k in range(len(under_bands)):
             text_requests.append(under_bands[k].copy())
@@ -1851,7 +1889,12 @@ def _render_layers_generic[
         if mark == Mark.POINT or mark == Mark.EFFECT_SCATTER:
             if len(plots[j]._continuous.x) == 0:
                 continue
-            var ch_j = _PointChannels(plots[j], layer_sc)
+            var ch_j = _PointChannels(
+                plots[j]._channels,
+                plots[j]._theme,
+                plots[j]._color_domain,
+                layer_sc,
+            )
             legend_y = _draw_point_layer(
                 target,
                 text_requests,
@@ -1983,17 +2026,42 @@ def _render_layers_generic[
         var layer_area_requests = List[_TextRequest]()
         var layer_band_requests = List[_TextRequest]()
         var layer_vline_requests = _draw_annotation_vlines(
-            target, plots[j], layer_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            layer_result,
+            plots[j]._theme,
+            cache=cache,
         )
         var layer_line_requests = _draw_annotation_lines(
-            target, plots[j], layer_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            layer_result,
+            plots[j]._theme,
+            cache=cache,
         )
         var layer_point_requests = _draw_annotation_points(
-            target, plots[j], layer_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            layer_result,
+            plots[j]._theme,
+            cache=cache,
         )
-        _draw_annotation_smooth(target, plots[j], layer_result, plots[j]._theme)
+        _draw_annotation_smooth(
+            target,
+            plots[j]._annotations,
+            plots[j]._continuous.x,
+            plots[j]._continuous.y,
+            layer_result,
+            plots[j]._theme,
+        )
         var layer_best_fit_requests = _draw_annotation_best_fit(
-            target, plots[j], layer_result, plots[j]._theme, cache=cache
+            target,
+            plots[j]._annotations,
+            plots[j]._continuous.x,
+            plots[j]._continuous.y,
+            layer_result,
+            plots[j]._theme,
+            cache=cache,
         )
         _extend_text_requests(text_requests, layer_area_requests)
         _extend_text_requests(text_requests, layer_band_requests)

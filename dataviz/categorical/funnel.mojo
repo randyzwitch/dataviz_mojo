@@ -84,7 +84,9 @@ def _render_funnel[
     Row width is relative to the largest value. Colors and legend entries
     follow the sorted display order.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     _require_non_negative(plot._continuous.y, "Mark.FUNNEL")

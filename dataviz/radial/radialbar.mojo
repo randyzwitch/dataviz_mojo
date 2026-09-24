@@ -46,7 +46,9 @@ def _render_radialbar[
     The first category is outermost. Each clockwise arc starts at 12 o'clock
     and spans its value relative to the largest value.
     """
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     var theme = plot._theme
     var text_requests = List[_TextRequest]()

@@ -4,7 +4,7 @@ Split out of plot.mojo, which imports every name here back."""
 
 from std.math import log10
 from dataviz.core.scale import LinearScale, _min_max, _symlog_forward
-from dataviz.plot import Plot
+from dataviz.core.mark import Mark
 
 
 def _data_extent(data: List[Float64]) raises -> LinearScale:
@@ -100,7 +100,15 @@ def _symlog_data_extent(
     )
 
 
-def _position_x_extent(plot: Plot, values: List[Float64]) raises -> LinearScale:
+def _position_x_extent(
+    values: List[Float64],
+    *,
+    mark: Mark,
+    x_log: Bool,
+    x_symlog: Bool,
+    x_symlog_linthresh: Float64,
+    y_symlog: Bool,
+) raises -> LinearScale:
     """The x domain for a mark that only places positions: log, symlog or
     linear, the same choice `_render_generic` makes for POINT (#687).
 
@@ -113,8 +121,12 @@ def _position_x_extent(plot: Plot, values: List[Float64]) raises -> LinearScale:
     validation and then change nothing. It raises here instead.
 
     Args:
-        plot: The chart, for its scale flags.
         values: The observations.
+        mark: The mark, named in the error.
+        x_log: `scale_x_log()` was set.
+        x_symlog: `scale_x_symlog()` was set.
+        x_symlog_linthresh: Its linear threshold.
+        y_symlog: `scale_y_symlog()` was set, which raises here.
 
     Returns:
         The x domain.
@@ -123,17 +135,17 @@ def _position_x_extent(plot: Plot, values: List[Float64]) raises -> LinearScale:
         Error: `scale_y_symlog()` was set, or a value is not positive
             under `scale_x_log()`.
     """
-    if plot._y_symlog:
+    if y_symlog:
         raise Error(
             "Plot.scale_y_symlog(): "
-            + plot._mark.name()
+            + mark.name()
             + " has no y axis to transform. scale_x_log() and"
             " scale_x_symlog() apply to its x axis"
         )
-    if plot._x_log:
+    if x_log:
         return _log_data_extent(values)
-    if plot._x_symlog:
-        return _symlog_data_extent(values, plot._x_symlog_linthresh)
+    if x_symlog:
+        return _symlog_data_extent(values, x_symlog_linthresh)
     return _data_extent(values)
 
 

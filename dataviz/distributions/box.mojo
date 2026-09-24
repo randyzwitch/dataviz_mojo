@@ -4,7 +4,7 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
 
-from dataviz.core.stats import _present
+from dataviz.core.stats import _present, _percentile
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
@@ -49,21 +49,6 @@ struct _BoxData(Copyable, Movable):
         self.high = List[Float64]()
         self.outlier_cat = List[Int]()
         self.outlier_value = List[Float64]()
-
-
-def _percentile(sorted_values: List[Float64], p: Float64) -> Float64:
-    """The `p`-th percentile (`p` in `[0, 1]`) of `sorted_values` (already
-    sorted ascending by the caller) via linear interpolation between the
-    two nearest ranks, `numpy.percentile`'s default method.
-    `sorted_values` must be non-empty; `Plot.encode_boxplot()` raises
-    before that can happen.
-    """
-    var n = len(sorted_values)
-    var idx = p * Float64(n - 1)
-    var lo = Int(idx)
-    var hi = lo + 1 if lo + 1 < n else lo
-    var frac = idx - Float64(lo)
-    return sorted_values[lo] + frac * (sorted_values[hi] - sorted_values[lo])
 
 
 struct _BoxStats(Movable):

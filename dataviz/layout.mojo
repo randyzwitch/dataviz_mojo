@@ -356,7 +356,14 @@ def _measure_alignment_insets(
         var cell_y0 = y_edges[c.row]
         var cell_y1 = y_edges[c.row + c.row_span] - gutter
         var frame = _apply_labels(
-            plots[i], cell_x0, cell_y0, cell_x1, cell_y1, cache=scratch_cache
+            plots[i]._labels,
+            plots[i]._mark,
+            plots[i]._theme,
+            cell_x0,
+            cell_y0,
+            cell_x1,
+            cell_y1,
+            cache=scratch_cache,
         )
         var probe = _render_generic(
             scratch,
@@ -626,7 +633,14 @@ def _render_cells_generic[
         var laid_y0 = cell_y0 + inset_top[i]
         var laid_y1 = cell_content_y1 - inset_bottom[i]
         var frame = _apply_labels(
-            plots[i], laid_x0, laid_y0, laid_x1, laid_y1, cache=cache
+            plots[i]._labels,
+            plots[i]._mark,
+            plots[i]._theme,
+            laid_x0,
+            laid_y0,
+            laid_x1,
+            laid_y1,
+            cache=cache,
         )
         var cell_result = _render_generic(
             target,
@@ -642,7 +656,8 @@ def _render_cells_generic[
             cache=cache,
         )
         var label_requests = _label_text_requests(
-            plots[i],
+            plots[i]._labels,
+            plots[i]._theme,
             cell_x0,
             cell_y0,
             cell_x1,
@@ -660,25 +675,58 @@ def _render_cells_generic[
         var cell_area_requests = List[
             _TextRequest
         ]() if cell_under else _draw_annotation_areas(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
         var cell_band_requests = List[
             _TextRequest
         ]() if cell_under else _draw_annotation_bands(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
         var cell_vline_requests = _draw_annotation_vlines(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
         var cell_line_requests = _draw_annotation_lines(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
         var cell_point_requests = _draw_annotation_points(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
-        _draw_annotation_smooth(target, plots[i], cell_result, plots[i]._theme)
+        _draw_annotation_smooth(
+            target,
+            plots[i]._annotations,
+            plots[i]._continuous.x,
+            plots[i]._continuous.y,
+            cell_result,
+            plots[i]._theme,
+        )
         var cell_best_fit_requests = _draw_annotation_best_fit(
-            target, plots[i], cell_result, plots[i]._theme, cache=cache
+            target,
+            plots[i]._annotations,
+            plots[i]._continuous.x,
+            plots[i]._continuous.y,
+            cell_result,
+            plots[i]._theme,
+            cache=cache,
         )
         _extend_text_requests(text_requests, label_requests)
         _extend_text_requests(text_requests, cell_area_requests)

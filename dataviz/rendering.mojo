@@ -1,9 +1,8 @@
 """The rendering pipeline and every output entry point: `render()`,
 `render_svg()`, `render_pdf()`, the `render_tight*()` variants,
 `save()` and the accessible-SVG writers, plus the `[T: DrawTarget]`
-core they share (`_render_generic`, `_draw_figure_into`,
-`_RenderResult`) and the supersample, dpi and output-format
-resolution around it.
+core they share (`_render_generic`, `_draw_figure_into`) and the
+supersample, dpi and output-format resolution around it.
 
 Split out of plot.mojo, which imports every name here back, so `from
 dataviz.plot import render` still resolves; see plot.mojo's header for
@@ -18,11 +17,11 @@ from canvas.vector.pdf import PdfCanvas, write_pdf
 from canvas.vector.svg import SvgCanvas
 from canvas.text.font_cache import FontCache
 from dataviz.basic.continuous import (
-    _PointChannels,
     _draw_area_layer,
     _draw_line_layer,
     _draw_point_layer,
 )
+from dataviz.core.point_channels import _PointChannels
 from dataviz.layout import (
     Figure,
     render_grid,
@@ -68,6 +67,7 @@ from dataviz.core.annotations import (
 )
 from dataviz.core.mark import Feature, Mark, _supporting_names
 from dataviz.core.output_format import OutputFormat
+from dataviz.core.render_result import _RenderResult
 from dataviz.core.scale import LinearScale
 from dataviz.binned.histogram import _draw_histogram_layer
 from dataviz.plot import Plot, _LabelData
@@ -77,63 +77,6 @@ from dataviz.core.extent import (
     _symlog_data_extent,
     _zero_baseline_y_extent,
 )
-
-
-struct _RenderResult(Movable):
-    """Every `_render_*` function's return value: the axis/tick/legend
-    `_TextRequest`s, plus the inner plot rect the mark was laid out in
-    (`px0`/`py0`/`px1`/`py1`, with dynamic margins and legend column
-    resolved). `_label_text_requests` centers `Plot.labels()`'s titles on
-    that rect rather than the outer bounds, so a wide legend or long tick
-    labels don't throw a title off-center. Every `_render_*` raises before
-    reaching any layout when its own data is empty (`_require_non_empty`,
-    ), so there is no "no data" `_RenderResult` shape to report here.
-
-    `y_scale`/`has_y_scale` expose the real `LinearScale` the mark's
-    y-axis used, so the annotation passes (`_draw_annotation_lines`/
-    `_draw_annotation_areas`) place values with the same `to_pixel` the
-    data went through. `has_y_scale` defaults `False` with an inert
-    placeholder scale; only the frames that support annotations pass a
-    real one. `x_scale`/`has_x_scale` mirror that for the x-axis, set by
-    `_ContinuousFrame.result()` and by
-    `_HorizontalCategoricalFrame.result()`, whose continuous axis is the
-    x one (#688); a vertical categorical frame sets neither, since its
-    x-axis has no numeric domain. Which marks that leaves is
-    `Mark.supports(Feature.ANNOTATIONS_X)` and `ANNOTATIONS_XY`
-    (mark.mojo), not a list restated here.
-    """
-
-    var text_requests: List[_TextRequest]
-    var px0: Int
-    var py0: Int
-    var px1: Int
-    var py1: Int
-    var y_scale: LinearScale
-    var has_y_scale: Bool
-    var x_scale: LinearScale
-    var has_x_scale: Bool
-
-    def __init__(
-        out self,
-        var text_requests: List[_TextRequest],
-        px0: Int,
-        py0: Int,
-        px1: Int,
-        py1: Int,
-        y_scale: LinearScale = LinearScale(0.0, 0.0, 0.0, 0.0),
-        has_y_scale: Bool = False,
-        x_scale: LinearScale = LinearScale(0.0, 0.0, 0.0, 0.0),
-        has_x_scale: Bool = False,
-    ):
-        self.text_requests = text_requests^
-        self.px0 = px0
-        self.py0 = py0
-        self.px1 = px1
-        self.py1 = py1
-        self.y_scale = y_scale
-        self.has_y_scale = has_y_scale
-        self.x_scale = x_scale
-        self.has_x_scale = has_x_scale
 
 
 def _require_positive_supersample(factor: Int, context: String) raises:
@@ -342,7 +285,9 @@ def _draw_figure_into[
     """
     if fill_background:
         target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, plot._theme.background)
-    var frame = _apply_labels(plot, ox0, oy0, ox1, oy1, cache=cache)
+    var frame = _apply_labels(
+        plot._labels, plot._mark, plot._theme, ox0, oy0, ox1, oy1, cache=cache
+    )
     var result = _render_generic(
         target,
         plot,
@@ -354,7 +299,8 @@ def _draw_figure_into[
         vector_target=vector_target,
     )
     var text = _label_text_requests(
-        plot,
+        plot._labels,
+        plot._theme,
         ox0,
         oy0,
         ox1,
@@ -370,36 +316,57 @@ def _draw_figure_into[
         _extend_text_requests(
             text,
             _draw_annotation_areas(
-                target, plot, result, plot._theme, cache=cache
+                target, plot._annotations, result, plot._theme, cache=cache
             ),
         )
         _extend_text_requests(
             text,
             _draw_annotation_bands(
-                target, plot, result, plot._theme, cache=cache
+                target, plot._annotations, result, plot._theme, cache=cache
             ),
         )
     _extend_text_requests(
         text,
-        _draw_annotation_vlines(target, plot, result, plot._theme, cache=cache),
+        _draw_annotation_vlines(
+            target, plot._annotations, result, plot._theme, cache=cache
+        ),
     )
     _extend_text_requests(
         text,
-        _draw_annotation_lines(target, plot, result, plot._theme, cache=cache),
+        _draw_annotation_lines(
+            target, plot._annotations, result, plot._theme, cache=cache
+        ),
     )
     _extend_text_requests(
         text,
-        _draw_annotation_points(target, plot, result, plot._theme, cache=cache),
+        _draw_annotation_points(
+            target, plot._annotations, result, plot._theme, cache=cache
+        ),
     )
     _extend_text_requests(
         text,
-        _draw_annotation_arrows(target, plot, result, plot._theme, cache=cache),
+        _draw_annotation_arrows(
+            target, plot._annotations, result, plot._theme, cache=cache
+        ),
     )
-    _draw_annotation_smooth(target, plot, result, plot._theme)
+    _draw_annotation_smooth(
+        target,
+        plot._annotations,
+        plot._continuous.x,
+        plot._continuous.y,
+        result,
+        plot._theme,
+    )
     _extend_text_requests(
         text,
         _draw_annotation_best_fit(
-            target, plot, result, plot._theme, cache=cache
+            target,
+            plot._annotations,
+            plot._continuous.x,
+            plot._continuous.y,
+            result,
+            plot._theme,
+            cache=cache,
         ),
     )
     _extend_text_requests(text, result.text_requests)
@@ -1365,8 +1332,10 @@ def _render_generic[
     against calling this directly with an inconsistent combination rather
     than a real per-cell decision point.
     """
-    _check_unsupported_flags(plot)
-    _check_missing_policy(plot)
+    _check_unsupported_flags(
+        plot._mark, plot._theme, plot._horizontal, plot._tooltip_policy()
+    )
+    _check_missing_policy(plot._theme, plot._continuous, plot._channels)
     if plot._secondary_axis:
         raise Error(
             "Plot.secondary_axis() only applies inside render_layers()/"
@@ -1460,7 +1429,7 @@ def _render_generic[
             " and a unit of y are not comparable lengths, so there is no"
             " aspect to equalize"
         )
-    _validate_color_domain(plot)
+    _validate_color_domain(plot._color_domain, plot._mark, plot._channels)
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
@@ -1492,7 +1461,7 @@ def _render_generic[
             " Plot.encode(y_err=...)/y_err_lower/y_err_upper -- the shared"
             " domain isn't widened for whisker endpoints yet"
         )
-    _validate_log_scale_annotations(plot)
+    _validate_log_scale_annotations(plot._annotations, plot._x_log, plot._y_log)
     var selected = _call_mark_renderer(
         target,
         plot,
@@ -1521,7 +1490,13 @@ def _render_generic[
             " Plot._bind[<its _render_* function>]()"
         )
 
-    _validate_continuous_encoding(plot, "Plot.encode()")
+    _validate_continuous_encoding(
+        plot._continuous,
+        plot._channels,
+        plot._y_err,
+        plot._mark,
+        "Plot.encode()",
+    )
     _require_non_empty(len(plot._continuous.x), "Plot.encode()")
 
     var theme = plot._theme
@@ -1531,9 +1506,11 @@ def _render_generic[
 
     # Built once and handed to both _legend_reserve_for and
     # _draw_point_layer so the two agree; see _PointChannels.
-    var ch = _PointChannels(plot, sc)
+    var ch = _PointChannels(plot._channels, plot._theme, plot._color_domain, sc)
 
-    var legend_reserve = _legend_reserve_for(plot, ch, sc, cache=cache)
+    var legend_reserve = _legend_reserve_for(
+        plot._mark, plot._theme, ch, sc, cache=cache
+    )
 
     # Mark.AREA forces a zero baseline into the y-domain; every other
     # continuous mark pads around its data. y_domain_data is plot._continuous.y,
@@ -1627,12 +1604,12 @@ def _render_generic[
     # Stroked and text annotations still draw after the mark.
     var under = frame.result()
     var under_areas = _draw_annotation_areas(
-        target, plot, under, theme, cache=cache
+        target, plot._annotations, under, theme, cache=cache
     )
     for k in range(len(under_areas)):
         frame.text_requests.append(under_areas[k].copy())
     var under_bands = _draw_annotation_bands(
-        target, plot, under, theme, cache=cache
+        target, plot._annotations, under, theme, cache=cache
     )
     for k in range(len(under_bands)):
         frame.text_requests.append(under_bands[k].copy())

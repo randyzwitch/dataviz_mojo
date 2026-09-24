@@ -64,7 +64,9 @@ def _arc_share_label(
 
 def _arc_total(plot: Plot) raises -> Float64:
     """Validate an arc layer and return its positive total."""
-    _validate_categorical_encoding(plot)
+    _validate_categorical_encoding(
+        plot._categorical, plot._continuous, plot._y_err, plot._mark
+    )
 
     _require_non_negative(plot._continuous.y, "Mark.ARC")
     var total = 0.0
