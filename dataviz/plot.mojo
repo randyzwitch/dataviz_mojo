@@ -78,7 +78,7 @@ draw target (Canvas, SVG, PDF, BoundsTarget), and `_render_generic`
 calls the one for its backend.
 
 Each `mark_*()` setter points them at its own mark's renderer with
-`self._bind[_render_x]()`, which specializes the generic renderer once
+`self._bind[_render_x_plot]()`, which specializes the generic renderer once
 per target (`_mark_callback` in rendering.mojo). A setter names only its
 own renderer, so a program compiles only the renderers of the marks
 whose setters it calls (#607); `pixi run check-mark-isolation` fails if
@@ -110,7 +110,7 @@ compiler:
 3. **The render.** The `_render_*` function in the mark's file, with
    the `_MarkRenderer` signature (rendering.mojo).
 4. **The binding.** The `mark_*()` setter sets `self._mark` and calls
-   `self._bind[_render_x]()`. A setter that forgets makes `render()`
+   `self._bind[_render_x_plot]()`. A setter that forgets makes `render()`
    raise "Mark.X has no renderer", naming the mark.
 5. **The export.** Add the one-call function to `dataviz/__init__.mojo`.
 6. **The registry.** A representative constructor in
@@ -179,15 +179,15 @@ from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
 from dataframe import DataFrame
 
-from dataviz.radial.nightingale import _render_nightingale
-from dataviz.radial.polar import _render_polar
+from dataviz.radial.nightingale import _render_nightingale_plot
+from dataviz.radial.polar import _render_polar_plot
 
 
 from dataviz.categorical.waterfall import _WaterfallData
 from dataviz.distributions.box import _BoxData
-from dataviz.binned.hexbin import _HexbinData, _render_hexbin
-from dataviz.multivariate.quiver import _render_quiver
-from dataviz.multivariate.streamplot import _StreamData, _render_streamplot
+from dataviz.binned.hexbin import _HexbinData, _render_hexbin_plot
+from dataviz.multivariate.quiver import _render_quiver_plot
+from dataviz.multivariate.streamplot import _StreamData, _render_streamplot_plot
 from dataviz.spatial.scatter3d import _Xyz
 from dataviz.spatial.bar3d import _Bars3D, _Voxels
 from dataviz.spatial.stem3d import _Ribbon3D, _Vectors3D
@@ -217,20 +217,26 @@ from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy_marks.hierarchy import _HierarchyData
 
 
-from dataviz.grid.corrplot import _render_corrplot
-from dataviz.grid.punchcard import _render_punchcard
-from dataviz.multivariate.barbs import _render_barbs
-from dataviz.multivariate.contour import _render_contour, _render_contourf
-from dataviz.grid.image import _render_image
-from dataviz.grid.heatmap import _render_heatmap
-from dataviz.grid.calendar_heatmap import _render_calendar_heatmap
-from dataviz.grid.marimekko import _render_marimekko
+from dataviz.grid.corrplot import _render_corrplot_plot
+from dataviz.grid.punchcard import _render_punchcard_plot
+from dataviz.multivariate.barbs import _render_barbs_plot
+from dataviz.multivariate.contour import (
+    _render_contour_plot,
+    _render_contourf_plot,
+)
+from dataviz.grid.image import _render_image_plot
+from dataviz.grid.heatmap import _render_heatmap_plot
+from dataviz.grid.calendar_heatmap import _render_calendar_heatmap_plot
+from dataviz.grid.marimekko import _render_marimekko_plot
 
 from dataviz.multivariate.tricontour import (
-    _render_tricontour,
-    _render_tricontourf,
+    _render_tricontour_plot,
+    _render_tricontourf_plot,
 )
-from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
+from dataviz.multivariate.triplot import (
+    _render_tripcolor_plot,
+    _render_triplot_plot,
+)
 
 from dataviz.binned.histogram import (
     BinRule,
@@ -240,9 +246,9 @@ from dataviz.binned.histogram import (
     histogram_bins,
     _HistogramData,
 )
-from dataviz.basic.single_axis import _render_single_axis
+from dataviz.basic.single_axis import _render_single_axis_plot
 
-from dataviz.categorical.streamgraph import _render_streamgraph
+from dataviz.categorical.streamgraph import _render_streamgraph_plot
 from dataviz.categorical.gantt import _GanttData
 from dataviz.radial.nightingale import _NightingaleData
 from dataviz.categorical.grouped_bar import _GroupedBarData
@@ -311,66 +317,77 @@ from dataviz.spatial.bar3d import _encode_bars3d, _encode_voxels
 from dataviz.spatial.scatter3d import _encode_xyz
 from dataviz.spatial.stem3d import _encode_ribbon3d, _encode_vectors3d
 from dataviz.spatial.surface3d import _encode_surface
-from dataviz.aggregation.pointplot import _render_pointplot_oriented
-from dataviz.basic.arc import _render_arc
-from dataviz.basic.bar import _render_bar_oriented
-from dataviz.basic.single_axis import _render_single_axis
-from dataviz.binned.hexbin import _render_hexbin
-from dataviz.categorical.bullet import _render_bullet_oriented
-from dataviz.categorical.bump import _render_bump
-from dataviz.categorical.funnel import _render_funnel
-from dataviz.categorical.gantt import _render_gantt
-from dataviz.categorical.grouped_bar import _render_grouped_bar_oriented
-from dataviz.categorical.lollipop import _render_lollipop_oriented
-from dataviz.categorical.population_pyramid import _render_population_pyramid
-from dataviz.categorical.span_chart import _render_span_chart
-from dataviz.categorical.stacked_bar import _render_stacked_bar_oriented
-from dataviz.categorical.streamgraph import _render_streamgraph
-from dataviz.categorical.waterfall import _render_waterfall_oriented
-from dataviz.distributions.beeswarm import _render_beeswarm_oriented
-from dataviz.distributions.box import _render_box_oriented
-from dataviz.distributions.boxen import _render_boxenplot_oriented
-from dataviz.distributions.candlestick import _render_candlestick
-from dataviz.distributions.ecdf import _render_ecdf
-from dataviz.distributions.eventplot import _render_eventplot
-from dataviz.distributions.kde import _render_kde, _render_rug
-from dataviz.distributions.ridgeline import _render_ridgeline
-from dataviz.distributions.violin import _render_violin_oriented
-from dataviz.hierarchy_marks.dendrogram import _render_dendrogram
-from dataviz.hierarchy_marks.sunburst import _render_sunburst
-from dataviz.hierarchy_marks.tree import _render_tree
-from dataviz.hierarchy_marks.treemap import _render_treemap
-from dataviz.multivariate.barbs import _render_barbs
-from dataviz.multivariate.contour import _render_contour, _render_contourf
-from dataviz.multivariate.parallel import _render_parallel
-from dataviz.multivariate.quiver import _render_quiver
-from dataviz.multivariate.streamplot import _render_streamplot
-from dataviz.multivariate.tricontour import (
-    _render_tricontour,
-    _render_tricontourf,
+from dataviz.aggregation.pointplot import _render_pointplot_oriented_plot
+from dataviz.basic.arc import _render_arc_plot
+from dataviz.basic.bar import _render_bar_oriented_plot
+from dataviz.basic.single_axis import _render_single_axis_plot
+from dataviz.binned.hexbin import _render_hexbin_plot
+from dataviz.categorical.bullet import _render_bullet_oriented_plot
+from dataviz.categorical.bump import _render_bump_plot
+from dataviz.categorical.funnel import _render_funnel_plot
+from dataviz.categorical.gantt import _render_gantt_plot
+from dataviz.categorical.grouped_bar import _render_grouped_bar_oriented_plot
+from dataviz.categorical.lollipop import _render_lollipop_oriented_plot
+from dataviz.categorical.population_pyramid import (
+    _render_population_pyramid_plot,
 )
-from dataviz.multivariate.triplot import _render_tripcolor, _render_triplot
-from dataviz.radial.gauge import _render_gauge
-from dataviz.radial.nightingale import _render_nightingale
-from dataviz.radial.polar import _render_polar
-from dataviz.radial.polar_bar import _render_polar_bar
-from dataviz.radial.radar import _render_radar
-from dataviz.radial.radialbar import _render_radialbar
-from dataviz.relationships.arc_diagram import _render_arc_diagram
-from dataviz.relationships.chord import _render_chord
-from dataviz.relationships.graph import _render_graph
-from dataviz.relationships.sankey import _render_sankey
-from dataviz.spatial.bar3d import _render_bar3d, _render_voxels
-from dataviz.spatial.scatter3d import _render_plot3d, _render_scatter3d
+from dataviz.categorical.span_chart import _render_span_chart_plot
+from dataviz.categorical.stacked_bar import _render_stacked_bar_oriented_plot
+from dataviz.categorical.streamgraph import _render_streamgraph_plot
+from dataviz.categorical.waterfall import _render_waterfall_oriented_plot
+from dataviz.distributions.beeswarm import _render_beeswarm_oriented_plot
+from dataviz.distributions.box import _render_box_oriented_plot
+from dataviz.distributions.boxen import _render_boxenplot_oriented_plot
+from dataviz.distributions.candlestick import _render_candlestick_plot
+from dataviz.distributions.ecdf import _render_ecdf_plot
+from dataviz.distributions.eventplot import _render_eventplot_plot
+from dataviz.distributions.kde import _render_kde_plot, _render_rug_plot
+from dataviz.distributions.ridgeline import _render_ridgeline_plot
+from dataviz.distributions.violin import _render_violin_oriented_plot
+from dataviz.hierarchy_marks.dendrogram import _render_dendrogram_plot
+from dataviz.hierarchy_marks.sunburst import _render_sunburst_plot
+from dataviz.hierarchy_marks.tree import _render_tree_plot
+from dataviz.hierarchy_marks.treemap import _render_treemap_plot
+from dataviz.multivariate.barbs import _render_barbs_plot
+from dataviz.multivariate.contour import (
+    _render_contour_plot,
+    _render_contourf_plot,
+)
+from dataviz.multivariate.parallel import _render_parallel_plot
+from dataviz.multivariate.quiver import _render_quiver_plot
+from dataviz.multivariate.streamplot import _render_streamplot_plot
+from dataviz.multivariate.tricontour import (
+    _render_tricontour_plot,
+    _render_tricontourf_plot,
+)
+from dataviz.multivariate.triplot import (
+    _render_tripcolor_plot,
+    _render_triplot_plot,
+)
+from dataviz.radial.gauge import _render_gauge_plot
+from dataviz.radial.nightingale import _render_nightingale_plot
+from dataviz.radial.polar import _render_polar_plot
+from dataviz.radial.polar_bar import _render_polar_bar_plot
+from dataviz.radial.radar import _render_radar_plot
+from dataviz.radial.radialbar import _render_radialbar_plot
+from dataviz.relationships.arc_diagram import _render_arc_diagram_plot
+from dataviz.relationships.chord import _render_chord_plot
+from dataviz.relationships.graph import _render_graph_plot
+from dataviz.relationships.sankey import _render_sankey_plot
+from dataviz.spatial.bar3d import _render_bar3d_plot, _render_voxels_plot
+from dataviz.spatial.scatter3d import (
+    _render_plot3d_plot,
+    _render_scatter3d_plot,
+)
 from dataviz.spatial.stem3d import (
-    _render_fill_between3d,
-    _render_quiver3d,
-    _render_stem3d,
+    _render_fill_between3d_plot,
+    _render_quiver3d_plot,
+    _render_stem3d_plot,
 )
 from dataviz.spatial.surface3d import (
-    _render_surface3d,
-    _render_trisurf3d,
-    _render_wire3d,
+    _render_surface3d_plot,
+    _render_trisurf3d_plot,
+    _render_wire3d_plot,
 )
 
 
@@ -702,7 +719,7 @@ struct Plot(Copyable, Movable):
                 see `_render_horizontal_bar` (bar.mojo).
         """
         self._mark = Mark.BAR
-        self._bind[_render_bar_oriented]()
+        self._bind[_render_bar_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -764,7 +781,7 @@ struct Plot(Copyable, Movable):
         `inner_radius_fraction > 0.0` (in `[0.0, 1.0)`) makes a donut.
         """
         self._mark = Mark.ARC
-        self._bind[_render_arc]()
+        self._bind[_render_arc_plot]()
         self._mark_style.donut_inner_radius_fraction = inner_radius_fraction
         return self^
 
@@ -786,7 +803,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.NIGHTINGALE
-        self._bind[_render_nightingale]()
+        self._bind[_render_nightingale_plot]()
         self._nightingale.area = area
         return self^
 
@@ -799,7 +816,7 @@ struct Plot(Copyable, Movable):
         non-negative and at least one positive, checked at render() time.
         """
         self._mark = Mark.POLAR_BAR
-        self._bind[_render_polar_bar]()
+        self._bind[_render_polar_bar_plot]()
         self._mark_style.polar_bar_padding = padding
         return self^
 
@@ -813,7 +830,7 @@ struct Plot(Copyable, Movable):
         time.
         """
         self._mark = Mark.RADIALBAR
-        self._bind[_render_radialbar]()
+        self._bind[_render_radialbar_plot]()
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
@@ -827,7 +844,7 @@ struct Plot(Copyable, Movable):
         domain). See `_render_polar`.
         """
         self._mark = Mark.POLAR
-        self._bind[_render_polar]()
+        self._bind[_render_polar_plot]()
         self._mark_style.polar_grid_rings = grid_rings
         self._mark_style.polar_grid_spokes = grid_spokes
         return self^
@@ -838,7 +855,7 @@ struct Plot(Copyable, Movable):
         `encode_radar()`.
         """
         self._mark = Mark.RADAR
-        self._bind[_render_radar]()
+        self._bind[_render_radar_plot]()
         self._mark_style.radar_grid_rings = grid_rings
         return self^
 
@@ -856,7 +873,7 @@ struct Plot(Copyable, Movable):
         radians (the defaults give a 270-degree dial opening downward).
         """
         self._mark = Mark.GAUGE
-        self._bind[_render_gauge]()
+        self._bind[_render_gauge_plot]()
         self._mark_style.gauge_band_inner_fraction = band_inner_fraction
         self._mark_style.gauge_needle_fraction = needle_fraction
         self._mark_style.gauge_start_angle = start_angle
@@ -869,7 +886,7 @@ struct Plot(Copyable, Movable):
         Encoded via `encode_parallel()`.
         """
         self._mark = Mark.PARALLEL
-        self._bind[_render_parallel]()
+        self._bind[_render_parallel_plot]()
         return self^
 
     def mark_pointplot(var self, horizontal: Bool = False) -> Self:
@@ -887,7 +904,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.POINTPLOT
-        self._bind[_render_pointplot_oriented]()
+        self._bind[_render_pointplot_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -899,7 +916,7 @@ struct Plot(Copyable, Movable):
         (lollipop.mojo).
         """
         self._mark = Mark.LOLLIPOP
-        self._bind[_render_lollipop_oriented]()
+        self._bind[_render_lollipop_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -915,7 +932,7 @@ struct Plot(Copyable, Movable):
         band, applied only when `is_total` rows are in use.
         """
         self._mark = Mark.WATERFALL
-        self._bind[_render_waterfall_oriented]()
+        self._bind[_render_waterfall_oriented_plot]()
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         self._settings.horizontal = horizontal
         return self^
@@ -934,7 +951,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.BOXENPLOT
-        self._bind[_render_boxenplot_oriented]()
+        self._bind[_render_boxenplot_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -946,7 +963,7 @@ struct Plot(Copyable, Movable):
         left-to-right; see `_render_horizontal_box` (box.mojo).
         """
         self._mark = Mark.BOX
-        self._bind[_render_box_oriented]()
+        self._bind[_render_box_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -955,7 +972,7 @@ struct Plot(Copyable, Movable):
         Encoded via `encode_candlestick()`.
         """
         self._mark = Mark.CANDLESTICK
-        self._bind[_render_candlestick]()
+        self._bind[_render_candlestick_plot]()
         return self^
 
     def mark_bullet(
@@ -969,7 +986,7 @@ struct Plot(Copyable, Movable):
         width as a fraction of the band.
         """
         self._mark = Mark.BULLET
-        self._bind[_render_bullet_oriented]()
+        self._bind[_render_bullet_oriented_plot]()
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         self._settings.horizontal = horizontal
         return self^
@@ -981,7 +998,7 @@ struct Plot(Copyable, Movable):
         vertically.
         """
         self._mark = Mark.GANTT
-        self._bind[_render_gantt]()
+        self._bind[_render_gantt_plot]()
         return self^
 
     def mark_span_chart(var self) -> Self:
@@ -990,7 +1007,7 @@ struct Plot(Copyable, Movable):
         categorical x-axis. Encoded via `encode_gantt()`.
         """
         self._mark = Mark.SPAN_CHART
-        self._bind[_render_span_chart]()
+        self._bind[_render_span_chart_plot]()
         return self^
 
     def mark_calendar_heatmap(var self) -> Self:
@@ -999,7 +1016,7 @@ struct Plot(Copyable, Movable):
         `encode_calendar()` (`"YYYY-MM-DD"` dates).
         """
         self._mark = Mark.CALENDAR_HEATMAP
-        self._bind[_render_calendar_heatmap]()
+        self._bind[_render_calendar_heatmap_plot]()
         return self^
 
     def mark_corrplot(
@@ -1029,7 +1046,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.CORRPLOT
-        self._bind[_render_corrplot]()
+        self._bind[_render_corrplot_plot]()
         self._corrplot.layout = layout
         self._corrplot.diag = diag
         self._corrplot.labels = labels
@@ -1051,7 +1068,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.PUNCHCARD
-        self._bind[_render_punchcard]()
+        self._bind[_render_punchcard_plot]()
         self._punchcard.scale = scale
         return self^
 
@@ -1073,7 +1090,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.BARBS
-        self._bind[_render_barbs]()
+        self._bind[_render_barbs_plot]()
         self._barbs.length = length
         self._barbs.flip = flip
         return self^
@@ -1096,7 +1113,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.QUIVER
-        self._bind[_render_quiver]()
+        self._bind[_render_quiver_plot]()
         self._barbs.scale = scale
         self._barbs.color_by_magnitude = color_by_magnitude
         return self^
@@ -1116,7 +1133,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.CONTOUR
-        self._bind[_render_contour]()
+        self._bind[_render_contour_plot]()
         self._contour.level_count = levels
         return self^
 
@@ -1136,7 +1153,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.CONTOURF
-        self._bind[_render_contourf]()
+        self._bind[_render_contourf_plot]()
         self._contour.level_count = levels
         return self^
 
@@ -1155,7 +1172,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.IMSHOW
-        self._bind_vector[_render_image]()
+        self._bind_vector[_render_image_plot]()
         return self^
 
     def mark_pcolormesh(var self) -> Self:
@@ -1171,7 +1188,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.PCOLORMESH
-        self._bind_vector[_render_image]()
+        self._bind_vector[_render_image_plot]()
         return self^
 
     def mark_hist2d(var self) -> Self:
@@ -1184,7 +1201,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.HIST2D
-        self._bind_vector[_render_image]()
+        self._bind_vector[_render_image_plot]()
         return self^
 
     def mark_hexbin(var self) -> Self:
@@ -1197,7 +1214,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.HEXBIN
-        self._bind[_render_hexbin]()
+        self._bind[_render_hexbin_plot]()
         return self^
 
     def mark_streamplot(
@@ -1223,7 +1240,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.STREAMPLOT
-        self._bind[_render_streamplot]()
+        self._bind[_render_streamplot_plot]()
         self._stream.density = density
         self._stream.arrows = arrows
         self._stream.color_by_magnitude = color_by_magnitude
@@ -1244,7 +1261,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRICONTOUR
-        self._bind[_render_tricontour]()
+        self._bind[_render_tricontour_plot]()
         self._tricontour.level_count = levels
         return self^
 
@@ -1264,7 +1281,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRICONTOURF
-        self._bind[_render_tricontourf]()
+        self._bind[_render_tricontourf_plot]()
         self._tricontour.level_count = levels
         return self^
 
@@ -1283,7 +1300,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.DENDROGRAM
-        self._bind[_render_dendrogram]()
+        self._bind[_render_dendrogram_plot]()
         self._dendrogram.horizontal = horizontal
         return self^
 
@@ -1333,7 +1350,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRIPLOT
-        self._bind[_render_triplot]()
+        self._bind[_render_triplot_plot]()
         self._triplot.show_points = show_points
         return self^
 
@@ -1349,7 +1366,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRIPCOLOR
-        self._bind[_render_tripcolor]()
+        self._bind[_render_tripcolor_plot]()
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -1359,7 +1376,7 @@ struct Plot(Copyable, Movable):
         `encode_marimekko()`.
         """
         self._mark = Mark.MARIMEKKO
-        self._bind[_render_marimekko]()
+        self._bind[_render_marimekko_plot]()
         return self^
 
     def mark_sunburst(var self) -> Self:
@@ -1368,7 +1385,7 @@ struct Plot(Copyable, Movable):
         parent's total. Encoded via `encode_hierarchy()`.
         """
         self._mark = Mark.SUNBURST
-        self._bind[_render_sunburst]()
+        self._bind[_render_sunburst_plot]()
         return self^
 
     def mark_tree(var self) -> Self:
@@ -1376,7 +1393,7 @@ struct Plot(Copyable, Movable):
         Encoded via `encode_hierarchy()`.
         """
         self._mark = Mark.TREE
-        self._bind[_render_tree]()
+        self._bind[_render_tree_plot]()
         return self^
 
     def mark_treemap(var self) -> Self:
@@ -1384,7 +1401,7 @@ struct Plot(Copyable, Movable):
         slice-and-dice. Encoded via `encode_hierarchy()`.
         """
         self._mark = Mark.TREEMAP
-        self._bind[_render_treemap]()
+        self._bind[_render_treemap_plot]()
         return self^
 
     def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
@@ -1395,7 +1412,7 @@ struct Plot(Copyable, Movable):
         (grouped_bar.mojo).
         """
         self._mark = Mark.GROUPED_BAR
-        self._bind[_render_grouped_bar_oriented]()
+        self._bind[_render_grouped_bar_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -1427,7 +1444,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.STACKED_BAR
-        self._bind[_render_stacked_bar_oriented]()
+        self._bind[_render_stacked_bar_oriented_plot]()
         self._grouped_bar.percent = percent
         self._settings.horizontal = horizontal
         return self^
@@ -1439,7 +1456,7 @@ struct Plot(Copyable, Movable):
         `encode_population_pyramid()`.
         """
         self._mark = Mark.POPULATION_PYRAMID
-        self._bind[_render_population_pyramid]()
+        self._bind[_render_population_pyramid_plot]()
         return self^
 
     def mark_heatmap(var self) -> Self:
@@ -1447,7 +1464,7 @@ struct Plot(Copyable, Movable):
         categorical axes. Encoded via `encode_heatmap()`.
         """
         self._mark = Mark.HEATMAP
-        self._bind[_render_heatmap]()
+        self._bind[_render_heatmap_plot]()
         return self^
 
     def mark_chord(var self, ring_fraction: Float64 = 0.08) -> Self:
@@ -1457,7 +1474,7 @@ struct Plot(Copyable, Movable):
         thickness as a fraction of the radius. No axis frame.
         """
         self._mark = Mark.CHORD
-        self._bind[_render_chord]()
+        self._bind[_render_chord_plot]()
         self._mark_style.chord_ring_fraction = ring_fraction
         return self^
 
@@ -1466,7 +1483,7 @@ struct Plot(Copyable, Movable):
         connected by semicircular arcs. Encoded via `encode_chord()`.
         """
         self._mark = Mark.ARC_DIAGRAM
-        self._bind[_render_arc_diagram]()
+        self._bind[_render_arc_diagram_plot]()
         return self^
 
     def mark_graph(var self, layout: GraphLayout = GraphLayout.CIRCLE) -> Self:
@@ -1483,7 +1500,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.GRAPH
-        self._bind[_render_graph]()
+        self._bind[_render_graph_plot]()
         self._mark_style.graph_layout = layout
         return self^
 
@@ -1494,7 +1511,7 @@ struct Plot(Copyable, Movable):
         `encode_chord()`; the edges must form a DAG.
         """
         self._mark = Mark.SANKEY
-        self._bind[_render_sankey]()
+        self._bind[_render_sankey_plot]()
         self._mark_style.sankey_node_width = node_width
         return self^
 
@@ -1507,7 +1524,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.SINGLE_AXIS
-        self._bind[_render_single_axis]()
+        self._bind[_render_single_axis_plot]()
         return self^
 
     def mark_effect_scatter(var self) -> Self:
@@ -1524,7 +1541,7 @@ struct Plot(Copyable, Movable):
         first, with no axis frame. Encoded via `encode_categorical()`.
         """
         self._mark = Mark.FUNNEL
-        self._bind[_render_funnel]()
+        self._bind[_render_funnel_plot]()
         return self^
 
     def mark_bump(var self) -> Self:
@@ -1533,7 +1550,7 @@ struct Plot(Copyable, Movable):
         `encode_grouped_bar()`.
         """
         self._mark = Mark.BUMP
-        self._bind[_render_bump]()
+        self._bind[_render_bump_plot]()
         return self^
 
     def mark_streamgraph(
@@ -1582,7 +1599,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.STREAMGRAPH
-        self._bind[_render_streamgraph]()
+        self._bind[_render_streamgraph_plot]()
         self._mark_style.streamgraph_baseline = baseline
         self._mark_style.step = step
         return self^
@@ -1595,7 +1612,7 @@ struct Plot(Copyable, Movable):
         `_render_horizontal_beeswarm` (beeswarm.mojo).
         """
         self._mark = Mark.BEESWARM
-        self._bind[_render_beeswarm_oriented]()
+        self._bind[_render_beeswarm_oriented_plot]()
         self._settings.horizontal = horizontal
         return self^
 
@@ -1643,7 +1660,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.VIOLIN
-        self._bind[_render_violin_oriented]()
+        self._bind[_render_violin_oriented_plot]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._settings.horizontal = horizontal
@@ -1683,7 +1700,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.KDE
-        self._bind[_render_kde]()
+        self._bind[_render_kde_plot]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_fill = fill
         self._distribution.kde_rug = rug
@@ -1701,7 +1718,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.RUG
-        self._bind[_render_rug]()
+        self._bind[_render_rug_plot]()
         return self^
 
     def mark_ecdf(var self, complementary: Bool = False) -> Self:
@@ -1731,7 +1748,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.ECDF
-        self._bind[_render_ecdf]()
+        self._bind[_render_ecdf_plot]()
         self._distribution.ecdf_complementary = complementary
         return self^
 
@@ -1757,7 +1774,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.EVENTPLOT
-        self._bind[_render_eventplot]()
+        self._bind[_render_eventplot_plot]()
         self._mark_style.eventplot_line_length = line_length
         return self^
 
@@ -1790,7 +1807,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.RIDGELINE
-        self._bind[_render_ridgeline]()
+        self._bind[_render_ridgeline_plot]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._mark_style.ridgeline_overlap = overlap
@@ -2102,7 +2119,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.SCATTER3D
-        self._bind[_render_scatter3d]()
+        self._bind[_render_scatter3d_plot]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2127,7 +2144,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.PLOT3D
-        self._bind[_render_plot3d]()
+        self._bind[_render_plot3d_plot]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2150,7 +2167,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.SURFACE3D
-        self._bind[_render_surface3d]()
+        self._bind[_render_surface3d_plot]()
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2176,7 +2193,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.WIRE3D
-        self._bind[_render_wire3d]()
+        self._bind[_render_wire3d_plot]()
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2199,7 +2216,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.TRISURF3D
-        self._bind[_render_trisurf3d]()
+        self._bind[_render_trisurf3d_plot]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2223,7 +2240,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.STEM3D
-        self._bind[_render_stem3d]()
+        self._bind[_render_stem3d_plot]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2247,7 +2264,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.QUIVER3D
-        self._bind[_render_quiver3d]()
+        self._bind[_render_quiver3d_plot]()
         self._vectors3d.elev = elev
         self._vectors3d.azim = azim
         return self^
@@ -2271,7 +2288,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.FILL_BETWEEN3D
-        self._bind[_render_fill_between3d]()
+        self._bind[_render_fill_between3d_plot]()
         self._ribbon3d.elev = elev
         self._ribbon3d.azim = azim
         return self^
@@ -2303,7 +2320,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.BAR3D
-        self._bind[_render_bar3d]()
+        self._bind[_render_bar3d_plot]()
         self._bars3d.bar_width = bar_width
         self._bars3d.bar_depth = bar_depth
         self._bars3d.elev = elev
@@ -2329,7 +2346,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         self._mark = Mark.VOXELS
-        self._bind[_render_voxels]()
+        self._bind[_render_voxels_plot]()
         self._voxels.elev = elev
         self._voxels.azim = azim
         return self^

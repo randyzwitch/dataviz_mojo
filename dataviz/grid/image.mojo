@@ -5,6 +5,7 @@ explicit cell edges. Unlike categorical `Mark.HEATMAP`, neither mark
 draws category labels.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isfinite
 
 from std.math import log10
@@ -712,7 +713,9 @@ def _render_image[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    image: _ImageData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -763,8 +766,7 @@ def _render_image[
     regular grid is drawn as one image instead of one rect per cell;
     see `_draw_cells_as_image`.
     """
-    var mark = plot._mark
-    var shape = _image_grid_shape(plot._image.z, mark)
+    var shape = _image_grid_shape(image.z, mark)
     var rows = shape[0]
     var cols = shape[1]
 
@@ -772,9 +774,9 @@ def _render_image[
     var y_values = List[Float64](capacity=rows + 1)
     if mark == Mark.PCOLORMESH or mark == Mark.HIST2D:
         if (
-            len(plot._image.x_edges) == 0
-            and len(plot._image.y_edges) == 0
-            and len(plot._image.x_corners) == 0
+            len(image.x_edges) == 0
+            and len(image.y_edges) == 0
+            and len(image.x_corners) == 0
         ):
             raise Error(
                 "Plot.mark_pcolormesh(): no cell edges to draw the mesh over"
@@ -783,16 +785,16 @@ def _render_image[
                 + " needs Plot.encode_pcolormesh(x_edges, y_edges, z), not"
                 " Plot.encode_imshow(z), which has no coordinates of its own"
             )
-        if len(plot._image.x_corners) > 0:
+        if len(image.x_corners) > 0:
             # Curvilinear (#424). The axis frame still needs a domain, and
             # a rotated mesh's extremes can be anywhere in the grid, so it
             # comes from every vertex rather than from a first and last
             # edge. `x_values`/`y_values` below carry only that domain;
             # the cells are drawn from the corner arrays directly.
-            _check_corner_grid(plot._image.x_corners, rows, cols, "x")
-            _check_corner_grid(plot._image.y_corners, rows, cols, "y")
-            var xe = _corner_extent(plot._image.x_corners)
-            var ye = _corner_extent(plot._image.y_corners)
+            _check_corner_grid(image.x_corners, rows, cols, "x")
+            _check_corner_grid(image.y_corners, rows, cols, "y")
+            var xe = _corner_extent(image.x_corners)
+            var ye = _corner_extent(image.y_corners)
             for c in range(cols + 1):
                 x_values.append(
                     xe[0] + (xe[1] - xe[0]) * Float64(c) / Float64(cols)
@@ -802,17 +804,17 @@ def _render_image[
                     ye[0] + (ye[1] - ye[0]) * Float64(r) / Float64(rows)
                 )
         else:
-            _check_strictly_increasing(plot._image.x_edges, cols, "x")
-            _check_strictly_increasing(plot._image.y_edges, rows, "y")
-            x_values = plot._image.x_edges.copy()
-            y_values = plot._image.y_edges.copy()
+            _check_strictly_increasing(image.x_edges, cols, "x")
+            _check_strictly_increasing(image.y_edges, rows, "y")
+            x_values = image.x_edges.copy()
+            y_values = image.y_edges.copy()
     else:
         # The mirror of the check above, and the more dangerous
         # direction: a mark that quietly ignored coordinates the caller
         # supplied would draw a regular grid over irregular data and
         # look entirely plausible doing it. The other way round at least
         # has nothing to draw.
-        if len(plot._image.x_edges) > 0 or len(plot._image.y_edges) > 0:
+        if len(image.x_edges) > 0 or len(image.y_edges) > 0:
             raise Error(
                 "Plot.mark_imshow(): "
                 + mark.name()
@@ -827,11 +829,11 @@ def _render_image[
         for r in range(rows + 1):
             y_values.append(Float64(r) - 0.5)
 
-    var extent = _grid_min_max(plot._image.z)
-    var theme = plot._settings.theme
+    var extent = _grid_min_max(image.z)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, extent[0], extent[1]
+        theme, settings.color_domain, extent[0], extent[1]
     )
 
     # Measured against the render's shared font cache before the plot
@@ -844,9 +846,9 @@ def _render_image[
     if mark == Mark.HIST2D:
         for axis in range(2):
             var is_x = axis == 0
-            if (
-                plot._settings.x_log and plot._image.linear_auto_x
-            ) if is_x else (plot._settings.y_log and plot._image.linear_auto_y):
+            if (settings.x_log and image.linear_auto_x) if is_x else (
+                settings.y_log and image.linear_auto_y
+            ):
                 var name = "x" if is_x else "y"
                 raise Error(
                     "scale_"
@@ -859,7 +861,7 @@ def _render_image[
                     + "=True to hist2d() to bin in log space instead, or give"
                     " encode_hist2d() log_bin_edges()"
                 )
-    if plot._settings.x_symlog or plot._settings.y_symlog:
+    if settings.x_symlog or settings.y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): "
             + mark.name()
@@ -869,11 +871,11 @@ def _render_image[
         )
     var frame = _draw_continuous_axis_frame(
         target,
-        _edge_scale(x_values[0], x_values[cols], plot._settings.x_log, "x"),
+        _edge_scale(x_values[0], x_values[cols], settings.x_log, "x"),
         _edge_scale(
             min(y_values[0], y_values[rows]),
             max(y_values[0], y_values[rows]),
-            plot._settings.y_log,
+            settings.y_log,
             "y",
         ),
         theme,
@@ -893,26 +895,26 @@ def _render_image[
         and mark == Mark.IMSHOW
         and rows * cols > _IMAGE_MAX_RECT_CELLS
     ):
-        _draw_cells_as_image(target, plot._image.z, x_px, y_px, color_scale)
-    elif len(plot._image.x_corners) > 0:
+        _draw_cells_as_image(target, image.z, x_px, y_px, color_scale)
+    elif len(image.x_corners) > 0:
         _fill_quad_cells(
             target,
-            plot._image.z,
-            plot._image.x_corners,
-            plot._image.y_corners,
+            image.z,
+            image.x_corners,
+            image.y_corners,
             frame.x_scale,
             frame.y_scale,
             color_scale,
-            skip_zero=plot._image.blank_zero,
+            skip_zero=image.blank_zero,
         )
     else:
         _ = _fill_cells(
             target,
-            plot._image.z,
+            image.z,
             x_px,
             y_px,
             color_scale,
-            skip_zero=plot._image.blank_zero,
+            skip_zero=image.blank_zero,
         )
 
     _draw_continuous_color_legend_at(
@@ -929,6 +931,36 @@ def _render_image[
     )
 
     return frame.result()
+
+
+def _render_image_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> _RenderResult:
+    """`_render_image` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_image(
+        target,
+        plot._mark,
+        plot._image,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+        vector_target=vector_target,
+    )
 
 
 def imshow(

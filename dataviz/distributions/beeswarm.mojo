@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData, _DistributionData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
@@ -108,12 +110,12 @@ def _beeswarm_offsets(y_pixels: List[Int], spacing: Int) -> List[Int]:
     return offset^
 
 
-def _distribution_domain(plot: Plot) raises -> LinearScale:
+def _distribution_domain(distribution: _DistributionData) raises -> LinearScale:
     """The value-axis domain over every value across every category;
     orientation-independent, and the same choice `Mark.BOX` makes.
     """
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in distribution.values:
         for v in series:
             all_values.append(v)
     return _data_extent(all_values)
@@ -123,7 +125,9 @@ def _draw_beeswarm_points[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     orient: _Orientation,
@@ -137,24 +141,22 @@ def _draw_beeswarm_points[
     onto x/y. Spacing is one point diameter, so neighbors in the same row
     just touch.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var spacing = 2 * radius
     var n_points = 0
-    for series in plot._distribution.values:
+    for series in distribution.values:
         n_points += len(series)
-    var tooltip = plot._settings.tooltips_on(n_points)
-    for i in range(len(plot._categorical.x)):
+    var tooltip = settings.tooltips_on(n_points)
+    for i in range(len(categorical.x)):
         var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
-        for v in plot._distribution.values[i]:
+        for v in distribution.values[i]:
             value_pixels.append(_axis_pixel(value_scale, v))
         var offsets = _beeswarm_offsets(value_pixels, spacing)
         for j in range(len(value_pixels)):
             if tooltip:
                 target.begin_annotated_group(
-                    _tooltip_label(
-                        plot._categorical.x[i], plot._distribution.values[i][j]
-                    )
+                    _tooltip_label(categorical.x[i], distribution.values[i][j])
                 )
             orient.band_point(
                 target,
@@ -171,7 +173,9 @@ def _render_beeswarm[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -186,12 +190,12 @@ def _render_beeswarm[
     `_zero_baseline_y_extent`) over every value across every category,
     the same domain choice `Mark.BOX` makes.
     """
-    var theme = plot._settings.theme
-    var value_scale = _distribution_domain(plot)
+    var theme = settings.theme
+    var value_scale = _distribution_domain(distribution)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -204,7 +208,9 @@ def _render_beeswarm[
     var sc = _Scaled(theme)
     _draw_beeswarm_points(
         target,
-        plot,
+        categorical,
+        distribution,
+        settings,
         frame.x_scale,
         frame.y_scale,
         _Orientation(False),
@@ -218,7 +224,9 @@ def _render_horizontal_beeswarm[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -234,12 +242,12 @@ def _render_horizontal_beeswarm[
     within their row. Its own function rather than an orientation flag,
     for the reasons in `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    var theme = plot._settings.theme
-    var value_scale = _distribution_domain(plot)
+    var theme = settings.theme
+    var value_scale = _distribution_domain(distribution)
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -252,7 +260,9 @@ def _render_horizontal_beeswarm[
     var sc = _Scaled(theme)
     _draw_beeswarm_points(
         target,
-        plot,
+        categorical,
+        distribution,
+        settings,
         frame.y_scale,
         frame.x_scale,
         _Orientation(True),
@@ -409,7 +419,9 @@ def _render_beeswarm_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -419,8 +431,54 @@ def _render_beeswarm_oriented[
 ) raises -> _RenderResult:
     """`Mark.BEESWARM`'s renderer, the one its setter binds: `_render_horizontal_beeswarm`
     when the plot is horizontal, `_render_beeswarm` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_beeswarm(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            categorical,
+            distribution,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_beeswarm(
+        target,
+        categorical,
+        distribution,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_beeswarm_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_beeswarm_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_beeswarm_oriented(
+        target,
+        plot._categorical,
+        plot._distribution,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

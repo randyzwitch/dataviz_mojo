@@ -1,3 +1,9 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
@@ -91,7 +97,11 @@ def _render_waterfall[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    waterfall: _WaterfallData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -104,18 +114,18 @@ def _render_waterfall[
     Delta color follows sign; checkpoint bars use the total color. The y-domain
     covers all running-total bounds and includes zero.
     """
-    _validate_waterfall_encoding(plot)
-    var theme = plot._settings.theme
+    _validate_waterfall_encoding(waterfall, continuous, categorical)
+    var theme = settings.theme
     var combined = List[Float64]()
-    for v in plot._waterfall.y0:
+    for v in waterfall.y0:
         combined.append(v)
-    for v in plot._waterfall.y1:
+    for v in waterfall.y1:
         combined.append(v)
     var y_scale = _zero_baseline_y_extent(combined)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -129,7 +139,11 @@ def _render_waterfall[
     # stays full band width.
     _draw_waterfall_bars(
         target,
-        plot,
+        waterfall,
+        continuous,
+        categorical,
+        style,
+        settings,
         frame.y_scale,
         frame.x_scale,
         Float64(frame.py1),
@@ -139,39 +153,47 @@ def _render_waterfall[
     return frame.result()
 
 
-def _validate_waterfall_encoding(plot: Plot) raises:
+def _validate_waterfall_encoding(
+    waterfall: _WaterfallData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+) raises:
     """The length checks both waterfall renders make before laying
     anything out: categories against deltas, and is_total against
     categories when it is given (#686 split this out so the horizontal
     render makes the same checks rather than a copy of them)."""
-    if len(plot._categorical.x) != len(plot._continuous.y):
+    if len(categorical.x) != len(continuous.y):
         raise Error(
             "Plot.encode_waterfall(): categories and deltas must have the"
             " same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " and "
-            + String(len(plot._continuous.y))
+            + String(len(continuous.y))
             + ")"
         )
-    if len(plot._waterfall.is_total) > 0 and len(
-        plot._waterfall.is_total
-    ) != len(plot._categorical.x):
+    if len(waterfall.is_total) > 0 and len(waterfall.is_total) != len(
+        categorical.x
+    ):
         raise Error(
             "Plot.encode_waterfall(): is_total, if given, must have the"
             " same length as categories (got "
-            + String(len(plot._waterfall.is_total))
+            + String(len(waterfall.is_total))
             + " and "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + ")"
         )
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_waterfall()")
+    _require_non_empty(len(categorical.x), "Plot.encode_waterfall()")
 
 
 def _draw_waterfall_bars[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    waterfall: _WaterfallData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     value_scale: LinearScale,
     band_scale: OrdinalScale,
     baseline: Float64,
@@ -192,7 +214,11 @@ def _draw_waterfall_bars[
 
     Args:
         target: Where to draw.
-        plot: The chart.
+        waterfall: The mark's `_WaterfallData` columns.
+        continuous: The x and y columns.
+        categorical: The categorical x column.
+        style: The per-mark style settings.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         value_scale: The continuous scale for running totals.
         band_scale: The ordinal scale for categories.
         baseline: The zero line's pixel on the value axis.
@@ -202,9 +228,9 @@ def _draw_waterfall_bars[
     Raises:
         Error: Whatever the target's draw calls raise.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var using_totals = len(plot._waterfall.is_total) > 0
+    var using_totals = len(waterfall.is_total) > 0
 
     # Only recorded when is_total is in use: that's the only case the
     # connector pass reads them back (a delta bar can be narrower than its
@@ -213,12 +239,11 @@ def _draw_waterfall_bars[
     var bar_x_list = List[Float64]()
     var bar_x1_list = List[Float64]()
     var bandwidth = band_scale.bandwidth()
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_start = band_scale.band_start(i)
         var row_is_total = (
-            plot._waterfall.is_total[i] if i
-            < len(plot._waterfall.is_total) else False
+            waterfall.is_total[i] if i < len(waterfall.is_total) else False
         )
         # The bar's two geometric edges. `fill_rect` below snaps each to
         # a whole pixel and takes the width from the pair, rather than
@@ -229,9 +254,7 @@ def _draw_waterfall_bars[
             bar_x = band_start
             bar_x1 = band_start + bandwidth
         else:
-            var narrow_width = (
-                bandwidth * plot._mark_style.waterfall_delta_width_fraction
-            )
+            var narrow_width = bandwidth * style.waterfall_delta_width_fraction
             var inset = (bandwidth - narrow_width) / 2.0
             bar_x = band_start + inset
             bar_x1 = bar_x + narrow_width
@@ -239,11 +262,11 @@ def _draw_waterfall_bars[
             bar_x_list.append(bar_x)
             bar_x1_list.append(bar_x1)
 
-        var y0_py = _axis_pixel_f(value_scale, plot._waterfall.y0[i])
-        var y1_py = _axis_pixel_f(value_scale, plot._waterfall.y1[i])
+        var y0_py = _axis_pixel_f(value_scale, waterfall.y0[i])
+        var y1_py = _axis_pixel_f(value_scale, waterfall.y1[i])
         var rect = _pull_off_axis_line_f(y0_py, y1_py, baseline)
         var bar_color = theme.waterfall_total_color if row_is_total else (
-            theme.mark_color_negative if plot._continuous.y[i]
+            theme.mark_color_negative if continuous.y[i]
             < 0.0 else theme.mark_color
         )
         if tooltips_on:
@@ -253,17 +276,15 @@ def _draw_waterfall_bars[
             # from zero, so its height is the running total itself.
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot._categorical.x[i],
-                    plot._waterfall.y1[
-                        i
-                    ] if row_is_total else plot._continuous.y[i],
+                    categorical.x[i],
+                    waterfall.y1[i] if row_is_total else continuous.y[i],
                 )
             )
         orient.fill_band_rect(target, rect, bar_x, bar_x1 - bar_x, bar_color)
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var delta = plot._continuous.y[i]
+            var delta = continuous.y[i]
             var at = orient.outside_band_label(
                 rect,
                 bar_x,
@@ -288,7 +309,7 @@ def _draw_waterfall_bars[
 
         if i > 0:
             var prev_end_py = snap_to_pixel_center(
-                _axis_pixel_f(value_scale, plot._waterfall.y1[i - 1])
+                _axis_pixel_f(value_scale, waterfall.y1[i - 1])
             )
             # With no totals, the edge comes from the band geometry (band_start +
             # bandwidth, summed then rounded once) since every bar is full band
@@ -314,7 +335,11 @@ def _render_horizontal_waterfall[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    waterfall: _WaterfallData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -334,17 +359,17 @@ def _render_horizontal_waterfall[
     `_render_horizontal_bar` gives (bar.mojo): the two frames report
     their scales under different names and types.
     """
-    _validate_waterfall_encoding(plot)
-    var theme = plot._settings.theme
+    _validate_waterfall_encoding(waterfall, continuous, categorical)
+    var theme = settings.theme
     var combined = List[Float64]()
-    for v in plot._waterfall.y0:
+    for v in waterfall.y0:
         combined.append(v)
-    for v in plot._waterfall.y1:
+    for v in waterfall.y1:
         combined.append(v)
     var value_scale = _zero_baseline_y_extent(combined)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -355,7 +380,11 @@ def _render_horizontal_waterfall[
     )
     _draw_waterfall_bars(
         target,
-        plot,
+        waterfall,
+        continuous,
+        categorical,
+        style,
+        settings,
         frame.x_scale,
         frame.y_scale,
         Float64(frame.px0),
@@ -555,7 +584,11 @@ def _render_waterfall_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    waterfall: _WaterfallData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -565,8 +598,60 @@ def _render_waterfall_oriented[
 ) raises -> _RenderResult:
     """`Mark.WATERFALL`'s renderer, the one its setter binds: `_render_horizontal_waterfall`
     when the plot is horizontal, `_render_waterfall` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_waterfall(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            waterfall,
+            continuous,
+            categorical,
+            style,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_waterfall(
+        target,
+        waterfall,
+        continuous,
+        categorical,
+        style,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_waterfall_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_waterfall_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_waterfall_oriented(
+        target,
+        plot._waterfall,
+        plot._continuous,
+        plot._categorical,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

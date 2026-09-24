@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin
 
 from canvas.text.font_cache import FontCache
@@ -143,7 +145,9 @@ def _render_polar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    polar: _PolarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -169,25 +173,25 @@ def _render_polar[
     share one radius scale with `max(radius)` computed across every
     series.
     """
-    var is_multi = len(plot._polar.series_names) > 0
+    var is_multi = len(polar.series_names) > 0
     if is_multi:
-        if len(plot._polar.series_radius) != len(plot._polar.series_names):
+        if len(polar.series_radius) != len(polar.series_names):
             raise Error(
                 "Plot.encode_polar_series(): series_names and series_values"
                 " must have the same length (got "
-                + String(len(plot._polar.series_names))
+                + String(len(polar.series_names))
                 + " and "
-                + String(len(plot._polar.series_radius))
+                + String(len(polar.series_radius))
                 + ")"
             )
-        for values in plot._polar.series_radius:
-            if len(values) != len(plot._polar.angle):
+        for values in polar.series_radius:
+            if len(values) != len(polar.angle):
                 raise Error(
                     "Plot.encode_polar_series(): every series must have the"
                     " same length as angle (got "
                     + String(len(values))
                     + " and "
-                    + String(len(plot._polar.angle))
+                    + String(len(polar.angle))
                     + ")"
                 )
             for r in values:
@@ -199,16 +203,16 @@ def _render_polar[
                         + ")"
                     )
     else:
-        if len(plot._polar.angle) != len(plot._polar.radius):
+        if len(polar.angle) != len(polar.radius):
             raise Error(
                 "Plot.encode_polar(): angle and radius must have the same"
                 " length (got "
-                + String(len(plot._polar.angle))
+                + String(len(polar.angle))
                 + " and "
-                + String(len(plot._polar.radius))
+                + String(len(polar.radius))
                 + ")"
             )
-        for r in plot._polar.radius:
+        for r in polar.radius:
             if r < 0.0:
                 raise Error(
                     "Plot: Mark.POLAR radius values must be non-negative (got "
@@ -216,15 +220,15 @@ def _render_polar[
                     + ")"
                 )
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     _require_non_empty(
-        len(plot._polar.angle), "Plot.encode_polar()/encode_polar_series()"
+        len(polar.angle), "Plot.encode_polar()/encode_polar_series()"
     )
     var text_requests = List[_TextRequest]()
     var sc = _Scaled(theme)
     var show_legend = is_multi and theme.show_legend
     var legend = _legend_layout(
-        plot._polar.series_names,
+        polar.series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -249,45 +253,45 @@ def _render_polar[
             cy,
             max_radius,
             theme,
-            plot._mark_style.polar_grid_rings,
-            plot._mark_style.polar_grid_spokes,
+            style.polar_grid_rings,
+            style.polar_grid_spokes,
         )
 
     # One title per drawn point: every series' points when there are
     # several, the one series' otherwise.
-    var tooltips_on = plot._settings.tooltips_on(
-        len(plot._polar.angle) * max(1, len(plot._polar.series_radius))
+    var tooltips_on = settings.tooltips_on(
+        len(polar.angle) * max(1, len(polar.series_radius))
     )
     if is_multi:
         var max_r = 0.0
-        for values in plot._polar.series_radius:
+        for values in polar.series_radius:
             for r in values:
                 if r > max_r:
                     max_r = r
 
         var palette = categorical_palette_for(theme)
-        for s in range(len(plot._polar.series_radius)):
-            var values = plot._polar.series_radius[s].copy()
+        for s in range(len(polar.series_radius)):
+            var values = polar.series_radius[s].copy()
             var color = palette[s % len(palette)]
             var path = Path()
-            for i in range(len(plot._polar.angle)):
+            for i in range(len(polar.angle)):
                 var radius_px = (
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
-                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+                var pt = _polar_point(cx, cy, polar.angle[i], radius_px)
                 if i == 0:
                     path.move_to(pt.x, pt.y)
                 else:
                     path.line_to(pt.x, pt.y)
             target.stroke_path_aa(path, color, sc.line_width)
-            for i in range(len(plot._polar.angle)):
+            for i in range(len(polar.angle)):
                 var radius_px = (
                     max_radius * (values[i] / max_r) if max_r > 0.0 else 0.0
                 )
-                var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+                var pt = _polar_point(cx, cy, polar.angle[i], radius_px)
                 if tooltips_on:
                     target.begin_annotated_group(
-                        _tooltip_label(plot._polar.series_names[s], values[i])
+                        _tooltip_label(polar.series_names[s], values[i])
                     )
                 target.fill_circle_aa(
                     Int(pt.x), Int(pt.y), Int(sc.point_radius), color
@@ -299,7 +303,7 @@ def _render_polar[
             _draw_legend_at(
                 target,
                 text_requests,
-                plot._polar.series_names,
+                polar.series_names,
                 palette,
                 legend,
                 plot_x0,
@@ -311,36 +315,34 @@ def _render_polar[
             )
     else:
         var max_r = 0.0
-        for r in plot._polar.radius:
+        for r in polar.radius:
             if r > max_r:
                 max_r = r
 
         var path = Path()
-        for i in range(len(plot._polar.angle)):
+        for i in range(len(polar.angle)):
             var radius_px = (
-                max_radius * (plot._polar.radius[i] / max_r) if max_r
-                > 0.0 else 0.0
+                max_radius * (polar.radius[i] / max_r) if max_r > 0.0 else 0.0
             )
-            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+            var pt = _polar_point(cx, cy, polar.angle[i], radius_px)
             if i == 0:
                 path.move_to(pt.x, pt.y)
             else:
                 path.line_to(pt.x, pt.y)
         target.stroke_path_aa(path, theme.mark_color, sc.line_width)
 
-        for i in range(len(plot._polar.angle)):
+        for i in range(len(polar.angle)):
             var radius_px = (
-                max_radius * (plot._polar.radius[i] / max_r) if max_r
-                > 0.0 else 0.0
+                max_radius * (polar.radius[i] / max_r) if max_r > 0.0 else 0.0
             )
-            var pt = _polar_point(cx, cy, plot._polar.angle[i], radius_px)
+            var pt = _polar_point(cx, cy, polar.angle[i], radius_px)
             # The single-series path: the radius is the whole datum, so
             # the title is the value with no series name to qualify it.
             if tooltips_on:
                 target.begin_annotated_group(
                     _format_fixed(
-                        plot._polar.radius[i],
-                        _label_decimals(plot._polar.radius[i]),
+                        polar.radius[i],
+                        _label_decimals(polar.radius[i]),
                     )
                 )
             target.fill_circle_aa(
@@ -350,6 +352,34 @@ def _render_polar[
                 target.end_annotated_group()
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_polar_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_polar` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_polar(
+        target,
+        plot._polar,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def polar(

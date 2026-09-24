@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
 
 from dataframe import DataFrame
@@ -70,7 +71,8 @@ def _render_parallel[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    parallel: _ParallelData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -83,15 +85,15 @@ def _render_parallel[
     Zero-span dimensions center their values. Dimension names label the axes,
     and row names key the optional legend.
     """
-    _require_non_empty(len(plot._parallel.dims), "Plot.encode_parallel()")
+    _require_non_empty(len(parallel.dims), "Plot.encode_parallel()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var text_requests = List[_TextRequest]()
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._parallel.row_names,
+        parallel.row_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -104,14 +106,14 @@ def _render_parallel[
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
-    var n = len(plot._parallel.dims)
+    var n = len(parallel.dims)
 
     # Compute an independent domain for each dimension.
     var dim_min = List[Float64]()
     var dim_max = List[Float64]()
     for d in range(n):
         var column = List[Float64]()
-        for row in plot._parallel.data:
+        for row in parallel.data:
             column.append(row[d])
         var mm = _min_max(column)
         dim_min.append(mm.min)
@@ -125,7 +127,7 @@ def _render_parallel[
                 _TextRequest(
                     x,
                     plot_y1 + sc.label_gap + Int(sc.font_size),
-                    plot._parallel.dims[d],
+                    parallel.dims[d],
                     theme.text_color,
                     sc.font_size,
                     TextAlign.CENTER,
@@ -134,8 +136,8 @@ def _render_parallel[
             )
 
     var palette = categorical_palette_for(theme)
-    for r in range(len(plot._parallel.data)):
-        var row = plot._parallel.data[r].copy()
+    for r in range(len(parallel.data)):
+        var row = parallel.data[r].copy()
         var color = palette[r % len(palette)]
         var path = Path()
         var in_run = False
@@ -159,7 +161,7 @@ def _render_parallel[
         _draw_legend_at(
             target,
             text_requests,
-            plot._parallel.row_names,
+            parallel.row_names,
             palette,
             legend,
             plot_x0,
@@ -171,6 +173,26 @@ def _render_parallel[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_parallel_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_parallel` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_parallel(
+        target, plot._parallel, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def parallel[

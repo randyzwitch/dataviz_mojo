@@ -17,6 +17,7 @@ have, so the behavior is stated here rather than left to be
 discovered.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
@@ -70,36 +71,36 @@ struct _Xyz(Copyable, Movable):
         self.azim = -60.0
 
 
-def _validate_xyz(plot: Plot) raises:
+def _validate_xyz(xyz: _Xyz) raises:
     """Three columns of the same length, at least one point.
 
     Raises:
         Error: The columns disagree in length, or there are no points.
     """
-    var n = len(plot._xyz.x)
-    if len(plot._xyz.y) != n or len(plot._xyz.z) != n:
+    var n = len(xyz.x)
+    if len(xyz.y) != n or len(xyz.z) != n:
         raise Error(
             "Plot.encode_xyz(): x, y and z must all have the same length (got "
             + String(n)
             + ", "
-            + String(len(plot._xyz.y))
+            + String(len(xyz.y))
             + " and "
-            + String(len(plot._xyz.z))
+            + String(len(xyz.z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_xyz()")
 
 
 def _frame_for(
-    plot: Plot, px0: Int, py0: Int, px1: Int, py1: Int
+    xyz: _Xyz, px0: Int, py0: Int, px1: Int, py1: Int
 ) raises -> Frame3D:
     """The fitted frame for this plot's data and view."""
     return _fit_frame3d(
-        Camera3D(plot._xyz.elev, plot._xyz.azim),
+        Camera3D(xyz.elev, xyz.azim),
         _Extent3D(
-            _min_max(plot._xyz.x),
-            _min_max(plot._xyz.y),
-            _min_max(plot._xyz.z),
+            _min_max(xyz.x),
+            _min_max(xyz.y),
+            _min_max(xyz.z),
         ),
         px0,
         py0,
@@ -108,7 +109,7 @@ def _frame_for(
     )
 
 
-def _depth_order(plot: Plot, frame: Frame3D) -> List[Int]:
+def _depth_order(xyz: _Xyz, frame: Frame3D) -> List[Int]:
     """Point indices from farthest to nearest, so drawing in this order
     leaves the nearest on top.
 
@@ -118,12 +119,10 @@ def _depth_order(plot: Plot, frame: Frame3D) -> List[Int]:
     because its keys are small integers and its counts are large;
     neither is true here.
     """
-    var n = len(plot._xyz.x)
+    var n = len(xyz.x)
     var depths = List[Float64](capacity=n)
     for i in range(n):
-        depths.append(
-            frame.depth(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
-        )
+        depths.append(frame.depth(xyz.x[i], xyz.y[i], xyz.z[i]))
     var order = List[Int](capacity=n)
     for i in range(n):
         order.append(i)
@@ -234,7 +233,8 @@ def _render_scatter3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    xyz: _Xyz,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -248,29 +248,27 @@ def _render_scatter3d[
     The depth sort is exact for points: a marker is a disc at a single
     depth, so ordering by that depth is the whole of the occlusion.
     """
-    _validate_xyz(plot)
-    var theme = plot._settings.theme
+    _validate_xyz(xyz)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
-    var frame = _frame_for(plot, px0, py0, px1, py1)
+    var frame = _frame_for(xyz, px0, py0, px1, py1)
     _draw_box(target, frame, theme, sc)
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var order = _depth_order(plot, frame)
+    var order = _depth_order(xyz, frame)
     var radius = sc.point_radius
-    var tooltips = plot._settings.tooltips_on(len(order))
+    var tooltips = settings.tooltips_on(len(order))
     for k in range(len(order)):
         var i = order[k]
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(xyz.x[i], xyz.y[i], xyz.z[i])
         if tooltips:
             target.begin_annotated_group(
-                _xyz_tooltip_label(
-                    plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
-                )
+                _xyz_tooltip_label(xyz.x[i], xyz.y[i], xyz.z[i])
             )
         # A circle, not `Theme.shape_by_category`'s cycle: shapes there
         # encode a category, and this mark has no category channel yet.
@@ -280,11 +278,32 @@ def _render_scatter3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_plot3d[
+def _render_scatter3d_plot[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_scatter3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_scatter3d(
+        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_plot3d[
+    T: DrawTarget
+](
+    mut target: T,
+    xyz: _Xyz,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -301,32 +320,48 @@ def _render_plot3d[
     comes later in the series. The fix -- splitting segments where
     they cross in projection -- needs geometry canvas does not have.
     """
-    _validate_xyz(plot)
-    var theme = plot._settings.theme
+    _validate_xyz(xyz)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
-    var frame = _frame_for(plot, px0, py0, px1, py1)
+    var frame = _frame_for(xyz, px0, py0, px1, py1)
     _draw_box(target, frame, theme, sc)
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var n = len(plot._xyz.x)
+    var n = len(xyz.x)
     if n >= 2:
         var path = Path()
-        var first = frame.to_pixel(
-            plot._xyz.x[0], plot._xyz.y[0], plot._xyz.z[0]
-        )
+        var first = frame.to_pixel(xyz.x[0], xyz.y[0], xyz.z[0])
         path.move_to(first[0], first[1])
         for i in range(1, n):
-            var at = frame.to_pixel(
-                plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
-            )
+            var at = frame.to_pixel(xyz.x[i], xyz.y[i], xyz.z[i])
             path.line_to(at[0], at[1])
         target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_plot3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_plot3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_plot3d(
+        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def scatter3d(

@@ -14,6 +14,12 @@ function the rug draws through, so the two marks cannot drift apart on
 the one thing that makes a thin vertical line legible.
 """
 
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _DistributionData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
 
 from dataframe import DataFrame
@@ -69,7 +75,10 @@ def _render_eventplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -107,8 +116,10 @@ def _render_eventplot[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_categorical.x` (row labels) and
-            `_distribution` values (each row's positions) this reads.
+        categorical: The categorical x column.
+        distribution: The raw distributions.
+        style: The per-mark style settings.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -122,8 +133,8 @@ def _render_eventplot[
         Error: No rows, a row-count mismatch, no events at all, or a
             non-positive `line_length`.
     """
-    var labels = plot._categorical.x.copy()
-    var rows = plot._distribution.values.copy()
+    var labels = categorical.x.copy()
+    var rows = distribution.values.copy()
     _require_non_empty(len(labels), "Plot.encode_eventplot()")
     if len(rows) != len(labels):
         raise Error(
@@ -135,7 +146,7 @@ def _render_eventplot[
             + ")"
         )
 
-    var line_length = plot._mark_style.eventplot_line_length
+    var line_length = style.eventplot_line_length
     if line_length <= 0.0:
         raise Error(
             "Plot.mark_eventplot(): line_length must be > 0 (got "
@@ -152,7 +163,7 @@ def _render_eventplot[
             pooled.append(v)
     _require_non_empty(len(pooled), "Plot.encode_eventplot()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         labels,
@@ -166,7 +177,7 @@ def _render_eventplot[
     )
 
     var half = frame.y_scale.bandwidth() * line_length / 2.0
-    var tooltips_on = plot._settings.tooltips_on(len(pooled))
+    var tooltips_on = settings.tooltips_on(len(pooled))
     for i in range(len(rows)):
         var center = frame.y_scale.center(i)
         if tooltips_on:
@@ -191,6 +202,35 @@ def _render_eventplot[
                 frame.sc.scale,
             )
     return frame.result()
+
+
+def _render_eventplot_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_eventplot` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_eventplot(
+        target,
+        plot._categorical,
+        plot._distribution,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def eventplot(

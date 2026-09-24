@@ -23,6 +23,7 @@ the fix is splitting faces at their crossings or a depth buffer,
 neither of which exists here.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.geometry import FPoint
 from canvas.path import Path
@@ -51,6 +52,7 @@ from dataviz.spatial.scatter3d import (
     _frame_for,
     _tick_labels,
     _validate_xyz,
+    _Xyz,
 )
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark
@@ -78,12 +80,12 @@ struct _Surface(Copyable, Movable):
         self.azim = -60.0
 
 
-def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
+def _surface_shape(surface: _Surface) raises -> Tuple[Int, Int]:
     """`(rows, cols)`, raising unless the grid is rectangular and at
     least 2x2 -- a surface is built from cells, and a grid with one row
     or column has none.
     """
-    var rows = len(plot._surface.z)
+    var rows = len(surface.z)
     if rows < 2:
         raise Error(
             "Plot.encode_surface(): z needs at least 2 rows to have any"
@@ -91,7 +93,7 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
             + String(rows)
             + ")"
         )
-    var cols = len(plot._surface.z[0])
+    var cols = len(surface.z[0])
     if cols < 2:
         raise Error(
             "Plot.encode_surface(): z needs at least 2 columns to have any"
@@ -100,12 +102,12 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
             + ")"
         )
     for r in range(1, rows):
-        if len(plot._surface.z[r]) != cols:
+        if len(surface.z[r]) != cols:
             raise Error(
                 "Plot.encode_surface(): z must be rectangular -- row "
                 + String(r)
                 + " has "
-                + String(len(plot._surface.z[r]))
+                + String(len(surface.z[r]))
                 + " values against "
                 + String(cols)
                 + " in row 0"
@@ -115,31 +117,33 @@ def _surface_shape(plot: Plot) raises -> Tuple[Int, Int]:
     # meaning, and one column silently ignored for being the wrong
     # length is the failure this catches.
     _check_grid_coordinates(
-        plot._surface.x, cols, "x", "column", "Plot.encode_surface()"
+        surface.x, cols, "x", "column", "Plot.encode_surface()"
     )
     _check_grid_coordinates(
-        plot._surface.y, rows, "y", "row", "Plot.encode_surface()"
+        surface.y, rows, "y", "row", "Plot.encode_surface()"
     )
     return (rows, cols)
 
 
-def _surface_extent(plot: Plot, rows: Int, cols: Int) raises -> _Extent3D:
+def _surface_extent(
+    surface: _Surface, rows: Int, cols: Int
+) raises -> _Extent3D:
     """The three data ranges: the lattice's own coordinates when it has
     them, its indices otherwise, and the grid's height range for z."""
     var flat = List[Float64]()
-    for row in plot._surface.z:
+    for row in surface.z:
         for v in row:
             flat.append(v)
-    var x_span = _min_max(plot._surface.x) if len(
-        plot._surface.x
-    ) > 0 else MinMax(0.0, Float64(cols - 1))
-    var y_span = _min_max(plot._surface.y) if len(
-        plot._surface.y
-    ) > 0 else MinMax(0.0, Float64(rows - 1))
+    var x_span = _min_max(surface.x) if len(surface.x) > 0 else MinMax(
+        0.0, Float64(cols - 1)
+    )
+    var y_span = _min_max(surface.y) if len(surface.y) > 0 else MinMax(
+        0.0, Float64(rows - 1)
+    )
     return _Extent3D(x_span, y_span, _min_max(flat))
 
 
-def _lattice_at(plot: Plot, axis: Int, index: Int) -> Float64:
+def _lattice_at(surface: _Surface, axis: Int, index: Int) -> Float64:
     """The data coordinate of lattice `index` along `axis` (0 x, 1 y):
     the caller's own column when it gave one, else the index.
 
@@ -148,11 +152,11 @@ def _lattice_at(plot: Plot, axis: Int, index: Int) -> Float64:
     non-empty one is known to reach `index`.
     """
     if axis == 0:
-        if len(plot._surface.x) > 0:
-            return plot._surface.x[index]
+        if len(surface.x) > 0:
+            return surface.x[index]
         return Float64(index)
-    if len(plot._surface.y) > 0:
-        return plot._surface.y[index]
+    if len(surface.y) > 0:
+        return surface.y[index]
     return Float64(index)
 
 
@@ -182,7 +186,8 @@ def _render_surface3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    surface: _Surface,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -199,14 +204,14 @@ def _render_surface3d[
     looks smoother and implies the surface was measured between the
     samples.
     """
-    var shape = _surface_shape(plot)
+    var shape = _surface_shape(surface)
     var rows = shape[0]
     var cols = shape[1]
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var extent = _surface_extent(plot, rows, cols)
+    var extent = _surface_extent(surface, rows, cols)
     var frame = _fit_frame3d(
-        Camera3D(plot._surface.elev, plot._surface.azim),
+        Camera3D(surface.elev, surface.azim),
         extent,
         ox0 + sc.margin_left,
         oy0 + sc.margin_top,
@@ -227,14 +232,14 @@ def _render_surface3d[
     for r in range(rows):
         for c in range(cols):
             var at = frame.to_pixel(
-                _lattice_at(plot, 0, c),
-                _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                _lattice_at(surface, 0, c),
+                _lattice_at(surface, 1, r),
+                surface.z[r][c],
             )
             points.append(FPoint(at[0], at[1]))
 
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, extent.z.min, extent.z.max
+        theme, settings.color_domain, extent.z.min, extent.z.max
     )
     var faces = List[Int]()
     var colors = List[Color]()
@@ -254,25 +259,25 @@ def _render_surface3d[
                 faces.append(a)
                 faces.append(b)
                 faces.append(cc)
-                var za = plot._surface.z[a // cols][a % cols]
-                var zb = plot._surface.z[b // cols][b % cols]
-                var zc = plot._surface.z[cc // cols][cc % cols]
+                var za = surface.z[a // cols][a % cols]
+                var zb = surface.z[b // cols][b % cols]
+                var zc = surface.z[cc // cols][cc % cols]
                 colors.append(color_scale.color_at((za + zb + zc) / 3.0))
                 depths.append(
                     (
                         frame.depth(
-                            _lattice_at(plot, 0, a % cols),
-                            _lattice_at(plot, 1, a // cols),
+                            _lattice_at(surface, 0, a % cols),
+                            _lattice_at(surface, 1, a // cols),
                             za,
                         )
                         + frame.depth(
-                            _lattice_at(plot, 0, b % cols),
-                            _lattice_at(plot, 1, b // cols),
+                            _lattice_at(surface, 0, b % cols),
+                            _lattice_at(surface, 1, b // cols),
                             zb,
                         )
                         + frame.depth(
-                            _lattice_at(plot, 0, cc % cols),
-                            _lattice_at(plot, 1, cc // cols),
+                            _lattice_at(surface, 0, cc % cols),
+                            _lattice_at(surface, 1, cc // cols),
                             zc,
                         )
                     )
@@ -299,11 +304,32 @@ def _render_surface3d[
     )
 
 
-def _render_wire3d[
+def _render_surface3d_plot[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_surface3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_surface3d(
+        target, plot._surface, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_wire3d[
+    T: DrawTarget
+](
+    mut target: T,
+    surface: _Surface,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -319,14 +345,14 @@ def _render_wire3d[
     the far side stays visible -- and the cost is that a dense lattice
     reads as a thicket.
     """
-    var shape = _surface_shape(plot)
+    var shape = _surface_shape(surface)
     var rows = shape[0]
     var cols = shape[1]
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var frame = _fit_frame3d(
-        Camera3D(plot._surface.elev, plot._surface.azim),
-        _surface_extent(plot, rows, cols),
+        Camera3D(surface.elev, surface.azim),
+        _surface_extent(surface, rows, cols),
         ox0 + sc.margin_left,
         oy0 + sc.margin_top,
         ox1 - sc.margin_right,
@@ -343,9 +369,9 @@ def _render_wire3d[
         var path = Path()
         for c in range(cols):
             var at = frame.to_pixel(
-                _lattice_at(plot, 0, c),
-                _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                _lattice_at(surface, 0, c),
+                _lattice_at(surface, 1, r),
+                surface.z[r][c],
             )
             if c == 0:
                 path.move_to(at[0], at[1])
@@ -356,9 +382,9 @@ def _render_wire3d[
         var path = Path()
         for r in range(rows):
             var at = frame.to_pixel(
-                _lattice_at(plot, 0, c),
-                _lattice_at(plot, 1, r),
-                plot._surface.z[r][c],
+                _lattice_at(surface, 0, c),
+                _lattice_at(surface, 1, r),
+                surface.z[r][c],
             )
             if r == 0:
                 path.move_to(at[0], at[1])
@@ -375,11 +401,32 @@ def _render_wire3d[
     )
 
 
-def _render_trisurf3d[
+def _render_wire3d_plot[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_wire3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_wire3d(
+        target, plot._surface, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_trisurf3d[
+    T: DrawTarget
+](
+    mut target: T,
+    xyz: _Xyz,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -396,28 +443,28 @@ def _render_trisurf3d[
     overhang -- cannot be drawn by this mark at all, and the
     triangulation silently picks one of them.
     """
-    _validate_xyz(plot)
-    var theme = plot._settings.theme
+    _validate_xyz(xyz)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
-    var frame = _frame_for(plot, px0, py0, px1, py1)
+    var frame = _frame_for(xyz, px0, py0, px1, py1)
     _draw_box(target, frame, theme, sc)
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var tri = delaunay(plot._xyz.x, plot._xyz.y)
-    var n = len(plot._xyz.x)
+    var tri = delaunay(xyz.x, xyz.y)
+    var n = len(xyz.x)
     var points = List[FPoint](capacity=n)
     for i in range(n):
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(xyz.x[i], xyz.y[i], xyz.z[i])
         points.append(FPoint(at[0], at[1]))
 
-    var z_span = _min_max(plot._xyz.z)
+    var z_span = _min_max(xyz.z)
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, z_span.min, z_span.max
+        theme, settings.color_domain, z_span.min, z_span.max
     )
     var face_count = len(tri.triangles) // 3
     var colors = List[Color](capacity=face_count)
@@ -427,15 +474,13 @@ def _render_trisurf3d[
         var b = tri.triangles[f * 3 + 1]
         var c = tri.triangles[f * 3 + 2]
         colors.append(
-            color_scale.color_at(
-                (plot._xyz.z[a] + plot._xyz.z[b] + plot._xyz.z[c]) / 3.0
-            )
+            color_scale.color_at((xyz.z[a] + xyz.z[b] + xyz.z[c]) / 3.0)
         )
         depths.append(
             (
-                frame.depth(plot._xyz.x[a], plot._xyz.y[a], plot._xyz.z[a])
-                + frame.depth(plot._xyz.x[b], plot._xyz.y[b], plot._xyz.z[b])
-                + frame.depth(plot._xyz.x[c], plot._xyz.y[c], plot._xyz.z[c])
+                frame.depth(xyz.x[a], xyz.y[a], xyz.z[a])
+                + frame.depth(xyz.x[b], xyz.y[b], xyz.z[b])
+                + frame.depth(xyz.x[c], xyz.y[c], xyz.z[c])
             )
             / 3.0
         )
@@ -452,6 +497,26 @@ def _render_trisurf3d[
     target.fill_mesh(points, faces, sorted_colors)
 
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_trisurf3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_trisurf3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_trisurf3d(
+        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def surface3d(

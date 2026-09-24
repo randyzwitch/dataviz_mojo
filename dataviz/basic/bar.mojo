@@ -1,3 +1,9 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
@@ -42,24 +48,26 @@ def _bar_fill_color(theme: Theme, value: Float64) -> Color:
     ) else theme.mark_color
 
 
-def _bar_y_domain_data(plot: Plot) -> List[Float64]:
-    """`plot._continuous.y`, or every error-bar whisker endpoint when `y_err`
+def _bar_y_domain_data(
+    continuous: _ContinuousData, y_err: _ErrorBarData
+) -> List[Float64]:
+    """`continuous.y`, or every error-bar whisker endpoint when `y_err`
     (or `y_err_lower`/`y_err_upper`) is set, so the y-domain spans
     everything `_draw_bar_rects` actually draws -- the same
     `y_domain_data` pattern `_render_generic` uses for `POINT`/`LINE`/
     `EFFECT_SCATTER`.
     """
     var domain_data = List[Float64]()
-    if len(plot._y_err.symmetric) > 0:
-        for i in range(len(plot._continuous.y)):
-            domain_data.append(plot._continuous.y[i] - plot._y_err.symmetric[i])
-            domain_data.append(plot._continuous.y[i] + plot._y_err.symmetric[i])
-    elif len(plot._y_err.lower) > 0:
-        for i in range(len(plot._continuous.y)):
-            domain_data.append(plot._continuous.y[i] - plot._y_err.lower[i])
-            domain_data.append(plot._continuous.y[i] + plot._y_err.upper[i])
+    if len(y_err.symmetric) > 0:
+        for i in range(len(continuous.y)):
+            domain_data.append(continuous.y[i] - y_err.symmetric[i])
+            domain_data.append(continuous.y[i] + y_err.symmetric[i])
+    elif len(y_err.lower) > 0:
+        for i in range(len(continuous.y)):
+            domain_data.append(continuous.y[i] - y_err.lower[i])
+            domain_data.append(continuous.y[i] + y_err.upper[i])
     else:
-        for v in plot._continuous.y:
+        for v in continuous.y:
             domain_data.append(v)
     return domain_data^
 
@@ -68,7 +76,10 @@ def _draw_bar_rects_at_positions[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     band_starts: List[Float64],
     band_widths: List[Float64],
     band_centers: List[Float64],
@@ -82,34 +93,34 @@ def _draw_bar_rects_at_positions[
     This keeps colors, error bars, tooltips, and data labels identical
     for categorical bands and timestamp intervals.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var baseline = _axis_pixel_f(value_scale, 0.0)
-    var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
+    var has_y_err = len(y_err.symmetric) > 0 or len(y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_pos = band_starts[i]
         var band_size = band_widths[i]
-        var value = plot._continuous.y[i]
+        var value = continuous.y[i]
         var extent = _pull_off_axis_line_f(
             baseline, _axis_pixel_f(value_scale, value), Float64(baseline_edge)
         )
         var color = _bar_fill_color(theme, value)
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], value)
+                _tooltip_label(categorical.x[i], value)
             )
         if has_y_err:
             var lo: Float64
             var hi: Float64
-            if len(plot._y_err.symmetric) > 0:
-                var err = plot._y_err.symmetric[i]
+            if len(y_err.symmetric) > 0:
+                var err = y_err.symmetric[i]
                 lo = value - err
                 hi = value + err
             else:
-                lo = value - plot._y_err.lower[i]
-                hi = value + plot._y_err.upper[i]
+                lo = value - y_err.lower[i]
+                hi = value + y_err.upper[i]
             var center_i = band_centers[i]
             var py_hi = _axis_pixel_f(value_scale, hi)
             var py_lo = _axis_pixel_f(value_scale, lo)
@@ -163,7 +174,10 @@ def _draw_bar_rects[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     baseline_edge: Int,
@@ -173,18 +187,21 @@ def _draw_bar_rects[
     group_count: Int = 1,
 ) raises:
     """Draw categorical bars with the same glyph path as time bars."""
-    var starts = List[Float64](capacity=len(plot._categorical.x))
-    var widths = List[Float64](capacity=len(plot._categorical.x))
-    var centers = List[Float64](capacity=len(plot._categorical.x))
+    var starts = List[Float64](capacity=len(categorical.x))
+    var widths = List[Float64](capacity=len(categorical.x))
+    var centers = List[Float64](capacity=len(categorical.x))
     var width = band_scale.bandwidth() / Float64(group_count)
-    for i in range(len(plot._categorical.x)):
+    for i in range(len(categorical.x)):
         var start = band_scale.band_start(i) + Float64(group_index) * width
         starts.append(start)
         widths.append(width)
         centers.append(start + width / 2.0)
     _draw_bar_rects_at_positions(
         target,
-        plot,
+        continuous,
+        categorical,
+        y_err,
+        settings,
         starts,
         widths,
         centers,
@@ -216,7 +233,11 @@ def _render_time_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -225,22 +246,20 @@ def _render_time_bar[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Vertical bars on a dated linear x-axis with one interval per bar."""
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
-    if len(plot._continuous.x) != len(plot._continuous.y):
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
+    if len(continuous.x) != len(continuous.y):
         raise Error(
             "Plot.encode_time_bars(): dates and values must have the same"
             " length (got "
-            + String(len(plot._continuous.x))
+            + String(len(continuous.x))
             + " and "
-            + String(len(plot._continuous.y))
+            + String(len(continuous.y))
             + ")"
         )
-    var interval = _time_bar_interval(plot._continuous.x)
-    var earliest = plot._continuous.x[0]
+    var interval = _time_bar_interval(continuous.x)
+    var earliest = continuous.x[0]
     var latest = earliest
-    for seconds in plot._continuous.x:
+    for seconds in continuous.x:
         earliest = min(earliest, seconds)
         latest = max(latest, seconds)
     var bounds: List[Float64] = [
@@ -249,13 +268,13 @@ def _render_time_bar[
     ]
     var x_scale = _data_extent(bounds)
     x_scale.is_time = True
-    x_scale.tz_offset = plot._settings.x_tz_offset
-    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    x_scale.tz_offset = settings.x_tz_offset
+    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(continuous, y_err))
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,
         y_scale,
-        plot._settings.theme,
+        settings.theme,
         _LegendLayout(),
         ox0,
         oy0,
@@ -263,10 +282,10 @@ def _render_time_bar[
         oy1,
         cache=cache,
     )
-    var starts = List[Float64](capacity=len(plot._continuous.x))
-    var widths = List[Float64](capacity=len(plot._continuous.x))
-    var centers = List[Float64](capacity=len(plot._continuous.x))
-    for seconds in plot._continuous.x:
+    var starts = List[Float64](capacity=len(continuous.x))
+    var widths = List[Float64](capacity=len(continuous.x))
+    var centers = List[Float64](capacity=len(continuous.x))
+    for seconds in continuous.x:
         var left = _axis_pixel_f(frame.x_scale, seconds - interval / 2.0)
         var right = _axis_pixel_f(frame.x_scale, seconds + interval / 2.0)
         starts.append(left)
@@ -274,7 +293,10 @@ def _render_time_bar[
         centers.append(_axis_pixel_f(frame.x_scale, seconds))
     _draw_bar_rects_at_positions(
         target,
-        plot,
+        continuous,
+        categorical,
+        y_err,
+        settings,
         starts,
         widths,
         centers,
@@ -290,7 +312,11 @@ def _render_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -319,20 +345,30 @@ def _render_bar[
     for a negative value). No x-gridlines: the bars already separate
     categories.
     """
-    if plot._settings.x_time:
-        return _render_time_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    if settings.x_time:
+        return _render_time_bar(
+            target,
+            mark,
+            continuous,
+            categorical,
+            y_err,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
+        )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     # y-domain computed before the frame's dynamic left margin is
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
-    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(continuous, y_err))
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -344,7 +380,10 @@ def _render_bar[
 
     _draw_bar_rects(
         target,
-        plot,
+        continuous,
+        categorical,
+        y_err,
+        settings,
         frame.x_scale,
         frame.y_scale,
         frame.py1,
@@ -362,7 +401,11 @@ def _render_horizontal_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -384,15 +427,13 @@ def _render_horizontal_bar[
         `_Orientation(True)`. No y-gridlines, mirroring `_render_bar`'s no
         x-gridlines.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
-    var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
+    var theme = settings.theme
+    var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(continuous, y_err))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -404,7 +445,10 @@ def _render_horizontal_bar[
 
     _draw_bar_rects(
         target,
-        plot,
+        continuous,
+        categorical,
+        y_err,
+        settings,
         frame.y_scale,
         frame.x_scale,
         frame.px0,
@@ -744,7 +788,11 @@ def _render_bar_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -754,8 +802,60 @@ def _render_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.BAR`'s renderer, the one its setter binds: `_render_horizontal_bar`
     when the plot is horizontal, `_render_bar` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_bar(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            mark,
+            continuous,
+            categorical,
+            y_err,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_bar(
+        target,
+        mark,
+        continuous,
+        categorical,
+        y_err,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_bar_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_bar_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_bar_oriented(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

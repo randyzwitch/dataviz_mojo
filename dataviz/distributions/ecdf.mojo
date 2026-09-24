@@ -1,5 +1,8 @@
 """Empirical cumulative distribution rendering."""
 
+from dataviz.core.plot_fields import _DistributionData
+from dataviz.core.mark import Mark
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
@@ -123,7 +126,9 @@ def _render_ecdf[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -157,7 +162,9 @@ def _render_ecdf[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_distribution` values this reads.
+        mark: The mark being drawn.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -173,23 +180,23 @@ def _render_ecdf[
     # An empty outer list means no `encode_ecdf()` call happened at all,
     # which is distinct from an empty column (`encode_ecdf()` rejects
     # that itself) and has to be checked before indexing into it.
-    _require_non_empty(len(plot._distribution.values), "Plot.encode_ecdf()")
-    var values = plot._distribution.values[0].copy()
+    _require_non_empty(len(distribution.values), "Plot.encode_ecdf()")
+    var values = distribution.values[0].copy()
     _require_non_empty(len(values), "Plot.encode_ecdf()")
 
-    var theme = plot._settings.theme
-    var complementary = plot._distribution.ecdf_complementary
+    var theme = settings.theme
+    var complementary = distribution.ecdf_complementary
     var curve = _ecdf_points(values, complementary)
 
     var frame = _draw_continuous_axis_frame(
         target,
         _position_x_extent(
             values,
-            mark=plot._mark,
-            x_log=plot._settings.x_log,
-            x_symlog=plot._settings.x_symlog,
-            x_symlog_linthresh=plot._settings.x_symlog_linthresh,
-            y_symlog=plot._settings.y_symlog,
+            mark=mark,
+            x_log=settings.x_log,
+            x_symlog=settings.x_symlog,
+            x_symlog_linthresh=settings.x_symlog_linthresh,
+            y_symlog=settings.y_symlog,
         ),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,
@@ -202,16 +209,52 @@ def _render_ecdf[
     )
 
     _draw_ecdf_layer(
-        target, plot, curve.x, curve.y, frame.x_scale, frame.y_scale, frame.sc
+        target,
+        distribution,
+        settings,
+        curve.x,
+        curve.y,
+        frame.x_scale,
+        frame.y_scale,
+        frame.sc,
     )
     return frame.result()
+
+
+def _render_ecdf_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_ecdf` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_ecdf(
+        target,
+        plot._mark,
+        plot._distribution,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def _draw_ecdf_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     curve_x: List[Float64],
     curve_y: List[Float64],
     x_scale: LinearScale,
@@ -229,14 +272,15 @@ def _draw_ecdf_layer[
 
     Args:
         target: Where to draw.
-        plot: The layer, for its theme and `ecdf_complementary` flag.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         curve_x: Staircase vertex x, in data units.
         curve_y: Staircase vertex y, a proportion in `[0, 1]`.
         x_scale: The frame's x-scale, already ranged to pixels.
         y_scale: The frame's y-scale, already ranged to pixels.
         sc: The frame's `_Scaled` theme quantities (line width).
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var px = List[Float64](capacity=len(curve_x))
     var py = List[Float64](capacity=len(curve_x))
     for i in range(len(curve_x)):
@@ -250,7 +294,7 @@ def _draw_ecdf_layer[
     # every observation by construction (one vertex per distinct value,
     # doubled by the expansion) and never bins any of them away.
     var stepped = _step_points(
-        px, py, _ecdf_step_style(plot._distribution.ecdf_complementary)
+        px, py, _ecdf_step_style(distribution.ecdf_complementary)
     )
     var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)
     var path = _build_line_path(thinned.px, thinned.py, 0.0)

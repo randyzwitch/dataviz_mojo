@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
 
 from canvas.text.font_cache import FontCache
@@ -20,6 +21,7 @@ from dataviz.core.scale import _min_max
 from dataviz.relationships.edges import (
     _edge_node_index,
     _validate_edge_encoding,
+    _EdgeData,
 )
 from dataviz.core.theme import Theme
 
@@ -28,7 +30,8 @@ def _render_arc_diagram[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    edge_data: _EdgeData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -41,11 +44,11 @@ def _render_arc_diagram[
     Nodes are evenly spaced on a baseline. Edge width scales with value;
     edge color follows the source node. Self-loops are skipped.
     """
-    _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
+    _validate_edge_encoding(edge_data, "Mark.ARC_DIAGRAM")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        edge_data.from_categories, edge_data.to_categories
     )
     ref nodes = edges.nodes
     var n = len(nodes)
@@ -63,15 +66,13 @@ def _render_arc_diagram[
         node_x.append(Float64(plot_x0) + frac * Float64(plot_x1 - plot_x0))
 
     var palette = categorical_palette_for(theme)
-    var value_mm = _min_max(plot._edges.values)
+    var value_mm = _min_max(edge_data.values)
     var max_value = value_mm.max
 
     var text_requests = List[_TextRequest]()
 
-    var tooltips_on = plot._settings.tooltips_on(
-        len(plot._edges.from_categories)
-    )
-    for row in range(len(plot._edges.from_categories)):
+    var tooltips_on = settings.tooltips_on(len(edge_data.from_categories))
+    for row in range(len(edge_data.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
@@ -80,9 +81,7 @@ def _render_arc_diagram[
         var right_x = max(node_x[from_idx], node_x[to_idx])
         var cx = (left_x + right_x) / 2.0
         var radius = (right_x - left_x) / 2.0
-        var frac = (
-            plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
-        )
+        var frac = edge_data.values[row] / max_value if max_value > 0.0 else 0.0
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
 
@@ -92,9 +91,9 @@ def _render_arc_diagram[
         if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
-                    plot._edges.from_categories[row],
-                    plot._edges.to_categories[row],
-                    plot._edges.values[row],
+                    edge_data.from_categories[row],
+                    edge_data.to_categories[row],
+                    edge_data.values[row],
                 )
             )
         target.stroke_path_aa(path, color, width)
@@ -125,6 +124,26 @@ def _render_arc_diagram[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_arc_diagram_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_arc_diagram` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_arc_diagram(
+        target, plot._edges, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def arc_diagram(

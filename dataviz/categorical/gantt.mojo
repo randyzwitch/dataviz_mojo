@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -240,7 +242,9 @@ def _render_gantt[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    gantt: _GanttData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -269,35 +273,35 @@ def _render_gantt[
     No dependency arrows between bars; `encode_gantt()`'s data has no
     notion of dependencies.
     """
-    if len(plot._categorical.x) != len(plot._gantt.start) or len(
-        plot._gantt.end
-    ) != len(plot._gantt.start):
+    if len(categorical.x) != len(gantt.start) or len(gantt.end) != len(
+        gantt.start
+    ):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " categories, "
-            + String(len(plot._gantt.start))
+            + String(len(gantt.start))
             + " start values, "
-            + String(len(plot._gantt.end))
+            + String(len(gantt.end))
             + " end values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
+    var theme = settings.theme
+    _require_non_empty(len(categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
-    for v in plot._gantt.start:
+    for v in gantt.start:
         domain_data.append(v)
-    for v in plot._gantt.end:
+    for v in gantt.end:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
-    if plot._settings.x_time:
+    if settings.x_time:
         x_scale.is_time = True
-        x_scale.tz_offset = plot._settings.x_tz_offset
+        x_scale.tz_offset = settings.x_tz_offset
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -308,11 +312,11 @@ def _render_gantt[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var row_y = frame.y_scale.band_start(i)
-        var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
-        var end_px = _axis_pixel_f(frame.x_scale, plot._gantt.end[i])
+        var start_px = _axis_pixel_f(frame.x_scale, gantt.start[i])
+        var end_px = _axis_pixel_f(frame.x_scale, gantt.end[i])
         # Snap the four edges, then floor the width at a pixel so a
         # zero-length task still draws a mark. The floor comes after the
         # snap: two equal edges snap to one boundary, which is exactly
@@ -325,20 +329,20 @@ def _render_gantt[
         var by1 = snap_to_pixel_edge(row_y + row_height)
         if tooltips_on:
             var tooltip = _span_tooltip_label(
-                plot._categorical.x[i],
-                plot._gantt.start[i],
-                plot._gantt.end[i],
+                categorical.x[i],
+                gantt.start[i],
+                gantt.end[i],
             )
-            if plot._settings.x_time:
-                var zone = TimeZone(plot._settings.x_tz_offset)
+            if settings.x_time:
+                var zone = TimeZone(settings.x_tz_offset)
                 tooltip = (
-                    plot._categorical.x[i]
+                    categorical.x[i]
                     + ": "
-                    + Morrow.fromtimestamp(plot._gantt.start[i], zone).format(
+                    + Morrow.fromtimestamp(gantt.start[i], zone).format(
                         "YYYY-MM-DD HH:mm"
                     )
                     + " to "
-                    + Morrow.fromtimestamp(plot._gantt.end[i], zone).format(
+                    + Morrow.fromtimestamp(gantt.end[i], zone).format(
                         "YYYY-MM-DD HH:mm"
                     )
                 )
@@ -347,9 +351,9 @@ def _render_gantt[
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
+            var span = abs(gantt.end[i] - gantt.start[i])
             var span_label = _format_fixed(span, _label_decimals(span))
-            if plot._settings.x_time:
+            if settings.x_time:
                 var divisor = 1.0
                 var unit = String(" s")
                 if span >= 86400.0:
@@ -378,6 +382,34 @@ def _render_gantt[
             )
 
     return frame.result()
+
+
+def _render_gantt_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_gantt` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_gantt(
+        target,
+        plot._gantt,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def gantt(

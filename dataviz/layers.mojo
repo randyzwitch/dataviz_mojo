@@ -521,10 +521,13 @@ def _render_bar_combo_layers[
             )
             bar_count += 1
         else:
-            _validate_grouped_bar_series(plots[i])
+            _validate_grouped_bar_series(
+                plots[i]._mark, plots[i]._grouped_bar, plots[i]._categorical
+            )
             if mark == Mark.STACKED_BAR:
                 _validate_stacked_bar_percent(
-                    plots[i], len(plots[i]._grouped_bar.series_names)
+                    plots[i]._grouped_bar,
+                    len(plots[i]._grouped_bar.series_names),
                 )
             subdivided_count += 1
         if len(plots[i]._categorical.x) != len(bar_categories):
@@ -653,14 +656,16 @@ def _render_bar_combo_layers[
     var combined_y = List[Float64]()
     for i in range(len(plots)):
         if plots[i]._mark == Mark.BAR:
-            for v in _bar_y_domain_data(plots[i]):
+            for v in _bar_y_domain_data(plots[i]._continuous, plots[i]._y_err):
                 combined_y.append(v)
         elif plots[i]._mark == Mark.GROUPED_BAR:
-            for v in _grouped_bar_domain_data(plots[i]):
+            for v in _grouped_bar_domain_data(plots[i]._grouped_bar):
                 combined_y.append(v)
         elif plots[i]._mark == Mark.STACKED_BAR:
             for v in _stacked_bar_domain_data(
-                plots[i], len(plots[i]._grouped_bar.series_names)
+                plots[i]._grouped_bar,
+                plots[i]._categorical,
+                len(plots[i]._grouped_bar.series_names),
             ):
                 combined_y.append(v)
         else:
@@ -725,7 +730,9 @@ def _render_bar_combo_layers[
         if plots[i]._mark == Mark.GROUPED_BAR:
             _draw_grouped_bars(
                 target,
-                plots[i],
+                plots[i]._grouped_bar,
+                plots[i]._categorical,
+                plots[i]._settings,
                 frame.x_scale,
                 frame.y_scale,
                 frame.py1,
@@ -737,7 +744,9 @@ def _render_bar_combo_layers[
         if plots[i]._mark == Mark.STACKED_BAR:
             _draw_stacked_segments(
                 target,
-                plots[i],
+                plots[i]._grouped_bar,
+                plots[i]._categorical,
+                plots[i]._settings,
                 frame.x_scale,
                 frame.y_scale,
                 frame.py1,
@@ -750,7 +759,10 @@ def _render_bar_combo_layers[
             continue
         _draw_bar_rects(
             target,
-            plots[i],
+            plots[i]._continuous,
+            plots[i]._categorical,
+            plots[i]._y_err,
+            plots[i]._settings,
             frame.x_scale,
             frame.y_scale,
             frame.py1,
@@ -809,7 +821,12 @@ def _render_bar_combo_layers[
             _ = _draw_point_layer(
                 target,
                 unused_legend,
-                plots[i],
+                plots[i]._mark,
+                plots[i]._continuous,
+                plots[i]._channels,
+                plots[i]._y_err,
+                plots[i]._mark_style,
+                plots[i]._settings,
                 ch,
                 unused_x,
                 frame.y_scale,
@@ -821,7 +838,10 @@ def _render_bar_combo_layers[
         elif plots[i]._mark == Mark.LINE:
             _draw_line_layer(
                 target,
-                plots[i],
+                plots[i]._continuous,
+                plots[i]._y_err,
+                plots[i]._mark_style,
+                plots[i]._settings,
                 LinearScale(0.0, 1.0, 0.0, 1.0),
                 frame.y_scale,
                 band_px,
@@ -829,7 +849,9 @@ def _render_bar_combo_layers[
         else:
             _draw_area_layer(
                 target,
-                plots[i],
+                plots[i]._continuous,
+                plots[i]._mark_style,
+                plots[i]._settings,
                 LinearScale(0.0, 1.0, 0.0, 1.0),
                 frame.y_scale,
                 band_px,
@@ -1043,7 +1065,7 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     """
     var mark = plot._mark
     if mark == Mark.KDE:
-        var values = _kde_observations(plot)
+        var values = _kde_observations(plot._distribution)
         var curve = _kde_curve(
             values, plot._distribution.kde_bandwidth_override
         )
@@ -1063,13 +1085,15 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         )
         return _LayerDomain(curve.x.copy(), curve.y.copy(), True)
     if mark == Mark.RUG:
-        return _LayerDomain(_kde_observations(plot), List[Float64](), False)
+        return _LayerDomain(
+            _kde_observations(plot._distribution), List[Float64](), False
+        )
     if mark == Mark.BARBS:
-        _validate_barbs(plot)
+        _validate_barbs(plot._barbs)
         return _LayerDomain(plot._barbs.x.copy(), plot._barbs.y.copy(), False)
     if mark == Mark.TRICONTOUR or mark == Mark.TRICONTOURF:
         _validate_tricontour(
-            plot,
+            plot._tricontour,
             "Plot.mark_tricontour()" if mark
             == Mark.TRICONTOUR else "Plot.mark_tricontourf()",
         )
@@ -1078,7 +1102,7 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         )
     if mark == Mark.CONTOUR or mark == Mark.CONTOURF:
         var shape = _validate_contour(
-            plot,
+            plot._contour,
             "Plot.mark_contour()" if mark
             == Mark.CONTOUR else "Plot.mark_contourf()",
         )
@@ -1096,12 +1120,12 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
                 ys.append(Float64(r))
         return _LayerDomain(xs^, ys^, False, unpadded)
     if mark == Mark.TRIPLOT:
-        _validate_triplot(plot)
+        _validate_triplot(plot._triplot)
         return _LayerDomain(
             plot._triplot.x.copy(), plot._triplot.y.copy(), False
         )
     if mark == Mark.TRIPCOLOR:
-        _validate_tripcolor(plot)
+        _validate_tripcolor(plot._triplot)
         return _LayerDomain(
             plot._triplot.x.copy(), plot._triplot.y.copy(), False
         )
@@ -1185,7 +1209,14 @@ def _render_arc_layers[
                 + String(i)
                 + ")"
             )
-        totals.append(_arc_total(plots[i]))
+        totals.append(
+            _arc_total(
+                plots[i]._mark,
+                plots[i]._continuous,
+                plots[i]._categorical,
+                plots[i]._y_err,
+            )
+        )
         if plots[i]._settings.theme.show_legend:
             var palette = categorical_palette_for(plots[i]._settings.theme)
             for j in range(len(plots[i]._categorical.x)):
@@ -1232,7 +1263,9 @@ def _render_arc_layers[
         var radius = outer_radius - Float64(i) * (ring_width + gap)
         _draw_arc_wedges(
             target,
-            plots[i],
+            plots[i]._continuous,
+            plots[i]._categorical,
+            plots[i]._settings,
             cx,
             cy,
             radius - ring_width,
@@ -1326,7 +1359,18 @@ def _render_layers_generic[
             )
         if len(plots) == 1:
             return _render_arc(
-                target, plots[0], ox0, oy0, ox1, oy1, cache=cache
+                target,
+                plots[0]._mark,
+                plots[0]._continuous,
+                plots[0]._categorical,
+                plots[0]._y_err,
+                plots[0]._mark_style,
+                plots[0]._settings,
+                ox0,
+                oy0,
+                ox1,
+                oy1,
+                cache=cache,
             )
         return _render_arc_layers(
             target, plots, ox0, oy0, ox1, oy1, cache=cache
@@ -1338,7 +1382,17 @@ def _render_layers_generic[
         if plots[i]._mark == Mark.BAR and plots[i]._settings.x_time:
             if len(plots) == 1:
                 return _render_bar(
-                    target, plots[i], ox0, oy0, ox1, oy1, cache=cache
+                    target,
+                    plots[i]._mark,
+                    plots[i]._continuous,
+                    plots[i]._categorical,
+                    plots[i]._y_err,
+                    plots[i]._settings,
+                    ox0,
+                    oy0,
+                    ox1,
+                    oy1,
+                    cache=cache,
                 )
             raise Error(
                 "render_layers(): a time-axis Mark.BAR layer cannot use the"
@@ -1922,7 +1976,12 @@ def _render_layers_generic[
             legend_y = _draw_point_layer(
                 target,
                 text_requests,
-                plots[j],
+                plots[j]._mark,
+                plots[j]._continuous,
+                plots[j]._channels,
+                plots[j]._y_err,
+                plots[j]._mark_style,
+                plots[j]._settings,
                 ch_j,
                 frame.x_scale,
                 layer_y_scale,
@@ -1934,16 +1993,36 @@ def _render_layers_generic[
         elif mark == Mark.LINE:
             if len(plots[j]._continuous.x) == 0:
                 continue
-            _draw_line_layer(target, plots[j], frame.x_scale, layer_y_scale)
+            _draw_line_layer(
+                target,
+                plots[j]._continuous,
+                plots[j]._y_err,
+                plots[j]._mark_style,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+            )
         elif mark == Mark.AREA:
             if len(plots[j]._continuous.x) == 0:
                 continue
-            _draw_area_layer(target, plots[j], frame.x_scale, layer_y_scale)
+            _draw_area_layer(
+                target,
+                plots[j]._continuous,
+                plots[j]._mark_style,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+            )
         elif mark == Mark.HISTOGRAM:
             if len(plots[j]._continuous.x) == 0:
                 continue
             _draw_histogram_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, text_requests
+                target,
+                plots[j]._histogram,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+                text_requests,
             )
         elif mark == Mark.KDE:
             # domains[j].xs/ys are the density curve `_layer_domain`
@@ -1953,10 +2032,11 @@ def _render_layers_generic[
             # mark_kde(rug=True) ticks.
             _draw_kde_layer(
                 target,
-                plots[j],
+                plots[j]._distribution,
+                plots[j]._settings,
                 domains[j].xs,
                 domains[j].ys,
-                _kde_observations(plots[j]),
+                _kde_observations(plots[j]._distribution),
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -1965,7 +2045,8 @@ def _render_layers_generic[
         elif mark == Mark.ECDF:
             _draw_ecdf_layer(
                 target,
-                plots[j],
+                plots[j]._distribution,
+                plots[j]._settings,
                 domains[j].xs,
                 domains[j].ys,
                 frame.x_scale,
@@ -1988,30 +2069,64 @@ def _render_layers_generic[
             )
         elif mark == Mark.BARBS:
             _draw_barbs_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+                target,
+                plots[j]._barbs,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+                layer_sc,
             )
         elif mark == Mark.TRICONTOUR:
             _draw_tricontour_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+                target,
+                plots[j]._tricontour,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+                layer_sc,
             )
         elif mark == Mark.TRICONTOURF:
             _draw_tricontourf_layer(
-                target, plots[j], frame.x_scale, layer_y_scale
+                target,
+                plots[j]._tricontour,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
             )
         elif mark == Mark.TRIPLOT:
             _draw_triplot_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+                target,
+                plots[j]._triplot,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+                layer_sc,
             )
         elif mark == Mark.TRIPCOLOR:
             _draw_tripcolor_layer(
-                target, plots[j], frame.x_scale, layer_y_scale
+                target,
+                plots[j]._triplot,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
             )
         elif mark == Mark.CONTOUR:
             _draw_contour_layer(
-                target, plots[j], frame.x_scale, layer_y_scale, layer_sc
+                target,
+                plots[j]._contour,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+                layer_sc,
             )
         elif mark == Mark.CONTOURF:
-            _draw_contourf_layer(target, plots[j], frame.x_scale, layer_y_scale)
+            _draw_contourf_layer(
+                target,
+                plots[j]._contour,
+                plots[j]._settings,
+                frame.x_scale,
+                layer_y_scale,
+            )
 
     # Each layer's annotate_*() draws last, against that layer's own
     # y_scale (primary or secondary) and the one shared x_scale (there is

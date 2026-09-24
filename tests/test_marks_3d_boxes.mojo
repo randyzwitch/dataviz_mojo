@@ -62,7 +62,7 @@ def _mesh_for(grid: List[List[List[Bool]]]) raises -> Int:
         _W,
         _H,
     )
-    var mesh = _voxel_mesh(plot, frame, (layers, rows, cols), Theme())
+    var mesh = _voxel_mesh(plot._voxels, frame, (layers, rows, cols), Theme())
     return len(mesh.colors)
 
 

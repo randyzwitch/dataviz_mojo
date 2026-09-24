@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
@@ -39,7 +40,8 @@ def _render_marimekko[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    marimekko: _MarimekkoData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -52,34 +54,30 @@ def _render_marimekko[
     Values use `values[subcategory][category]`, must be non-negative, and must
     have a positive grand total. The legend is keyed by subcategory.
     """
-    if len(plot._marimekko.values) != len(plot._marimekko.subcategories):
+    if len(marimekko.values) != len(marimekko.subcategories):
         raise Error(
             "Plot.encode_marimekko(): values must have one row per subcategory"
             " (expected "
-            + String(len(plot._marimekko.subcategories))
+            + String(len(marimekko.subcategories))
             + " rows, got "
-            + String(len(plot._marimekko.values))
+            + String(len(marimekko.values))
             + ")"
         )
-    for row in plot._marimekko.values:
-        if len(row) != len(plot._marimekko.categories):
+    for row in marimekko.values:
+        if len(row) != len(marimekko.categories):
             raise Error(
                 "Plot.encode_marimekko(): every row in values must have one"
                 " value per category (expected "
-                + String(len(plot._marimekko.categories))
+                + String(len(marimekko.categories))
                 + ", got "
                 + String(len(row))
                 + ")"
             )
 
-    var theme = plot._settings.theme
-    _require_non_empty(
-        len(plot._marimekko.categories), "Plot.encode_marimekko()"
-    )
-    _require_non_empty(
-        len(plot._marimekko.subcategories), "Plot.encode_marimekko()"
-    )
-    for row in plot._marimekko.values:
+    var theme = settings.theme
+    _require_non_empty(len(marimekko.categories), "Plot.encode_marimekko()")
+    _require_non_empty(len(marimekko.subcategories), "Plot.encode_marimekko()")
+    for row in marimekko.values:
         for v in row:
             if v < 0.0:
                 raise Error(
@@ -88,14 +86,14 @@ def _render_marimekko[
                     + ")"
                 )
 
-    var n_cats = len(plot._marimekko.categories)
-    var n_subs = len(plot._marimekko.subcategories)
+    var n_cats = len(marimekko.categories)
+    var n_subs = len(marimekko.subcategories)
     var col_totals = List[Float64]()
     var grand_total = 0.0
     for j in range(n_cats):
         var total = 0.0
         for i in range(n_subs):
-            total += plot._marimekko.values[i][j]
+            total += marimekko.values[i][j]
         col_totals.append(total)
         grand_total += total
     if grand_total <= 0.0:
@@ -109,7 +107,7 @@ def _render_marimekko[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._marimekko.subcategories,
+        marimekko.subcategories,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -133,7 +131,7 @@ def _render_marimekko[
     # hairline gap or overlap. Same pattern as `_render_stacked_bar`'s
     # `_axis_pixel` on each running total.
     var x_cum = 0.0
-    var tooltips_on = plot._settings.tooltips_on(n_subs * n_cats)
+    var tooltips_on = settings.tooltips_on(n_subs * n_cats)
     for j in range(n_cats):
         var col_x0 = round_to_int(Float64(plot_x0) + x_cum)
         x_cum += plot_width * (col_totals[j] / grand_total)
@@ -143,16 +141,14 @@ def _render_marimekko[
             var y_cum = 0.0
             for i in range(n_subs):
                 var seg_bottom = round_to_int(Float64(plot_y1) - y_cum)
-                y_cum += plot_height * (
-                    plot._marimekko.values[i][j] / col_totals[j]
-                )
+                y_cum += plot_height * (marimekko.values[i][j] / col_totals[j])
                 var seg_top = round_to_int(Float64(plot_y1) - y_cum)
                 if tooltips_on:
                     target.begin_annotated_group(
                         _cell_tooltip_label(
-                            plot._marimekko.categories[j],
-                            plot._marimekko.subcategories[i],
-                            plot._marimekko.values[i][j],
+                            marimekko.categories[j],
+                            marimekko.subcategories[i],
+                            marimekko.values[i][j],
                         )
                     )
                 target.fill_rect(
@@ -169,7 +165,7 @@ def _render_marimekko[
             _TextRequest(
                 (col_x0 + col_x1) // 2,
                 plot_y1 + sc.tick_length + sc.label_gap + Int(sc.font_size),
-                plot._marimekko.categories[j],
+                marimekko.categories[j],
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
@@ -181,7 +177,7 @@ def _render_marimekko[
         _draw_legend_at(
             target,
             text_requests,
-            plot._marimekko.subcategories,
+            marimekko.subcategories,
             palette,
             legend,
             plot_x0,
@@ -193,6 +189,26 @@ def _render_marimekko[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_marimekko_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_marimekko` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_marimekko(
+        target, plot._marimekko, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def marimekko(

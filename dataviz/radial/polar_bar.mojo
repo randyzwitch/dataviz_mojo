@@ -1,3 +1,10 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
 
 from canvas.text.font_cache import FontCache
@@ -28,7 +35,12 @@ def _render_polar_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -41,20 +53,18 @@ def _render_polar_bar[
     Categories receive equal angular slots, and radius scales linearly against
     the largest value.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot._continuous.y, "Mark.POLAR_BAR")
-    var max_v = _require_some_positive(plot._continuous.y, "Mark.POLAR_BAR")
+    _require_non_negative(continuous.y, "Mark.POLAR_BAR")
+    var max_v = _require_some_positive(continuous.y, "Mark.POLAR_BAR")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._categorical.x,
+        categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -73,19 +83,19 @@ def _render_polar_bar[
     )
 
     var palette = categorical_palette_for(theme)
-    var n = len(plot._categorical.x)
+    var n = len(categorical.x)
     var slot = 2.0 * pi / Float64(n)
-    var gap = slot * plot._mark_style.polar_bar_padding
+    var gap = slot * style.polar_bar_padding
     var slot_start = -pi / 2.0
-    var tooltips_on = plot._settings.tooltips_on(n)
+    var tooltips_on = settings.tooltips_on(n)
     for i in range(n):
         var start = slot_start + gap / 2.0
         var end = slot_start + slot - gap / 2.0
-        var radius = max_radius * (plot._continuous.y[i] / max_v)
+        var radius = max_radius * (continuous.y[i] / max_v)
         var color = palette[i % len(palette)]
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+                _tooltip_label(categorical.x[i], continuous.y[i])
             )
         target.fill_arc_aa(cx, cy, radius, start, end, color)
         if tooltips_on:
@@ -96,7 +106,7 @@ def _render_polar_bar[
                 cy,
                 (start + end) / 2.0,
                 radius,
-                plot._continuous.y[i],
+                continuous.y[i],
                 theme,
                 sc,
                 text_requests,
@@ -107,7 +117,7 @@ def _render_polar_bar[
         _draw_legend_at(
             target,
             text_requests,
-            plot._categorical.x,
+            categorical.x,
             palette,
             legend,
             plot_x0,
@@ -119,6 +129,37 @@ def _render_polar_bar[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_polar_bar_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_polar_bar` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_polar_bar(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def polarbar(

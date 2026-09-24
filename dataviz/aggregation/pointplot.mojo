@@ -2,6 +2,13 @@
 point with its interval as a whisker, joined across categories:
 `barplot()`'s estimate with a lighter glyph."""
 
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+)
+from dataviz.core.mark import Mark
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -28,25 +35,25 @@ from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
 
 
-def _pointplot_value_label(plot: Plot, i: Int) -> String:
+def _pointplot_value_label(
+    continuous: _ContinuousData, categorical: _CategoricalData, i: Int
+) -> String:
     """One category's estimate (#678): `"category: value"`, the same
     shape `_boxen_tooltip_label` uses for its median line."""
-    var value = plot._continuous.y[i]
+    var value = continuous.y[i]
     return (
-        plot._categorical.x[i]
-        + ": "
-        + _format_fixed(value, _label_decimals(value))
+        categorical.x[i] + ": " + _format_fixed(value, _label_decimals(value))
     )
 
 
 def _pointplot_interval_label(
-    plot: Plot, i: Int, lo: Float64, hi: Float64
+    categorical: _CategoricalData, i: Int, lo: Float64, hi: Float64
 ) -> String:
     """One category's whisker (#678): `"category: LO-HI"`, mirroring
     `_boxen_tooltip_label`'s `"box LO-HI"` for the same kind of
     interval glyph."""
     return (
-        plot._categorical.x[i]
+        categorical.x[i]
         + ": "
         + _format_fixed(lo, _label_decimals(lo))
         + "-"
@@ -54,20 +61,25 @@ def _pointplot_interval_label(
     )
 
 
-def _pointplot_value_extent(plot: Plot) raises -> LinearScale:
+def _pointplot_value_extent(
+    continuous: _ContinuousData, y_err: _ErrorBarData
+) raises -> LinearScale:
     """The value axis's domain: `_data_extent` over the values and
     whisker ends, not a zero baseline -- an estimate's position is what
     the chart encodes, and forcing zero onto the axis would compress a
     set of means that all sit far from it, the same reason `Mark.POINT`
     does not baseline. Shared by both orientations."""
-    return _data_extent(_bar_y_domain_data(plot))
+    return _data_extent(_bar_y_domain_data(continuous, y_err))
 
 
 def _draw_pointplot_marks[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     value_scale: LinearScale,
     band_scale: OrdinalScale,
     orient: _Orientation,
@@ -85,36 +97,36 @@ def _draw_pointplot_marks[
     snap -- the vertical render is byte-identical to the one before
     this split.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var n = len(plot._categorical.x)
-    var has_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
+    var n = len(categorical.x)
+    var has_err = len(y_err.symmetric) > 0 or len(y_err.lower) > 0
     # Each point is titled, and so is each error bar.
-    var tooltips_on = plot._settings.tooltips_on(2 * n if has_err else n)
+    var tooltips_on = settings.tooltips_on(2 * n if has_err else n)
     var cap_half = sc.error_bar_cap_width
 
     var bands = List[Float64](capacity=n)
     var values = List[Float64](capacity=n)
     for i in range(n):
         bands.append(band_scale.center(i))
-        values.append(_axis_pixel_f(value_scale, plot._continuous.y[i]))
+        values.append(_axis_pixel_f(value_scale, continuous.y[i]))
 
     if has_err:
         for i in range(n):
-            var value = plot._continuous.y[i]
+            var value = continuous.y[i]
             var lo: Float64
             var hi: Float64
-            if len(plot._y_err.symmetric) > 0:
-                lo = value - plot._y_err.symmetric[i]
-                hi = value + plot._y_err.symmetric[i]
+            if len(y_err.symmetric) > 0:
+                lo = value - y_err.symmetric[i]
+                hi = value + y_err.symmetric[i]
             else:
-                lo = value - plot._y_err.lower[i]
-                hi = value + plot._y_err.upper[i]
+                lo = value - y_err.lower[i]
+                hi = value + y_err.upper[i]
             var at_lo = _axis_pixel_f(value_scale, lo)
             var at_hi = _axis_pixel_f(value_scale, hi)
             if tooltips_on:
                 target.begin_annotated_group(
-                    _pointplot_interval_label(plot, i, lo, hi)
+                    _pointplot_interval_label(categorical, i, lo, hi)
                 )
             orient.point_line(
                 target,
@@ -160,7 +172,9 @@ def _draw_pointplot_marks[
     var radius = Float64(round_to_int(sc.point_radius))
     for i in range(n):
         if tooltips_on:
-            target.begin_annotated_group(_pointplot_value_label(plot, i))
+            target.begin_annotated_group(
+                _pointplot_value_label(continuous, categorical, i)
+            )
         orient.band_point(target, values[i], bands[i], radius, theme.mark_color)
         if tooltips_on:
             target.end_annotated_group()
@@ -170,7 +184,11 @@ def _render_pointplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -184,14 +202,12 @@ def _render_pointplot[
     points, and `_pointplot_value_extent` says why the value axis does
     not start at zero.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
-        _pointplot_value_extent(plot),
-        plot._settings.theme,
+        categorical.x,
+        _pointplot_value_extent(continuous, y_err),
+        settings.theme,
         ox0,
         oy0,
         ox1,
@@ -199,7 +215,14 @@ def _render_pointplot[
         cache=cache,
     )
     _draw_pointplot_marks(
-        target, plot, frame.y_scale, frame.x_scale, _Orientation(False)
+        target,
+        continuous,
+        categorical,
+        y_err,
+        settings,
+        frame.y_scale,
+        frame.x_scale,
+        _Orientation(False),
     )
     return frame.result()
 
@@ -208,7 +231,11 @@ def _render_horizontal_pointplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -223,14 +250,12 @@ def _render_horizontal_pointplot[
     orientation for long category names, which a vertical categorical
     axis crowds.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
-        _pointplot_value_extent(plot),
-        plot._settings.theme,
+        categorical.x,
+        _pointplot_value_extent(continuous, y_err),
+        settings.theme,
         ox0,
         oy0,
         ox1,
@@ -238,7 +263,14 @@ def _render_horizontal_pointplot[
         cache=cache,
     )
     _draw_pointplot_marks(
-        target, plot, frame.x_scale, frame.y_scale, _Orientation(True)
+        target,
+        continuous,
+        categorical,
+        y_err,
+        settings,
+        frame.x_scale,
+        frame.y_scale,
+        _Orientation(True),
     )
     return frame.result()
 
@@ -456,7 +488,11 @@ def _render_pointplot_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -466,8 +502,60 @@ def _render_pointplot_oriented[
 ) raises -> _RenderResult:
     """`Mark.POINTPLOT`'s renderer, the one its setter binds: `_render_horizontal_pointplot`
     when the plot is horizontal, `_render_pointplot` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_pointplot(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            mark,
+            continuous,
+            categorical,
+            y_err,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_pointplot(
+        target,
+        mark,
+        continuous,
+        categorical,
+        y_err,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_pointplot_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_pointplot_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_pointplot_oriented(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

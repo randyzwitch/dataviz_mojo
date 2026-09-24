@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
@@ -69,52 +71,57 @@ def _bullet_tooltip_label(
     )
 
 
-def _validate_bullet_encoding(plot: Plot) raises:
+def _validate_bullet_encoding(
+    bullet: _BulletData, categorical: _CategoricalData
+) raises:
     """The length and shape checks both bullet renders make
     before laying anything out (#686 split this out so the
     horizontal render makes the same ones, not a copy)."""
     if (
-        len(plot._categorical.x) != len(plot._bullet.measure)
-        or len(plot._bullet.target) != len(plot._bullet.measure)
-        or len(plot._bullet.ranges) != len(plot._bullet.measure)
+        len(categorical.x) != len(bullet.measure)
+        or len(bullet.target) != len(bullet.measure)
+        or len(bullet.ranges) != len(bullet.measure)
     ):
         raise Error(
             "Plot.encode_bullet(): categories, measures, targets, and"
             " ranges must all have the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " categories, "
-            + String(len(plot._bullet.measure))
+            + String(len(bullet.measure))
             + " measures, "
-            + String(len(plot._bullet.target))
+            + String(len(bullet.target))
             + " targets, "
-            + String(len(plot._bullet.ranges))
+            + String(len(bullet.ranges))
             + " ranges)"
         )
-    for i in range(len(plot._bullet.ranges)):
-        if len(plot._bullet.ranges[i]) == 0:
+    for i in range(len(bullet.ranges)):
+        if len(bullet.ranges[i]) == 0:
             raise Error(
                 "Plot.encode_bullet(): category '"
-                + plot._categorical.x[i]
+                + categorical.x[i]
                 + "' has no range thresholds -- a bullet chart needs at"
                 " least one qualitative range"
             )
-        for j in range(1, len(plot._bullet.ranges[i])):
-            if plot._bullet.ranges[i][j] < plot._bullet.ranges[i][j - 1]:
+        for j in range(1, len(bullet.ranges[i])):
+            if bullet.ranges[i][j] < bullet.ranges[i][j - 1]:
                 raise Error(
                     "Plot.encode_bullet(): category '"
-                    + plot._categorical.x[i]
+                    + categorical.x[i]
                     + "' has non-ascending range thresholds -- each"
                     " threshold must be >= the one before it"
                 )
 
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_bullet()")
+    _require_non_empty(len(categorical.x), "Plot.encode_bullet()")
 
 
 def _render_bullet[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    bullet: _BulletData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -133,26 +140,24 @@ def _render_bullet[
        `ColorScale` from `theme.bullet_range_color_light` to
        `theme.bullet_range_color_dark`.
     2. The measure bar (`theme.mark_color`,
-       `plot._mark_style.bullet_measure_width_fraction` of the band,
+       `style.bullet_measure_width_fraction` of the band,
        centered). Never colored by sign; a `measure` of `0.0` draws a
        zero-height bar.
     3. The target tick (`theme.axis_color`, full band width), drawn last.
     """
-    _validate_bullet_encoding(plot)
-    var theme = plot._settings.theme
+    _validate_bullet_encoding(bullet, categorical)
+    var theme = settings.theme
     var domain_data = List[Float64]()
-    for i in range(len(plot._categorical.x)):
+    for i in range(len(categorical.x)):
         domain_data.append(0.0)
-        domain_data.append(
-            plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1]
-        )
-        domain_data.append(plot._bullet.measure[i])
-        domain_data.append(plot._bullet.target[i])
+        domain_data.append(bullet.ranges[i][len(bullet.ranges[i]) - 1])
+        domain_data.append(bullet.measure[i])
+        domain_data.append(bullet.target[i])
     var y_scale = _zero_baseline_y_extent(domain_data)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -164,7 +169,10 @@ def _render_bullet[
 
     _draw_bullet_rows(
         target,
-        plot,
+        bullet,
+        categorical,
+        style,
+        settings,
         frame.y_scale,
         frame.x_scale,
         Float64(frame.py1),
@@ -178,7 +186,10 @@ def _draw_bullet_rows[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    bullet: _BulletData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     value_scale: LinearScale,
     band_scale: OrdinalScale,
     baseline: Float64,
@@ -197,7 +208,10 @@ def _draw_bullet_rows[
 
     Args:
         target: Where to draw.
-        plot: The chart.
+        bullet: The mark's `_BulletData` columns.
+        categorical: The categorical x column.
+        style: The per-mark style settings.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         value_scale: The continuous scale for measures and thresholds.
         band_scale: The ordinal scale for categories.
         baseline: The zero line's pixel on the value axis.
@@ -207,7 +221,7 @@ def _draw_bullet_rows[
     Raises:
         Error: Whatever the target's draw calls raise.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var range_color_scale = ColorScale(0.0, 1.0)
     range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
     range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
@@ -215,20 +229,16 @@ def _draw_bullet_rows[
     # These depend only on the scale and theme, so they're computed once
     # outside the per-category loop.
     var bandwidth = band_scale.bandwidth()
-    var measure_width = (
-        bandwidth * plot._mark_style.bullet_measure_width_fraction
-    )
-    var measure_inset = (
-        bandwidth * plot._mark_style.bullet_measure_width_fraction / 2.0
-    )
+    var measure_width = bandwidth * style.bullet_measure_width_fraction
+    var measure_inset = bandwidth * style.bullet_measure_width_fraction / 2.0
     var baseline_py = _axis_pixel_f(value_scale, 0.0)
     var sc = _Scaled(theme)
 
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_x = band_scale.band_start(i)
         var band_x1 = band_x + bandwidth
-        var band_count = len(plot._bullet.ranges[i])
+        var band_count = len(bullet.ranges[i])
 
         var prev_threshold = 0.0
         for j in range(band_count):
@@ -236,16 +246,16 @@ def _draw_bullet_rows[
                 Float64(j) / Float64(band_count - 1) if band_count > 1 else 0.0
             )
             var band_color = range_color_scale.color_at(t)
-            var top_py = _axis_pixel_f(value_scale, plot._bullet.ranges[i][j])
+            var top_py = _axis_pixel_f(value_scale, bullet.ranges[i][j])
             var bottom_py = _axis_pixel_f(value_scale, prev_threshold)
             var band_rect = _pull_off_axis_line_f(top_py, bottom_py, baseline)
             orient.fill_band_rect(
                 target, band_rect, band_x, bandwidth, band_color
             )
-            prev_threshold = plot._bullet.ranges[i][j]
+            prev_threshold = bullet.ranges[i][j]
 
         var measure_x = band_scale.center(i) - measure_inset
-        var measure_py = _axis_pixel_f(value_scale, plot._bullet.measure[i])
+        var measure_py = _axis_pixel_f(value_scale, bullet.measure[i])
         var measure_rect = _pull_off_axis_line_f(
             baseline_py, measure_py, baseline
         )
@@ -256,16 +266,16 @@ def _draw_bullet_rows[
             # bands are background and stay outside the group.
             target.begin_annotated_group(
                 _bullet_tooltip_label(
-                    plot._categorical.x[i],
-                    plot._bullet.measure[i],
-                    plot._bullet.target[i],
+                    categorical.x[i],
+                    bullet.measure[i],
+                    bullet.target[i],
                 )
             )
         orient.fill_band_rect(
             target, measure_rect, measure_x, measure_width, theme.mark_color
         )
         if theme.show_data_labels:
-            var measure = plot._bullet.measure[i]
+            var measure = bullet.measure[i]
             var at = orient.outside_band_label(
                 measure_rect,
                 band_x,
@@ -288,7 +298,7 @@ def _draw_bullet_rows[
                 )
             )
 
-        var target_py = _axis_pixel_f(value_scale, plot._bullet.target[i])
+        var target_py = _axis_pixel_f(value_scale, bullet.target[i])
         orient.band_line(
             target,
             target_py,
@@ -305,7 +315,10 @@ def _render_horizontal_bullet[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    bullet: _BulletData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -323,20 +336,18 @@ def _render_horizontal_bullet[
     names that label the rows are the long strings a vertical
     categorical axis crowds.
     """
-    _validate_bullet_encoding(plot)
-    var theme = plot._settings.theme
+    _validate_bullet_encoding(bullet, categorical)
+    var theme = settings.theme
     var domain_data = List[Float64]()
-    for i in range(len(plot._categorical.x)):
+    for i in range(len(categorical.x)):
         domain_data.append(0.0)
-        domain_data.append(
-            plot._bullet.ranges[i][len(plot._bullet.ranges[i]) - 1]
-        )
-        domain_data.append(plot._bullet.measure[i])
-        domain_data.append(plot._bullet.target[i])
+        domain_data.append(bullet.ranges[i][len(bullet.ranges[i]) - 1])
+        domain_data.append(bullet.measure[i])
+        domain_data.append(bullet.target[i])
     var value_scale = _zero_baseline_y_extent(domain_data)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -347,7 +358,10 @@ def _render_horizontal_bullet[
     )
     _draw_bullet_rows(
         target,
-        plot,
+        bullet,
+        categorical,
+        style,
+        settings,
         frame.x_scale,
         frame.y_scale,
         Float64(frame.px0),
@@ -586,7 +600,10 @@ def _render_bullet_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    bullet: _BulletData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -596,8 +613,57 @@ def _render_bullet_oriented[
 ) raises -> _RenderResult:
     """`Mark.BULLET`'s renderer, the one its setter binds: `_render_horizontal_bullet`
     when the plot is horizontal, `_render_bullet` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_bullet(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            bullet,
+            categorical,
+            style,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_bullet(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_bullet(
+        target,
+        bullet,
+        categorical,
+        style,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_bullet_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_bullet_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_bullet_oriented(
+        target,
+        plot._bullet,
+        plot._categorical,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

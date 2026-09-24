@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import isnan, pi
 
 from canvas.text.font_cache import FontCache
@@ -54,7 +56,9 @@ def _render_gauge[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    gauge: _GaugeData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -67,22 +71,22 @@ def _render_gauge[
     The range must increase. Band endpoints and colors must have equal length,
     and endpoints must increase within `(0, 1]`.
     """
-    var theme = plot._settings.theme
-    if plot._gauge.min_value >= plot._gauge.max_value:
+    var theme = settings.theme
+    if gauge.min_value >= gauge.max_value:
         raise Error(
             "Plot.encode_gauge(): min_value must be less than max_value (got "
-            + String(plot._gauge.min_value)
+            + String(gauge.min_value)
             + " and "
-            + String(plot._gauge.max_value)
+            + String(gauge.max_value)
             + ")"
         )
 
     var breakpoints = (
-        plot._gauge.breakpoints.copy() if len(plot._gauge.breakpoints)
+        gauge.breakpoints.copy() if len(gauge.breakpoints)
         > 0 else _gauge_breakpoints()
     )
     var colors = (
-        plot._gauge.band_colors.copy() if len(plot._gauge.band_colors)
+        gauge.band_colors.copy() if len(gauge.band_colors)
         > 0 else _gauge_band_colors()
     )
     if len(breakpoints) != len(colors):
@@ -119,38 +123,32 @@ def _render_gauge[
     var max_radius = (
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
-    var inner_radius = max_radius * plot._mark_style.gauge_band_inner_fraction
+    var inner_radius = max_radius * style.gauge_band_inner_fraction
 
-    var band_start = plot._mark_style.gauge_start_angle
+    var band_start = style.gauge_start_angle
     for i in range(len(breakpoints)):
         var band_end = (
-            plot._mark_style.gauge_start_angle
-            + plot._mark_style.gauge_sweep_angle * breakpoints[i]
+            style.gauge_start_angle + style.gauge_sweep_angle * breakpoints[i]
         )
         target.fill_ring_sector_aa(
             cx, cy, inner_radius, max_radius, band_start, band_end, colors[i]
         )
         band_start = band_end
 
-    var value = plot._gauge.value
-    if value < plot._gauge.min_value:
-        value = plot._gauge.min_value
-    if value > plot._gauge.max_value:
-        value = plot._gauge.max_value
-    var frac = (value - plot._gauge.min_value) / (
-        plot._gauge.max_value - plot._gauge.min_value
-    )
-    var needle_angle = (
-        plot._mark_style.gauge_start_angle
-        + plot._mark_style.gauge_sweep_angle * frac
-    )
+    var value = gauge.value
+    if value < gauge.min_value:
+        value = gauge.min_value
+    if value > gauge.max_value:
+        value = gauge.max_value
+    var frac = (value - gauge.min_value) / (gauge.max_value - gauge.min_value)
+    var needle_angle = style.gauge_start_angle + style.gauge_sweep_angle * frac
     var tip = _polar_point(
         cx,
         cy,
         needle_angle,
-        max_radius * plot._mark_style.gauge_needle_fraction,
+        max_radius * style.gauge_needle_fraction,
     )
-    var tooltips_on = plot._settings.tooltips_on(1)
+    var tooltips_on = settings.tooltips_on(1)
     if tooltips_on:
         target.begin_annotated_group(
             _format_fixed(value, _label_decimals(value))
@@ -173,7 +171,7 @@ def _render_gauge[
         _TextRequest(
             Int(cx),
             Int(cy) + Int(inner_radius * 0.5),
-            _format_fixed(plot._gauge.value, 1),
+            _format_fixed(gauge.value, 1),
             theme.text_color,
             sc.title_font_size,
             TextAlign.CENTER,
@@ -182,6 +180,34 @@ def _render_gauge[
     )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_gauge_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_gauge` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_gauge(
+        target,
+        plot._gauge,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def gauge(

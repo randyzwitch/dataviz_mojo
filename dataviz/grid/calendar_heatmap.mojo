@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.geometry import snap_to_pixel_edge
@@ -159,7 +160,8 @@ def _render_calendar_heatmap[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    calendar: _CalendarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -184,21 +186,21 @@ def _render_calendar_heatmap[
     domain is a fixed 7-day week and the column domain is a computed week
     index with no per-column label.
     """
-    if len(plot._calendar.dates) != len(plot._calendar.values):
+    if len(calendar.dates) != len(calendar.values):
         raise Error(
             "Plot.encode_calendar(): dates and values must have the same length"
             " (got "
-            + String(len(plot._calendar.dates))
+            + String(len(calendar.dates))
             + " and "
-            + String(len(plot._calendar.values))
+            + String(len(calendar.values))
             + ")"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._calendar.dates), "Plot.encode_calendar()")
+    var theme = settings.theme
+    _require_non_empty(len(calendar.dates), "Plot.encode_calendar()")
 
     var parsed = List[_Date]()
-    for d in plot._calendar.dates:
+    for d in calendar.dates:
         parsed.append(_parse_date(d))
     var year = parsed[0].year
     for date in parsed:
@@ -233,9 +235,9 @@ def _render_calendar_heatmap[
         + sc.margin_buffer
     )
 
-    var value_mm = _min_max(plot._calendar.values)
+    var value_mm = _min_max(calendar.values)
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, value_mm.min, value_mm.max
+        theme, settings.color_domain, value_mm.min, value_mm.max
     )
 
     var legend = _continuous_color_legend_layout(
@@ -300,7 +302,7 @@ def _render_calendar_heatmap[
         )
         month += stride
 
-    var tooltips_on = plot._settings.tooltips_on(len(parsed))
+    var tooltips_on = settings.tooltips_on(len(parsed))
     for i in range(len(parsed)):
         var days = _days_from_civil(parsed[i]) - jan1_days
         var col = (days + jan1_dow) // 7
@@ -332,14 +334,12 @@ def _render_calendar_heatmap[
         var cell_x = snap_to_pixel_edge(x_start)
         var cell_y = snap_to_pixel_edge(y_start)
         # A day with no value is left as background (#367).
-        if isnan(plot._calendar.values[i]):
+        if isnan(calendar.values[i]):
             continue
-        var color = color_scale.color_at(plot._calendar.values[i])
+        var color = color_scale.color_at(calendar.values[i])
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(
-                    plot._calendar.dates[i], plot._calendar.values[i]
-                )
+                _tooltip_label(calendar.dates[i], calendar.values[i])
             )
         target.fill_rect(
             cell_x,
@@ -363,6 +363,26 @@ def _render_calendar_heatmap[
     )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_calendar_heatmap_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_calendar_heatmap` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_calendar_heatmap(
+        target, plot._calendar, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def calendar_heatmap(

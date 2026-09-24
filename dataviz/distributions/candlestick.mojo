@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -74,15 +76,15 @@ def _candle_tooltip_label(
     )
 
 
-def _candle_y_domain(plot: Plot) raises -> LinearScale:
+def _candle_y_domain(candle: _CandleData) raises -> LinearScale:
     var values = List[Float64]()
-    for v in plot._candle.open_price:
+    for v in candle.open_price:
         values.append(v)
-    for v in plot._candle.high:
+    for v in candle.high:
         values.append(v)
-    for v in plot._candle.low:
+    for v in candle.low:
         values.append(v)
-    for v in plot._candle.close_price:
+    for v in candle.close_price:
         values.append(v)
     return _data_extent(values)
 
@@ -91,7 +93,9 @@ def _draw_candles[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    candle: _CandleData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     centers: List[Float64],
     starts: List[Float64],
     ends: List[Float64],
@@ -100,20 +104,20 @@ def _draw_candles[
     mut text_requests: List[_TextRequest],
 ) raises:
     """Wicks and bodies, shared by categorical and time x axes."""
-    var theme = plot._settings.theme
-    var tooltips_on = plot._settings.tooltips_on(len(centers))
+    var theme = settings.theme
+    var tooltips_on = settings.tooltips_on(len(centers))
     for i in range(len(centers)):
         var center_px = snap_to_pixel_center(centers[i])
-        var high_py = _axis_pixel_f(y_scale, plot._candle.high[i])
-        var low_py = _axis_pixel_f(y_scale, plot._candle.low[i])
+        var high_py = _axis_pixel_f(y_scale, candle.high[i])
+        var low_py = _axis_pixel_f(y_scale, candle.low[i])
         if tooltips_on:
             target.begin_annotated_group(
                 _candle_tooltip_label(
-                    plot._categorical.x[i],
-                    plot._candle.open_price[i],
-                    plot._candle.high[i],
-                    plot._candle.low[i],
-                    plot._candle.close_price[i],
+                    categorical.x[i],
+                    candle.open_price[i],
+                    candle.high[i],
+                    candle.low[i],
+                    candle.close_price[i],
                 )
             )
         target.draw_line_aa(
@@ -125,8 +129,8 @@ def _draw_candles[
             width=theme.scale,
         )
 
-        var open_py = _axis_pixel_f(y_scale, plot._candle.open_price[i])
-        var close_py = _axis_pixel_f(y_scale, plot._candle.close_price[i])
+        var open_py = _axis_pixel_f(y_scale, candle.open_price[i])
+        var close_py = _axis_pixel_f(y_scale, candle.close_price[i])
         var bx0 = snap_to_pixel_edge(starts[i])
         var bx1 = snap_to_pixel_edge(ends[i])
         var by0 = snap_to_pixel_edge(min(open_py, close_py))
@@ -134,14 +138,14 @@ def _draw_candles[
         if by1 - by0 < 1.0:
             by1 = by0 + 1.0
         var body_color = (
-            theme.mark_color if plot._candle.close_price[i]
-            >= plot._candle.open_price[i] else theme.mark_color_negative
+            theme.mark_color if candle.close_price[i]
+            >= candle.open_price[i] else theme.mark_color_negative
         )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, body_color)
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var close = plot._candle.close_price[i]
+            var close = candle.close_price[i]
             text_requests.append(
                 _TextRequest(
                     round_to_int(center_px),
@@ -185,7 +189,10 @@ def _render_candlestick[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    candle: _CandleData,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -194,57 +201,57 @@ def _render_candlestick[
     mut cache: FontCache,
 ) raises -> _RenderResult:
     """Render OHLC candles on categorical bands or real timestamps."""
-    var n = len(plot._candle.open_price)
-    if len(plot._categorical.x) != n:
+    var n = len(candle.open_price)
+    if len(categorical.x) != n:
         raise Error(
             "Plot.encode_candlestick(): categories and open/high/low/close"
             " must all have the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " categories and "
             + String(n)
             + " open values)"
         )
     if (
-        len(plot._candle.high) != n
-        or len(plot._candle.low) != n
-        or len(plot._candle.close_price) != n
+        len(candle.high) != n
+        or len(candle.low) != n
+        or len(candle.close_price) != n
     ):
         raise Error(
             "Plot.encode_candlestick(): open, high, low, and close must"
             " all have the same length (got "
             + String(n)
             + ", "
-            + String(len(plot._candle.high))
+            + String(len(candle.high))
             + ", "
-            + String(len(plot._candle.low))
+            + String(len(candle.low))
             + ", "
-            + String(len(plot._candle.close_price))
+            + String(len(candle.close_price))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_candlestick()")
-    var theme = plot._settings.theme
-    var y_scale = _candle_y_domain(plot)
+    var theme = settings.theme
+    var y_scale = _candle_y_domain(candle)
     var centers = List[Float64](capacity=n)
     var starts = List[Float64](capacity=n)
     var ends = List[Float64](capacity=n)
 
-    if plot._settings.x_time:
-        if len(plot._continuous.x) != n:
+    if settings.x_time:
+        if len(continuous.x) != n:
             raise Error(
                 "Plot.encode_candlestick_time(): dates and open/high/low/close"
                 " must have the same length"
             )
-        var width_seconds = _time_candle_width(plot._continuous.x)
-        var earliest = plot._continuous.x[0]
+        var width_seconds = _time_candle_width(continuous.x)
+        var earliest = continuous.x[0]
         var latest = earliest
-        for seconds in plot._continuous.x:
+        for seconds in continuous.x:
             earliest = min(earliest, seconds)
             latest = max(latest, seconds)
         var x_scale = LinearScale(
             earliest - width_seconds, latest + width_seconds, 0.0, 1.0
         )
         x_scale.is_time = True
-        x_scale.tz_offset = plot._settings.x_tz_offset
+        x_scale.tz_offset = settings.x_tz_offset
         var time_frame = _draw_continuous_axis_frame(
             target,
             x_scale,
@@ -257,7 +264,7 @@ def _render_candlestick[
             oy1,
             cache=cache,
         )
-        for seconds in plot._continuous.x:
+        for seconds in continuous.x:
             centers.append(_axis_pixel_f(time_frame.x_scale, seconds))
             starts.append(
                 _axis_pixel_f(time_frame.x_scale, seconds - width_seconds / 2.0)
@@ -267,7 +274,9 @@ def _render_candlestick[
             )
         _draw_candles(
             target,
-            plot,
+            candle,
+            categorical,
+            settings,
             centers,
             starts,
             ends,
@@ -279,7 +288,7 @@ def _render_candlestick[
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -294,7 +303,9 @@ def _render_candlestick[
         ends.append(frame.x_scale.band_start(i) + frame.x_scale.bandwidth())
     _draw_candles(
         target,
-        plot,
+        candle,
+        categorical,
+        settings,
         centers,
         starts,
         ends,
@@ -303,6 +314,35 @@ def _render_candlestick[
         frame.text_requests,
     )
     return frame.result()
+
+
+def _render_candlestick_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_candlestick` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_candlestick(
+        target,
+        plot._candle,
+        plot._continuous,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def candlestick(

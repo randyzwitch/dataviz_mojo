@@ -1,3 +1,6 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
+from dataviz.categorical.gantt import _GanttData
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -22,7 +25,9 @@ def _render_span_chart[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    gantt: _GanttData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -35,32 +40,32 @@ def _render_span_chart[
     Endpoint order does not matter. Bars use the full category bandwidth, and
     zero-length spans remain visible as one-pixel bars.
     """
-    if len(plot._categorical.x) != len(plot._gantt.start) or len(
-        plot._gantt.end
-    ) != len(plot._gantt.start):
+    if len(categorical.x) != len(gantt.start) or len(gantt.end) != len(
+        gantt.start
+    ):
         raise Error(
             "Plot.encode_gantt(): categories, start, and end must all have"
             " the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " categories, "
-            + String(len(plot._gantt.start))
+            + String(len(gantt.start))
             + " start values, "
-            + String(len(plot._gantt.end))
+            + String(len(gantt.end))
             + " end values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
+    var theme = settings.theme
+    _require_non_empty(len(categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
-    for v in plot._gantt.start:
+    for v in gantt.start:
         domain_data.append(v)
-    for v in plot._gantt.end:
+    for v in gantt.end:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -71,11 +76,11 @@ def _render_span_chart[
     )
 
     var bandwidth = frame.x_scale.bandwidth()
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_start = frame.x_scale.band_start(i)
-        var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])
-        var high_py = _axis_pixel_f(frame.y_scale, plot._gantt.end[i])
+        var low_py = _axis_pixel_f(frame.y_scale, gantt.start[i])
+        var high_py = _axis_pixel_f(frame.y_scale, gantt.end[i])
         # Snap all edges, then preserve a one-pixel minimum height.
         var bx0 = snap_to_pixel_edge(band_start)
         var bx1 = snap_to_pixel_edge(band_start + bandwidth)
@@ -86,16 +91,16 @@ def _render_span_chart[
         if tooltips_on:
             target.begin_annotated_group(
                 _span_tooltip_label(
-                    plot._categorical.x[i],
-                    plot._gantt.start[i],
-                    plot._gantt.end[i],
+                    categorical.x[i],
+                    gantt.start[i],
+                    gantt.end[i],
                 )
             )
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
+            var span = abs(gantt.end[i] - gantt.start[i])
             frame.text_requests.append(
                 _TextRequest(
                     round_to_int((bx0 + bx1) / 2.0),
@@ -109,6 +114,34 @@ def _render_span_chart[
             )
 
     return frame.result()
+
+
+def _render_span_chart_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_span_chart` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_span_chart(
+        target,
+        plot._gantt,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def span_chart(

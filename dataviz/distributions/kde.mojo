@@ -7,6 +7,8 @@ the de-facto shared home without anything saying so. Moved here
 unchanged; the estimator is the same one violins have always drawn.
 """
 
+from dataviz.core.plot_fields import _DistributionData
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import exp, log10, pi, sqrt
 
 from canvas.color import Color
@@ -125,7 +127,8 @@ def _render_kde[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -147,7 +150,8 @@ def _render_kde[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_distribution` values this reads.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -160,10 +164,10 @@ def _render_kde[
     Raises:
         Error: No values were given.
     """
-    var values = _kde_observations(plot)
+    var values = _kde_observations(distribution)
 
-    var curve = _kde_curve_for_axis(plot, values)
-    var theme = plot._settings.theme
+    var curve = _kde_curve_for_axis(distribution, settings, values)
+    var theme = settings.theme
 
     var y_max = 0.0
     for d in curve[1]:
@@ -175,7 +179,7 @@ def _render_kde[
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _log_data_extent(curve[0]) if plot._settings.x_log else _data_extent(
+        _log_data_extent(curve[0]) if settings.x_log else _data_extent(
             curve[0]
         ),
         y_scale,
@@ -190,7 +194,8 @@ def _render_kde[
 
     _draw_kde_layer(
         target,
-        plot,
+        distribution,
+        settings,
         curve[0],
         curve[1],
         values,
@@ -202,8 +207,37 @@ def _render_kde[
     return frame.result()
 
 
+def _render_kde_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_kde` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_kde(
+        target,
+        plot._distribution,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
 def _kde_curve_for_axis(
-    plot: Plot, values: List[Float64]
+    distribution: _DistributionData,
+    settings: _ChartSettings,
+    values: List[Float64],
 ) raises -> Tuple[List[Float64], List[Float64]]:
     """The density curve, estimated in the space the x axis shows (#718).
 
@@ -224,7 +258,8 @@ def _kde_curve_for_axis(
     so under `scale_x_log()` it is measured in decades.
 
     Args:
-        plot: The chart, for its scale flags and bandwidth.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         values: The observations.
 
     Returns:
@@ -235,14 +270,14 @@ def _kde_curve_for_axis(
             a density has a meaning for, or a value at or below zero
             under `scale_x_log()`.
     """
-    if plot._settings.x_symlog or plot._settings.y_symlog:
+    if settings.x_symlog or settings.y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): Mark.KDE takes"
             " scale_x_log() only. A density is estimated in one space, and"
             " symlog is two spaces joined at a threshold"
         )
-    var bandwidth = plot._distribution.kde_bandwidth_override
-    if not plot._settings.x_log:
+    var bandwidth = distribution.kde_bandwidth_override
+    if not settings.x_log:
         return _kde_curve(values, bandwidth)
     var logged = List[Float64](capacity=len(values))
     for v in values:
@@ -260,7 +295,7 @@ def _kde_curve_for_axis(
     return (xs^, curve[1].copy())
 
 
-def _kde_observations(plot: Plot) raises -> List[Float64]:
+def _kde_observations(distribution: _DistributionData) raises -> List[Float64]:
     """The observations behind a `Mark.KDE`/`Mark.RUG` plot, checked
     non-empty.
 
@@ -278,8 +313,8 @@ def _kde_observations(plot: Plot) raises -> List[Float64]:
     # process -- no traceback into user code, and nothing a caller can
     # recover from. The guard has to come before the subscript, not
     # after it.
-    _require_non_empty(len(plot._distribution.values), "Plot.encode_kde()")
-    var values = plot._distribution.values[0].copy()
+    _require_non_empty(len(distribution.values), "Plot.encode_kde()")
+    var values = distribution.values[0].copy()
     _require_non_empty(len(values), "Plot.encode_kde()")
     return values^
 
@@ -288,7 +323,8 @@ def _draw_kde_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     curve_x: List[Float64],
     curve_y: List[Float64],
     values: List[Float64],
@@ -319,7 +355,8 @@ def _draw_kde_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, for its `_distribution` flags and `Theme`.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         curve_x: The curve's evaluation points.
         curve_y: The density at each.
         values: The raw observations, for the `rug=True` ticks.
@@ -328,12 +365,12 @@ def _draw_kde_layer[
         sc: This layer's scaled theme metrics.
         baseline_py: The plot rect's bottom edge, where rug ticks sit.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var path = Path()
     path.move_to(x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(curve_y[0]))
     for i in range(1, len(curve_x)):
         path.line_to(x_scale.to_pixel(curve_x[i]), y_scale.to_pixel(curve_y[i]))
-    if plot._distribution.kde_fill:
+    if distribution.kde_fill:
         # Its own path rather than a copy of the stroke's: the fill needs
         # the two closing segments down to density zero, and the stroke
         # must not have them -- a stroked baseline would read as an axis.
@@ -355,14 +392,14 @@ def _draw_kde_layer[
         )
     target.stroke_path_aa(path, theme.mark_color, width=sc.line_width)
 
-    if plot._distribution.kde_rug:
+    if distribution.kde_rug:
         # Over a filled curve the ticks would be mark_color on
         # mark_color and invisible, so they are cut in the background
         # color instead -- notches out of the fill rather than marks on
         # top of it. Unfilled, they are the mark's own color, because a
         # rug is data.
         var tick_color = (
-            theme.background if plot._distribution.kde_fill else theme.mark_color
+            theme.background if distribution.kde_fill else theme.mark_color
         )
         _draw_rug_ticks(target, values, x_scale, baseline_py, sc, tick_color)
 
@@ -371,7 +408,9 @@ def _render_rug[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    distribution: _DistributionData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -412,7 +451,9 @@ def _render_rug[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_distribution` values this reads.
+        mark: The mark being drawn.
+        distribution: The raw distributions.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -425,18 +466,18 @@ def _render_rug[
     Raises:
         Error: No values were given.
     """
-    var values = _kde_observations(plot)
-    var theme = plot._settings.theme
+    var values = _kde_observations(distribution)
+    var theme = settings.theme
 
     var frame = _draw_continuous_axis_frame(
         target,
         _position_x_extent(
             values,
-            mark=plot._mark,
-            x_log=plot._settings.x_log,
-            x_symlog=plot._settings.x_symlog,
-            x_symlog_linthresh=plot._settings.x_symlog_linthresh,
-            y_symlog=plot._settings.y_symlog,
+            mark=mark,
+            x_log=settings.x_log,
+            x_symlog=settings.x_symlog,
+            x_symlog_linthresh=settings.x_symlog_linthresh,
+            y_symlog=settings.y_symlog,
         ),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,
@@ -458,6 +499,34 @@ def _render_rug[
         theme.mark_color,
     )
     return frame.result()
+
+
+def _render_rug_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_rug` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_rug(
+        target,
+        plot._mark,
+        plot._distribution,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def kdeplot(

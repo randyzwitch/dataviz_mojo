@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
@@ -39,7 +40,8 @@ def _render_punchcard[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    punchcard: _PunchcardData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -52,23 +54,23 @@ def _render_punchcard[
     Radius is `size / scale` in theme-scaled pixels. Duplicate coordinates
     draw multiple bubbles, and large bubbles may exceed their cells.
     """
-    if len(plot._punchcard.x) != len(plot._punchcard.y) or len(
-        plot._punchcard.sizes
-    ) != len(plot._punchcard.x):
+    if len(punchcard.x) != len(punchcard.y) or len(punchcard.sizes) != len(
+        punchcard.x
+    ):
         raise Error(
             "Plot.encode_punchcard(): x, y, and sizes must all have the same"
             " length (got "
-            + String(len(plot._punchcard.x))
+            + String(len(punchcard.x))
             + " x values, "
-            + String(len(plot._punchcard.y))
+            + String(len(punchcard.y))
             + " y values, "
-            + String(len(plot._punchcard.sizes))
+            + String(len(punchcard.sizes))
             + " sizes)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._punchcard.x), "Plot.encode_punchcard()")
-    for s in plot._punchcard.sizes:
+    var theme = settings.theme
+    _require_non_empty(len(punchcard.x), "Plot.encode_punchcard()")
+    for s in punchcard.sizes:
         if s < 0.0:
             raise Error(
                 "Plot: Mark.PUNCHCARD sizes must be non-negative (got "
@@ -76,8 +78,8 @@ def _render_punchcard[
                 + ")"
             )
 
-    var x_idx = _categorical_indices(plot._punchcard.x)
-    var y_idx = _categorical_indices(plot._punchcard.y)
+    var x_idx = _categorical_indices(punchcard.x)
+    var y_idx = _categorical_indices(punchcard.y)
 
     var frame = _draw_grid_axis_frame(
         target,
@@ -91,8 +93,8 @@ def _render_punchcard[
         cache=cache,
     )
 
-    var tooltips_on = plot._settings.tooltips_on(len(plot._punchcard.x))
-    for i in range(len(plot._punchcard.x)):
+    var tooltips_on = settings.tooltips_on(len(punchcard.x))
+    for i in range(len(punchcard.x)):
         # Same rule as corrplot: a disk has no crisp position to snap
         # to, and the radius is the encoding -- rounding it to whole
         # pixels collapsed a continuous size scale into as many steps as
@@ -100,15 +102,13 @@ def _render_punchcard[
         # draw the same circle.
         var cx = frame.x_scale.center(x_idx.indices[i])
         var cy = frame.y_scale.center(y_idx.indices[i])
-        var radius = (
-            plot._punchcard.sizes[i] / plot._punchcard.scale * frame.sc.scale
-        )
+        var radius = punchcard.sizes[i] / punchcard.scale * frame.sc.scale
         if tooltips_on:
             target.begin_annotated_group(
                 _cell_tooltip_label(
-                    plot._punchcard.x[i],
-                    plot._punchcard.y[i],
-                    plot._punchcard.sizes[i],
+                    punchcard.x[i],
+                    punchcard.y[i],
+                    punchcard.sizes[i],
                 )
             )
         target.fill_circle_aa(cx, cy, radius, theme.mark_color)
@@ -116,6 +116,26 @@ def _render_punchcard[
             target.end_annotated_group()
 
     return frame.result()
+
+
+def _render_punchcard_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_punchcard` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_punchcard(
+        target, plot._punchcard, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def punchcard(

@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
@@ -51,7 +53,9 @@ def _render_corrplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    corrplot: _CorrplotData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -65,29 +69,29 @@ def _render_corrplot[
     scale. Layout selects the full, lower, or upper triangle; diagonal cells
     and value labels are optional.
     """
-    if len(plot._corrplot.matrix) != len(plot._corrplot.variables):
+    if len(corrplot.matrix) != len(corrplot.variables):
         raise Error(
             "Plot.encode_corrplot(): matrix must have one row per variable"
             " (expected "
-            + String(len(plot._corrplot.variables))
+            + String(len(corrplot.variables))
             + " rows, got "
-            + String(len(plot._corrplot.matrix))
+            + String(len(corrplot.matrix))
             + ")"
         )
-    for row in plot._corrplot.matrix:
-        if len(row) != len(plot._corrplot.variables):
+    for row in corrplot.matrix:
+        if len(row) != len(corrplot.variables):
             raise Error(
                 "Plot.encode_corrplot(): matrix must be square, one value per"
                 " variable in every row (expected "
-                + String(len(plot._corrplot.variables))
+                + String(len(corrplot.variables))
                 + ", got "
                 + String(len(row))
                 + ")"
             )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._corrplot.variables), "Plot.encode_corrplot()")
-    for row in plot._corrplot.matrix:
+    var theme = settings.theme
+    _require_non_empty(len(corrplot.variables), "Plot.encode_corrplot()")
+    for row in corrplot.matrix:
         for v in row:
             if v < -1.0 or v > 1.0:
                 raise Error(
@@ -97,9 +101,7 @@ def _render_corrplot[
                 )
 
     var sc = _Scaled(theme)
-    var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, -1.0, 1.0
-    )
+    var color_scale = _color_scale_for(theme, settings.color_domain, -1.0, 1.0)
 
     # Reuse the cache for legend and axis-label measurement.
 
@@ -109,8 +111,8 @@ def _render_corrplot[
 
     var frame = _draw_grid_axis_frame(
         target,
-        plot._corrplot.variables,
-        plot._corrplot.variables,
+        corrplot.variables,
+        corrplot.variables,
         theme,
         ox0 + legend.left,
         oy0 + legend.top,
@@ -122,22 +124,20 @@ def _render_corrplot[
     var cell_width = frame.x_scale.bandwidth()
     var cell_height = frame.y_scale.bandwidth()
     var max_radius = (
-        min(cell_width, cell_height)
-        / 2.0
-        * plot._mark_style.corrplot_bubble_fraction
+        min(cell_width, cell_height) / 2.0 * style.corrplot_bubble_fraction
     )
-    var n = len(plot._corrplot.variables)
+    var n = len(corrplot.variables)
 
-    var tooltips_on = plot._settings.tooltips_on(n * n)
+    var tooltips_on = settings.tooltips_on(n * n)
     for row in range(n):
         for col in range(n):
-            if row == col and not plot._corrplot.diag:
+            if row == col and not corrplot.diag:
                 continue
-            if plot._corrplot.layout == "lower" and col > row:
+            if corrplot.layout == "lower" and col > row:
                 continue
-            if plot._corrplot.layout == "upper" and col < row:
+            if corrplot.layout == "upper" and col < row:
                 continue
-            var value = plot._corrplot.matrix[row][col]
+            var value = corrplot.matrix[row][col]
             # Neither the center nor the radius rounds. A disk is
             # antialiased on every side wherever it sits, so rounding
             # its center bought no crispness -- and rounding the radius
@@ -153,8 +153,8 @@ def _render_corrplot[
             if tooltips_on:
                 target.begin_annotated_group(
                     _cell_tooltip_label(
-                        plot._corrplot.variables[row],
-                        plot._corrplot.variables[col],
+                        corrplot.variables[row],
+                        corrplot.variables[col],
                         value,
                     )
                 )
@@ -165,7 +165,7 @@ def _render_corrplot[
             target.fill_circle_aa(cx, cy, radius, color_scale.color_at(value))
             if tooltips_on:
                 target.end_annotated_group()
-            if plot._corrplot.labels:
+            if corrplot.labels:
                 frame.text_requests.append(
                     _TextRequest(
                         round_to_int(cx),
@@ -192,6 +192,34 @@ def _render_corrplot[
     )
 
     return frame.result()
+
+
+def _render_corrplot_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_corrplot` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_corrplot(
+        target,
+        plot._corrplot,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def corrplot[

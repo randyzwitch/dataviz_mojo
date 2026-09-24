@@ -14,6 +14,7 @@ The binning behavior matches `numpy.histogram`:
 
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cbrt, ceil, log10, log2, pi, sqrt
 
 from canvas.color import Color
@@ -581,25 +582,23 @@ struct _HistogramData(Copyable, Movable):
         self.horizontal = False
 
 
-def _histogram_bin_tooltip_label(plot: Plot, i: Int) -> String:
+def _histogram_bin_tooltip_label(histogram: _HistogramData, i: Int) -> String:
     """One bin's hover text, `"[1, 2): 42"` (#678): the half-open
     interval its two edges span, and the count or normalized value it
     holds -- the two numbers the bar's position and height encode.
     """
     return (
         "["
-        + _format_fixed(
-            plot._histogram.edges[i], _label_decimals(plot._histogram.edges[i])
-        )
+        + _format_fixed(histogram.edges[i], _label_decimals(histogram.edges[i]))
         + ", "
         + _format_fixed(
-            plot._histogram.edges[i + 1],
-            _label_decimals(plot._histogram.edges[i + 1]),
+            histogram.edges[i + 1],
+            _label_decimals(histogram.edges[i + 1]),
         )
         + "): "
         + _format_fixed(
-            plot._histogram.values[i],
-            _label_decimals(plot._histogram.values[i]),
+            histogram.values[i],
+            _label_decimals(histogram.values[i]),
         )
     )
 
@@ -608,7 +607,8 @@ def _draw_histogram_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    histogram: _HistogramData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     mut text_requests: List[_TextRequest],
@@ -636,28 +636,26 @@ def _draw_histogram_layer[
     since an empty bin's riser is already a boundary. A transparent
     edge color turns it off.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var n = len(plot._histogram.values)
+    var n = len(histogram.values)
     if n == 0:
         return
     _push_plot_clip(target, x_scale, y_scale)
     # `along` runs over the bins (x when vertical, y when horizontal)
     # and `across` over the values; the geometry below is written once
     # in those terms and emitted either way round.
-    var horizontal = plot._histogram.horizontal
+    var horizontal = histogram.horizontal
     var along = y_scale if horizontal else x_scale
     var across = x_scale if horizontal else y_scale
     var baseline = snap_to_pixel_edge(across.to_pixel(0.0) - 0.5)
     var ep = List[Float64](capacity=n + 1)
     for i in range(n + 1):
-        ep.append(
-            snap_to_pixel_edge(along.to_pixel(plot._histogram.edges[i]) - 0.5)
-        )
+        ep.append(snap_to_pixel_edge(along.to_pixel(histogram.edges[i]) - 0.5))
     var vp = List[Float64](capacity=n)
     for i in range(n):
         vp.append(
-            snap_to_pixel_edge(across.to_pixel(plot._histogram.values[i]) - 0.5)
+            snap_to_pixel_edge(across.to_pixel(histogram.values[i]) - 0.5)
         )
     # A bar that starts on an axis line would paint over the line's
     # column: give it back, the way `Mark.BAR` pulls a bar off the axis.
@@ -691,14 +689,16 @@ def _draw_histogram_layer[
     for i in range(n):
         if min(ep[i], ep[i + 1]) < max(ep[i], ep[i + 1]) and ext[i] > 0.0:
             drawn += 1
-    var tooltips_on = plot._settings.tooltips_on(drawn)
+    var tooltips_on = settings.tooltips_on(drawn)
     for i in range(n):
         var lo = min(ep[i], ep[i + 1])
         var hi = max(ep[i], ep[i + 1])
         if hi <= lo or ext[i] <= 0.0:
             continue
         if tooltips_on:
-            target.begin_annotated_group(_histogram_bin_tooltip_label(plot, i))
+            target.begin_annotated_group(
+                _histogram_bin_tooltip_label(histogram, i)
+            )
         if horizontal:
             target.fill_rect(
                 baseline, lo, vp[i] - baseline, hi - lo, theme.mark_color
@@ -711,8 +711,8 @@ def _draw_histogram_layer[
             target.end_annotated_group()
         if theme.show_data_labels:
             var label = _format_fixed(
-                plot._histogram.values[i],
-                _label_decimals(plot._histogram.values[i]),
+                histogram.values[i],
+                _label_decimals(histogram.values[i]),
             )
             if horizontal:
                 text_requests.append(

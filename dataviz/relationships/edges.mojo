@@ -89,29 +89,29 @@ def _edge_node_index(
     return _EdgeNodeIndex(idx.domain.copy(), from_idx^, to_idx^)
 
 
-def _validate_edge_encoding(plot: Plot, mark_name: String) raises:
+def _validate_edge_encoding(edge_data: _EdgeData, mark_name: String) raises:
     """`Plot.encode_chord()`'s length check, its non-negative rule, and its
     empty-data check (`_require_non_empty`), shared by `Mark.CHORD`/
     `ARC_DIAGRAM`/`GRAPH`/`SANKEY`.
     """
-    if len(plot._edges.from_categories) != len(
-        plot._edges.to_categories
-    ) or len(plot._edges.values) != len(plot._edges.from_categories):
+    if len(edge_data.from_categories) != len(edge_data.to_categories) or len(
+        edge_data.values
+    ) != len(edge_data.from_categories):
         raise Error(
             "Plot.encode_chord(): from_categories, to_categories, and"
             " values must all have the same length (got "
-            + String(len(plot._edges.from_categories))
+            + String(len(edge_data.from_categories))
             + " from_categories, "
-            + String(len(plot._edges.to_categories))
+            + String(len(edge_data.to_categories))
             + " to_categories, "
-            + String(len(plot._edges.values))
+            + String(len(edge_data.values))
             + " values)"
         )
     _require_non_empty(
-        len(plot._edges.from_categories),
+        len(edge_data.from_categories),
         "Plot.encode_chord() (" + mark_name + ")",
     )
-    _require_non_negative(plot._edges.values, mark_name)
+    _require_non_negative(edge_data.values, mark_name)
 
 
 def _encode_chord(

@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 
@@ -56,7 +58,9 @@ def _render_population_pyramid[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    pyramid: _PyramidData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -69,33 +73,29 @@ def _render_population_pyramid[
     Both sides share a symmetric domain. Zero values draw no bar, and the
     optional legend names the two sides.
     """
-    if len(plot._categorical.x) != len(plot._pyramid.left) or len(
-        plot._pyramid.right
-    ) != len(plot._pyramid.left):
+    if len(categorical.x) != len(pyramid.left) or len(pyramid.right) != len(
+        pyramid.left
+    ):
         raise Error(
             "Plot.encode_population_pyramid(): categories, left_values, and"
             " right_values must all have the same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " categories, "
-            + String(len(plot._pyramid.left))
+            + String(len(pyramid.left))
             + " left_values, "
-            + String(len(plot._pyramid.right))
+            + String(len(pyramid.right))
             + " right_values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(
-        len(plot._categorical.x), "Plot.encode_population_pyramid()"
-    )
+    var theme = settings.theme
+    _require_non_empty(len(categorical.x), "Plot.encode_population_pyramid()")
     var sc = _Scaled(theme)
     # Tooltips need side names even when the legend is hidden.
     var left_name = (
-        plot._pyramid.left_name if plot._pyramid.left_name.byte_length()
-        > 0 else "Left"
+        pyramid.left_name if pyramid.left_name.byte_length() > 0 else "Left"
     )
     var right_name = (
-        plot._pyramid.right_name if plot._pyramid.right_name.byte_length()
-        > 0 else "Right"
+        pyramid.right_name if pyramid.right_name.byte_length() > 0 else "Right"
     )
     var legend_names = List[String]()
     if theme.show_legend:
@@ -110,12 +110,10 @@ def _render_population_pyramid[
         cache=cache,
     ) if theme.show_legend else _LegendLayout()
 
-    var x_scale = _symmetric_zero_baseline_x_extent(
-        plot._pyramid.left, plot._pyramid.right
-    )
+    var x_scale = _symmetric_zero_baseline_x_extent(pyramid.left, pyramid.right)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,
@@ -129,12 +127,12 @@ def _render_population_pyramid[
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
-    var tooltips_on = plot._settings.tooltips_on(2 * len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(2 * len(categorical.x))
+    for i in range(len(categorical.x)):
         var row_y = frame.y_scale.band_start(i)
 
         var left_edge_px = _axis_pixel_f(
-            frame.x_scale, -max(plot._pyramid.left[i], -plot._pyramid.left[i])
+            frame.x_scale, -max(pyramid.left[i], -pyramid.left[i])
         )
         var left_x = min(left_edge_px, center_px)
         var left_w = max(left_edge_px, center_px) - min(left_edge_px, center_px)
@@ -142,9 +140,9 @@ def _render_population_pyramid[
             if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot._categorical.x[i],
+                        categorical.x[i],
                         left_name,
-                        plot._pyramid.left[i],
+                        pyramid.left[i],
                     )
                 )
             var lx0 = snap_to_pixel_edge(left_x)
@@ -155,7 +153,7 @@ def _render_population_pyramid[
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
-                var left_value = plot._pyramid.left[i]
+                var left_value = pyramid.left[i]
                 var at = orient.outside_band_label(
                     _BaselineRectF(left_x, left_w),
                     row_y,
@@ -181,7 +179,7 @@ def _render_population_pyramid[
                 )
 
         var right_edge_px = _axis_pixel_f(
-            frame.x_scale, max(plot._pyramid.right[i], -plot._pyramid.right[i])
+            frame.x_scale, max(pyramid.right[i], -pyramid.right[i])
         )
         var right_x = min(center_px, right_edge_px)
         var right_w = max(center_px, right_edge_px) - min(
@@ -191,9 +189,9 @@ def _render_population_pyramid[
             if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot._categorical.x[i],
+                        categorical.x[i],
                         right_name,
-                        plot._pyramid.right[i],
+                        pyramid.right[i],
                     )
                 )
             var rx0 = snap_to_pixel_edge(right_x)
@@ -204,7 +202,7 @@ def _render_population_pyramid[
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
-                var right_value = plot._pyramid.right[i]
+                var right_value = pyramid.right[i]
                 var at2 = orient.outside_band_label(
                     _BaselineRectF(right_x, right_w),
                     row_y,
@@ -245,6 +243,34 @@ def _render_population_pyramid[
         )
 
     return frame.result()
+
+
+def _render_population_pyramid_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_population_pyramid` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_population_pyramid(
+        target,
+        plot._pyramid,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def population_pyramid(

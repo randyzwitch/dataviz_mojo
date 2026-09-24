@@ -1,3 +1,6 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.mark import Mark
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
@@ -9,7 +12,10 @@ from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.funnel import _descending_value_order
-from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
+from dataviz.categorical.grouped_bar import (
+    _validate_grouped_bar_series,
+    _GroupedBarData,
+)
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.core.frame import _draw_axis_spines
 from dataviz.plot import Plot, _finished
@@ -202,7 +208,10 @@ def _render_bump[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -220,13 +229,13 @@ def _render_bump[
     Ranks are precomputed for every (series, category) pair in one pass
     before any line is drawn.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     _check_line_smoothing(theme)
 
-    var n_series = len(plot._grouped_bar.series_names)
-    var n_categories = len(plot._categorical.x)
+    var n_series = len(grouped_bar.series_names)
+    var n_categories = len(categorical.x)
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -235,7 +244,7 @@ def _render_bump[
     # names here, then the rank-axis labels inside _draw_bump_axis_frame.
 
     var legend = _legend_layout(
-        plot._grouped_bar.series_names,
+        grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -245,7 +254,7 @@ def _render_bump[
 
     var frame = _draw_bump_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         n_series,
         theme,
         ox0 + legend.left,
@@ -262,7 +271,7 @@ def _render_bump[
     for i in range(n_categories):
         var values_at_i = List[Float64]()
         for j in range(n_series):
-            values_at_i.append(plot._grouped_bar.values[j][i])
+            values_at_i.append(grouped_bar.values[j][i])
         var order = _descending_value_order(values_at_i)
         var rank_at_i = List[Int]()
         for _ in range(n_series):
@@ -273,7 +282,7 @@ def _render_bump[
             rank[j].append(rank_at_i[j])
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._settings.tooltips_on(n_series)
+    var tooltips_on = settings.tooltips_on(n_series)
     for j in range(n_series):
         var px = List[Float64](capacity=n_categories)
         var py = List[Float64](capacity=n_categories)
@@ -289,7 +298,7 @@ def _render_bump[
         # points at, and a title per vertex would put one on every
         # category it crosses.
         if tooltips_on:
-            target.begin_annotated_group(plot._grouped_bar.series_names[j])
+            target.begin_annotated_group(grouped_bar.series_names[j])
         target.stroke_path_aa(
             path, palette[j % len(palette)], width=sc.line_width
         )
@@ -300,7 +309,7 @@ def _render_bump[
         _draw_legend_at(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            grouped_bar.series_names,
             palette,
             legend,
             frame.px0,
@@ -312,6 +321,35 @@ def _render_bump[
         )
 
     return frame.result()
+
+
+def _render_bump_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_bump` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_bump(
+        target,
+        plot._mark,
+        plot._grouped_bar,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def bump(

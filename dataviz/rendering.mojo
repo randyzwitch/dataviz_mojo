@@ -1658,7 +1658,12 @@ def _render_generic[
         _ = _draw_point_layer(
             target,
             frame.text_requests,
-            plot,
+            plot._mark,
+            plot._continuous,
+            plot._channels,
+            plot._y_err,
+            plot._mark_style,
+            plot._settings,
             ch,
             frame.x_scale,
             frame.y_scale,
@@ -1669,12 +1674,32 @@ def _render_generic[
             cache=cache,
         )
     elif plot._mark == Mark.LINE:
-        _draw_line_layer(target, plot, frame.x_scale, frame.y_scale)
+        _draw_line_layer(
+            target,
+            plot._continuous,
+            plot._y_err,
+            plot._mark_style,
+            plot._settings,
+            frame.x_scale,
+            frame.y_scale,
+        )
     elif plot._mark == Mark.AREA:
-        _draw_area_layer(target, plot, frame.x_scale, frame.y_scale)
+        _draw_area_layer(
+            target,
+            plot._continuous,
+            plot._mark_style,
+            plot._settings,
+            frame.x_scale,
+            frame.y_scale,
+        )
     elif plot._mark == Mark.HISTOGRAM:
         _draw_histogram_layer(
-            target, plot, frame.x_scale, frame.y_scale, frame.text_requests
+            target,
+            plot._histogram,
+            plot._settings,
+            frame.x_scale,
+            frame.y_scale,
+            frame.text_requests,
         )
 
     return frame.result()

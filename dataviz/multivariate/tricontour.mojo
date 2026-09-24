@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.fill_rule import FillRule
 from canvas.path import Path
@@ -306,7 +307,8 @@ def _render_tricontour[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    tricontour: _TriContourData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -331,13 +333,13 @@ def _render_tricontour[
     nothing and draw an empty frame rather than raising: the axes still
     report what the data spanned.
     """
-    _validate_tricontour(plot, "Plot.mark_tricontour()")
+    _validate_tricontour(tricontour, "Plot.mark_tricontour()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._tricontour.x),
-        _data_extent(plot._tricontour.y),
+        _data_extent(tricontour.x),
+        _data_extent(tricontour.y),
         theme,
         _LegendLayout(),
         ox0,
@@ -347,11 +349,42 @@ def _render_tricontour[
         cache=cache,
     )
 
-    _draw_tricontour_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    _draw_tricontour_layer(
+        target, tricontour, settings, frame.x_scale, frame.y_scale, frame.sc
+    )
     return frame.result()
 
 
-def _validate_tricontour(plot: Plot, mark_context: String) raises:
+def _render_tricontour_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_tricontour` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_tricontour(
+        target,
+        plot._tricontour,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _validate_tricontour(
+    tricontour: _TriContourData, mark_context: String
+) raises:
     """Every check a `Mark.TRICONTOUR`/`Mark.TRICONTOURF` render needs
     before it draws: three equal-length columns, at least one sample, and
     a positive level count. `mark_context` names the builder in the
@@ -364,24 +397,24 @@ def _validate_tricontour(plot: Plot, mark_context: String) raises:
     domain before any frame exists, so a mismatched `encode_tricontour()`
     has to be caught there rather than inside the drawing.
     """
-    var n = len(plot._tricontour.x)
-    if len(plot._tricontour.y) != n or len(plot._tricontour.z) != n:
+    var n = len(tricontour.x)
+    if len(tricontour.y) != n or len(tricontour.z) != n:
         raise Error(
             "Plot.encode_tricontour(): x, y and z must have the same length"
             " (got "
             + String(n)
             + ", "
-            + String(len(plot._tricontour.y))
+            + String(len(tricontour.y))
             + " and "
-            + String(len(plot._tricontour.z))
+            + String(len(tricontour.z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_tricontour()")
-    if plot._tricontour.level_count <= 0:
+    if tricontour.level_count <= 0:
         raise Error(
             mark_context
             + ": levels must be positive (got "
-            + String(plot._tricontour.level_count)
+            + String(tricontour.level_count)
             + ")"
         )
 
@@ -390,7 +423,8 @@ def _draw_tricontour_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    tricontour: _TriContourData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
@@ -413,21 +447,20 @@ def _draw_tricontour_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_tricontour` data this reads.
+        tricontour: The mark's `_TriContourData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var theme = plot._settings.theme
-    var levels = plot._tricontour.levels.copy() if len(
-        plot._tricontour.levels
-    ) > 0 else _auto_levels_from(
-        plot._tricontour.z, plot._tricontour.level_count
-    )
+    var theme = settings.theme
+    var levels = tricontour.levels.copy() if len(
+        tricontour.levels
+    ) > 0 else _auto_levels_from(tricontour.z, tricontour.level_count)
     if len(levels) == 0:
         return
 
-    var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
+    var tri = delaunay(tricontour.x, tricontour.y)
     if tri.count() == 0:
         return
 
@@ -438,14 +471,12 @@ def _draw_tricontour_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, lo, hi
-    )
+    var color_scale = _color_scale_for(theme, settings.color_domain, lo, hi)
 
     for li in range(len(levels)):
         var level = levels[li]
         var color = color_scale.color_at(level)
-        var segs = _tricontour_segments(tri, plot._tricontour.z, level)
+        var segs = _tricontour_segments(tri, tricontour.z, level)
         var lines = _chain_segments(segs)
         for k in range(len(lines)):
             ref line = lines[k]
@@ -466,7 +497,8 @@ def _render_tricontourf[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    tricontour: _TriContourData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -495,7 +527,8 @@ def _render_tricontourf[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_tricontour` data this reads.
+        tricontour: The mark's `_TriContourData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -509,13 +542,13 @@ def _render_tricontourf[
         Error: Empty data, mismatched column lengths, or a non-positive
             level count.
     """
-    _validate_tricontour(plot, "Plot.mark_tricontourf()")
+    _validate_tricontour(tricontour, "Plot.mark_tricontourf()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._tricontour.x),
-        _data_extent(plot._tricontour.y),
+        _data_extent(tricontour.x),
+        _data_extent(tricontour.y),
         theme,
         _LegendLayout(),
         ox0,
@@ -525,13 +558,48 @@ def _render_tricontourf[
         cache=cache,
     )
 
-    _draw_tricontourf_layer(target, plot, frame.x_scale, frame.y_scale)
+    _draw_tricontourf_layer(
+        target, tricontour, settings, frame.x_scale, frame.y_scale
+    )
     return frame.result()
+
+
+def _render_tricontourf_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_tricontourf` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_tricontourf(
+        target,
+        plot._tricontour,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def _draw_tricontourf_layer[
     T: DrawTarget
-](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+](
+    mut target: T,
+    tricontour: _TriContourData,
+    settings: _ChartSettings,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises:
     """Draw one `Mark.TRICONTOURF` plot's filled bands into an
     already-laid-out continuous axis frame, `_draw_tricontour_layer`'s
     counterpart and the layer a `render_layers()` stack puts underneath
@@ -542,20 +610,19 @@ def _draw_tricontourf_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_tricontour` data this reads.
+        tricontour: The mark's `_TriContourData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
     """
-    var theme = plot._settings.theme
-    var levels = plot._tricontour.levels.copy() if len(
-        plot._tricontour.levels
-    ) > 0 else _auto_levels_from(
-        plot._tricontour.z, plot._tricontour.level_count
-    )
+    var theme = settings.theme
+    var levels = tricontour.levels.copy() if len(
+        tricontour.levels
+    ) > 0 else _auto_levels_from(tricontour.z, tricontour.level_count)
     if len(levels) == 0:
         return
 
-    var tri = delaunay(plot._tricontour.x, plot._tricontour.y)
+    var tri = delaunay(tricontour.x, tricontour.y)
     if tri.count() == 0:
         return
 
@@ -566,9 +633,7 @@ def _draw_tricontourf_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, lo, hi
-    )
+    var color_scale = _color_scale_for(theme, settings.color_domain, lo, hi)
 
     # Ascending, so each level's region paints over the one below it.
     var sorted_levels = levels.copy()
@@ -582,14 +647,14 @@ def _draw_tricontourf_layer[
     # The band below the first level: every triangle, in the lowest
     # color. `_fill_region_above` at -inf would do it, but every
     # triangle is trivially above, so say so directly.
-    var zmin = plot._tricontour.z[0]
-    for v in plot._tricontour.z:
+    var zmin = tricontour.z[0]
+    for v in tricontour.z:
         if v < zmin:
             zmin = v
     _fill_region_above(
         target,
         tri,
-        plot._tricontour.z,
+        tricontour.z,
         zmin,
         color_scale.color_at(lo),
         x_scale,
@@ -601,7 +666,7 @@ def _draw_tricontourf_layer[
         _fill_region_above(
             target,
             tri,
-            plot._tricontour.z,
+            tricontour.z,
             level,
             color_scale.color_at(level),
             x_scale,

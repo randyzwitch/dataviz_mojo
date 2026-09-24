@@ -27,6 +27,7 @@ test against at all, so it emits all six faces and lets the depth sort
 cover the ones facing away.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.geometry import FPoint
@@ -335,7 +336,7 @@ def _smallest_gap(values: List[Float64]) -> Float64:
     return gap if gap > 0.0 else 1.0
 
 
-def _validate_bars3d(plot: Plot) raises:
+def _validate_bars3d(bars3d: _Bars3D) raises:
     """Three equal-length columns, at least one bar, and footprints
     that leave the bars separate.
 
@@ -343,22 +344,22 @@ def _validate_bars3d(plot: Plot) raises:
         Error: The columns disagree in length, there are no bars, or a
             footprint fraction is outside (0, 1].
     """
-    var n = len(plot._bars3d.x)
-    if len(plot._bars3d.y) != n or len(plot._bars3d.z) != n:
+    var n = len(bars3d.x)
+    if len(bars3d.y) != n or len(bars3d.z) != n:
         raise Error(
             "Plot.encode_bars3d(): x, y and z must all have the same length"
             " (got "
             + String(n)
             + ", "
-            + String(len(plot._bars3d.y))
+            + String(len(bars3d.y))
             + " and "
-            + String(len(plot._bars3d.z))
+            + String(len(bars3d.z))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_bars3d()")
     for pair in [
-        (plot._bars3d.bar_width, String("bar_width")),
-        (plot._bars3d.bar_depth, String("bar_depth")),
+        (bars3d.bar_width, String("bar_width")),
+        (bars3d.bar_depth, String("bar_depth")),
     ]:
         if not (pair[0] > 0.0) or pair[0] > 1.0:
             raise Error(
@@ -372,7 +373,9 @@ def _validate_bars3d(plot: Plot) raises:
             )
 
 
-def _bars3d_extent(plot: Plot) raises -> Tuple[_Extent3D, Float64, Float64]:
+def _bars3d_extent(
+    bars3d: _Bars3D,
+) raises -> Tuple[_Extent3D, Float64, Float64]:
     """The three data ranges, plus each bar's footprint in x and y.
 
     The z range always reaches 0, because a bar is read as a length
@@ -380,11 +383,11 @@ def _bars3d_extent(plot: Plot) raises -> Tuple[_Extent3D, Float64, Float64]:
     draw every bar from a floor that is not zero and make the short
     ones look shorter than they are.
     """
-    var half_w = _smallest_gap(plot._bars3d.x) * plot._bars3d.bar_width / 2.0
-    var half_d = _smallest_gap(plot._bars3d.y) * plot._bars3d.bar_depth / 2.0
-    var xs = _min_max(plot._bars3d.x)
-    var ys = _min_max(plot._bars3d.y)
-    var zs = _min_max(plot._bars3d.z)
+    var half_w = _smallest_gap(bars3d.x) * bars3d.bar_width / 2.0
+    var half_d = _smallest_gap(bars3d.y) * bars3d.bar_depth / 2.0
+    var xs = _min_max(bars3d.x)
+    var ys = _min_max(bars3d.y)
+    var zs = _min_max(bars3d.z)
     return (
         _Extent3D(
             MinMax(xs.min - half_w, xs.max + half_w),
@@ -402,7 +405,8 @@ def _render_bar3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    bars3d: _Bars3D,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -418,16 +422,16 @@ def _render_bar3d[
     in front of a far tall one -- and sorting them as wholes would draw
     one entire bar over the other.
     """
-    _validate_bars3d(plot)
-    var theme = plot._settings.theme
+    _validate_bars3d(bars3d)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
-    var measured = _bars3d_extent(plot)
+    var measured = _bars3d_extent(bars3d)
     var frame = _fit_frame3d(
-        Camera3D(plot._bars3d.elev, plot._bars3d.azim),
+        Camera3D(bars3d.elev, bars3d.azim),
         measured[0],
         px0,
         py0,
@@ -441,10 +445,10 @@ def _render_bar3d[
     var half_w = measured[1]
     var half_d = measured[2]
     var mesh = _Mesh()
-    for i in range(len(plot._bars3d.x)):
-        var cx = plot._bars3d.x[i]
-        var cy = plot._bars3d.y[i]
-        var h = plot._bars3d.z[i]
+    for i in range(len(bars3d.x)):
+        var cx = bars3d.x[i]
+        var cy = bars3d.y[i]
+        var h = bars3d.z[i]
         _box(
             mesh,
             frame,
@@ -457,7 +461,27 @@ def _render_bar3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
+def _render_bar3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_bar3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_bar3d(
+        target, plot._bars3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _voxel_shape(voxels: _Voxels) raises -> Tuple[Int, Int, Int]:
     """`(layers, rows, cols)`, raising unless the grid is a full box.
 
     A ragged occupancy grid has no reading at all: a row shorter than
@@ -465,26 +489,26 @@ def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
     built, and filling in the gap would invent cells the caller never
     described.
     """
-    var layers = len(plot._voxels.filled)
+    var layers = len(voxels.filled)
     _require_non_empty(layers, "Plot.encode_voxels()")
-    var rows = len(plot._voxels.filled[0])
+    var rows = len(voxels.filled[0])
     _require_non_empty(rows, "Plot.encode_voxels()")
-    var cols = len(plot._voxels.filled[0][0])
+    var cols = len(voxels.filled[0][0])
     _require_non_empty(cols, "Plot.encode_voxels()")
     for l in range(layers):
-        if len(plot._voxels.filled[l]) != rows:
+        if len(voxels.filled[l]) != rows:
             raise Error(
                 "Plot.encode_voxels(): every layer needs the same number of"
                 " rows -- layer "
                 + String(l)
                 + " has "
-                + String(len(plot._voxels.filled[l]))
+                + String(len(voxels.filled[l]))
                 + " against "
                 + String(rows)
                 + " in layer 0"
             )
         for r in range(rows):
-            if len(plot._voxels.filled[l][r]) != cols:
+            if len(voxels.filled[l][r]) != cols:
                 raise Error(
                     "Plot.encode_voxels(): every row needs the same number"
                     " of columns -- layer "
@@ -492,7 +516,7 @@ def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
                     + " row "
                     + String(r)
                     + " has "
-                    + String(len(plot._voxels.filled[l][r]))
+                    + String(len(voxels.filled[l][r]))
                     + " against "
                     + String(cols)
                     + " in layer 0 row 0"
@@ -501,7 +525,7 @@ def _voxel_shape(plot: Plot) raises -> Tuple[Int, Int, Int]:
 
 
 def _occupied(
-    plot: Plot, shape: Tuple[Int, Int, Int], l: Int, r: Int, c: Int
+    voxels: _Voxels, shape: Tuple[Int, Int, Int], l: Int, r: Int, c: Int
 ) -> Bool:
     """Whether cell `(l, r, c)` is filled; out of the grid is empty, so
     the solid's outer faces are all emitted."""
@@ -509,11 +533,11 @@ def _occupied(
         return False
     if l >= shape[0] or r >= shape[1] or c >= shape[2]:
         return False
-    return plot._voxels.filled[l][r][c]
+    return voxels.filled[l][r][c]
 
 
 def _voxel_mesh(
-    plot: Plot, frame: Frame3D, shape: Tuple[Int, Int, Int], theme: Theme
+    voxels: _Voxels, frame: Frame3D, shape: Tuple[Int, Int, Int], theme: Theme
 ) raises -> _Mesh:
     """The faces of the solid: every face of a filled cell whose
     neighbor across it is empty.
@@ -529,7 +553,7 @@ def _voxel_mesh(
     See the module docstring.
 
     Args:
-        plot: The chart carrying `_voxels`.
+        voxels: The mark's `_Voxels` columns.
         frame: The fitted frame to project through.
         shape: `(layers, rows, cols)`, already validated.
         theme: Supplies the mark color and the ground it shades toward.
@@ -544,7 +568,7 @@ def _voxel_mesh(
     for l in range(shape[0]):
         for r in range(shape[1]):
             for c in range(shape[2]):
-                if not plot._voxels.filled[l][r][c]:
+                if not voxels.filled[l][r][c]:
                     continue
                 var lo = _Vertex(Float64(c), Float64(r), Float64(l))
                 var hi = _Vertex(Float64(c + 1), Float64(r + 1), Float64(l + 1))
@@ -559,7 +583,7 @@ def _voxel_mesh(
                 ]:
                     var step = face[2]
                     if _occupied(
-                        plot, shape, l + step[0], r + step[1], c + step[2]
+                        voxels, shape, l + step[0], r + step[1], c + step[2]
                     ):
                         continue
                     _box_face(
@@ -578,7 +602,8 @@ def _render_voxels[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    voxels: _Voxels,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -595,18 +620,18 @@ def _render_voxels[
     from six per cell to the surface area, which is the difference
     between a grid that draws and one that does not.
     """
-    var shape = _voxel_shape(plot)
+    var shape = _voxel_shape(voxels)
     var layers = shape[0]
     var rows = shape[1]
     var cols = shape[2]
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._voxels.elev, plot._voxels.azim),
+        Camera3D(voxels.elev, voxels.azim),
         _Extent3D(
             MinMax(0.0, Float64(cols)),
             MinMax(0.0, Float64(rows)),
@@ -621,9 +646,29 @@ def _render_voxels[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var mesh = _voxel_mesh(plot, frame, shape, theme)
+    var mesh = _voxel_mesh(voxels, frame, shape, theme)
     mesh.draw(target)
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_voxels_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_voxels` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_voxels(
+        target, plot._voxels, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def bar3d(

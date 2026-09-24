@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
@@ -11,6 +12,7 @@ from dataviz.core.color_scale import categorical_palette_for
 from dataviz.hierarchy_marks.hierarchy import (
     _HierarchyIndex,
     _build_hierarchy_index,
+    _HierarchyData,
 )
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _finished
@@ -116,7 +118,8 @@ def _render_tree[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    hierarchy: _HierarchyData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -130,27 +133,27 @@ def _render_tree[
     before nodes, colors follow top-level branches, and values must be
     non-negative.
     """
-    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
-        plot._hierarchy.values
-    ) != len(plot._hierarchy.ids):
+    if len(hierarchy.parent_ids) != len(hierarchy.ids) or len(
+        hierarchy.values
+    ) != len(hierarchy.ids):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
             " the same length (got "
-            + String(len(plot._hierarchy.ids))
+            + String(len(hierarchy.ids))
             + " ids, "
-            + String(len(plot._hierarchy.parent_ids))
+            + String(len(hierarchy.parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy.values))
+            + String(len(hierarchy.values))
             + " values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_negative(plot._hierarchy.values, "Mark.TREE")
+    var theme = settings.theme
+    _require_non_negative(hierarchy.values, "Mark.TREE")
 
     var idx = _build_hierarchy_index(
-        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+        hierarchy.ids, hierarchy.parent_ids, hierarchy.values
     )
-    var n = len(plot._hierarchy.ids)
+    var n = len(hierarchy.ids)
 
     var parent_row = List[Int](capacity=n)
     for _ in range(n):
@@ -174,7 +177,7 @@ def _render_tree[
     var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy.ids[c])
+        legend_labels.append(hierarchy.ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -210,7 +213,7 @@ def _render_tree[
         var py1 = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
 
-    var tooltips_on = plot._settings.tooltips_on(n)
+    var tooltips_on = settings.tooltips_on(n)
     for row in range(n):
         var color = (
             palette[branch[row] % len(palette)] if branch[row]
@@ -223,7 +226,7 @@ def _render_tree[
         var py = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         if tooltips_on:
             target.begin_annotated_group(
-                _tree_node_label(plot._hierarchy.ids, idx, row)
+                _tree_node_label(hierarchy.ids, idx, row)
             )
         target.fill_circle_aa(
             px, py, Float64(round_to_int(sc.point_radius)), color
@@ -237,7 +240,7 @@ def _render_tree[
                 + sc.tick_length
                 + sc.label_gap
                 + Int(sc.font_size),
-                plot._hierarchy.ids[row],
+                hierarchy.ids[row],
                 theme.text_color,
                 sc.font_size,
                 TextAlign.CENTER,
@@ -261,6 +264,26 @@ def _render_tree[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_tree_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_tree` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_tree(
+        target, plot._hierarchy, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def tree(

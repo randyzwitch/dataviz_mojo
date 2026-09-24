@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi
 from std.utils.numerics import isnan
 
@@ -91,7 +93,9 @@ def _render_radar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    radar: _RadarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -104,15 +108,15 @@ def _render_radar[
     Spokes begin at 12 o'clock and each uses its own maximum. Values are not
     clamped, so values above an axis maximum extend beyond the outer ring.
     """
-    _require_non_empty(len(plot._radar.indicators), "Plot.encode_radar()")
+    _require_non_empty(len(radar.indicators), "Plot.encode_radar()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var text_requests = List[_TextRequest]()
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._radar.series_names,
+        radar.series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -130,7 +134,7 @@ def _render_radar[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var n = len(plot._radar.indicators)
+    var n = len(radar.indicators)
     if theme.show_gridlines:
         _draw_radar_grid(
             target,
@@ -139,20 +143,19 @@ def _render_radar[
             max_radius,
             n,
             theme,
-            plot._mark_style.radar_grid_rings,
+            style.radar_grid_rings,
         )
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._settings.tooltips_on(len(plot._radar.series_values))
-    for s in range(len(plot._radar.series_values)):
-        var values = plot._radar.series_values[s].copy()
+    var tooltips_on = settings.tooltips_on(len(radar.series_values))
+    for s in range(len(radar.series_values)):
+        var values = radar.series_values[s].copy()
         var color = palette[s % len(palette)]
         var poly = Path()
         for i in range(n):
             var angle = -pi / 2.0 + Float64(i) * (2.0 * pi / Float64(n))
             var frac = (
-                values[i]
-                / plot._radar.max_values[i] if plot._radar.max_values[i]
+                values[i] / radar.max_values[i] if radar.max_values[i]
                 > 0.0 else 0.0
             )
             var pt = _polar_point(cx, cy, angle, max_radius * frac)
@@ -162,7 +165,7 @@ def _render_radar[
                 poly.line_to(pt.x, pt.y)
         poly.close()
         if tooltips_on:
-            target.begin_annotated_group(plot._radar.series_names[s])
+            target.begin_annotated_group(radar.series_names[s])
         target.fill_path_aa(
             poly,
             color.with_alpha(theme.radar_fill_alpha),
@@ -190,7 +193,7 @@ def _render_radar[
             _TextRequest(
                 Int(tip.x),
                 Int(tip.y),
-                plot._radar.indicators[i],
+                radar.indicators[i],
                 theme.text_color,
                 sc.font_size,
                 align,
@@ -202,7 +205,7 @@ def _render_radar[
         _draw_legend_at(
             target,
             text_requests,
-            plot._radar.series_names,
+            radar.series_names,
             palette,
             legend,
             plot_x0,
@@ -214,6 +217,34 @@ def _render_radar[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_radar_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_radar` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_radar(
+        target,
+        plot._radar,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def radar(

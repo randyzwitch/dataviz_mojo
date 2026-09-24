@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
 
 from canvas.text.font_cache import FontCache
@@ -15,6 +16,7 @@ from dataviz.basic.continuous import _lighten
 from dataviz.hierarchy_marks.hierarchy import (
     _HierarchyIndex,
     _build_hierarchy_index,
+    _HierarchyData,
 )
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _finished
@@ -164,7 +166,8 @@ def _render_sunburst[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    hierarchy: _HierarchyData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -187,25 +190,25 @@ def _render_sunburst[
     positive, the same validation `Mark.ARC` applies to its
     share-of-a-whole data.
     """
-    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
-        plot._hierarchy.values
-    ) != len(plot._hierarchy.ids):
+    if len(hierarchy.parent_ids) != len(hierarchy.ids) or len(
+        hierarchy.values
+    ) != len(hierarchy.ids):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
             " the same length (got "
-            + String(len(plot._hierarchy.ids))
+            + String(len(hierarchy.ids))
             + " ids, "
-            + String(len(plot._hierarchy.parent_ids))
+            + String(len(hierarchy.parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy.values))
+            + String(len(hierarchy.values))
             + " values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_negative(plot._hierarchy.values, "Mark.SUNBURST")
+    var theme = settings.theme
+    _require_non_negative(hierarchy.values, "Mark.SUNBURST")
 
     var idx = _build_hierarchy_index(
-        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+        hierarchy.ids, hierarchy.parent_ids, hierarchy.values
     )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
@@ -219,7 +222,7 @@ def _render_sunburst[
     var root_children = idx.children[idx.root].copy()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy.ids[c])
+        legend_labels.append(hierarchy.ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -250,7 +253,7 @@ def _render_sunburst[
             start,
             end,
             idx,
-            plot._hierarchy.ids,
+            hierarchy.ids,
             cx,
             cy,
             ring_width,
@@ -258,7 +261,7 @@ def _render_sunburst[
             theme.background,
             theme.background,
             sc.scale,
-            plot._settings.tooltips_on(len(plot._hierarchy.ids) - 1),
+            settings.tooltips_on(len(hierarchy.ids) - 1),
         )
         start = end
 
@@ -278,6 +281,26 @@ def _render_sunburst[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_sunburst_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_sunburst` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_sunburst(
+        target, plot._hierarchy, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def sunburst(
