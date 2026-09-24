@@ -45,7 +45,10 @@ case "$*" in
     # the case a guard that kills only the process reports on schedule
     # and then waits out anyway.
     *wedge*) sleep 90 & sleep 90 ;;
-    *segv*)  kill -SEGV $$ ;;
+    # The runner sees only the child exit status. A real SIGSEGV also
+    # invokes host crash handling, which is outside the runner contract
+    # and can race the short timeout on ARM.
+    *segv*)  exit 139 ;;
     *fail*)  echo "Summary [ 0.1 ] 1 tests run: 0 passed , 1 failed"; exit 1 ;;
     *)       echo "Summary [ 0.1 ] 1 tests run: 1 passed , 0 failed" ;;
 esac
