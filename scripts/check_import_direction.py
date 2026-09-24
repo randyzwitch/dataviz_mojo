@@ -28,6 +28,8 @@ CORE = ROOT / "dataviz" / "core"
 PLOT = ROOT / "dataviz" / "plot.mojo"
 UPWARD = re.compile(r"^\s*(?:from|import)\s+dataviz\.(?!core\b)([\w.]+)")
 DEFINITION = re.compile(r"^(?:def|struct|trait|comptime|alias) (\w+)", re.M)
+# One branch, so a docstring left open cannot make this backtrack.
+DOCSTRING = re.compile(r'"""[^"]*(?:"(?!"")[^"]*)*"""')
 HUB_START = re.compile(r"^from dataviz\.plot import\s*(\(?)(.*)$")
 SOURCE_DIRS = [
     "dataviz",
@@ -83,7 +85,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    code = re.sub(r'"""(?:.|\n)*?"""', "", PLOT.read_text(), flags=re.S)
+    code = DOCSTRING.sub("", PLOT.read_text())
     allowed = set(DEFINITION.findall(code))
     hub = []
     for directory in SOURCE_DIRS:
