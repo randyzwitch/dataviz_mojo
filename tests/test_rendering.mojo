@@ -17,10 +17,35 @@ from canvas.color import Color
 from canvas.resize import downsample
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.colors import CRIMSON, WHITE
+from dataviz.core.mark import Mark
+from dataviz.core.theme import Theme
+from dataviz.core.validate import _step_setter_name
+from dataviz.layout import GridCell, _render_grid_tight, render_grid, save_grid
+from dataviz.facets import _render_facets_tight, render_facets, save_facets
+from dataviz.layers import _render_layers_tight, save_layers
+from dataviz.plot import Plot
+from dataviz.rendering import (
+    _all_at_dpi,
+    _at_dpi,
+    _render_generic,
+    _render_into,
+    _resolve_supersample,
+    render_tight,
+    render_tight_pdf,
+    render_tight_svg,
+)
 from dataviz import (
+    area,
+    line,
+    render,
+    render_layers,
+    render_pdf,
+    render_svg,
+    save,
+    scatter,
     Theme,
     arc_diagram,
-    area,
     bar,
     barbs,
     beeswarm,
@@ -48,7 +73,6 @@ from dataviz import (
     histogram,
     imshow,
     kdeplot,
-    line,
     lollipop,
     marimekko,
     nightingale,
@@ -66,7 +90,6 @@ from dataviz import (
     ridgeline,
     rugplot,
     sankey,
-    scatter,
     single_axis,
     span_chart,
     stacked_bar,
@@ -81,32 +104,6 @@ from dataviz import (
     triplot,
     violin,
     waterfall,
-)
-from dataviz.core.colors import CRIMSON, WHITE
-from dataviz.core.mark import Mark
-from dataviz.core.theme import Theme
-from dataviz.core.validate import _step_setter_name
-from dataviz.layout import GridCell, _render_grid_tight, render_grid, save_grid
-from dataviz.facets import _render_facets_tight, render_facets, save_facets
-from dataviz.layers import _render_layers_tight, save_layers
-from dataviz.plot import (
-    Plot,
-    _all_at_dpi,
-    _at_dpi,
-    _render_generic,
-    _render_into,
-    _resolve_supersample,
-    area,
-    line,
-    render,
-    render_layers,
-    render_pdf,
-    render_svg,
-    render_tight,
-    render_tight_pdf,
-    render_tight_svg,
-    save,
-    scatter,
 )
 from _mark_registry import (
     _H,

@@ -2,7 +2,7 @@
 -- useful for a presentation-scale chart, or simply to make a sparse
 scatter read more clearly.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.colors import CORNFLOWERBLUE
 from dataviz.core.theme import Theme
 

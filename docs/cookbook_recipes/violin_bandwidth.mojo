@@ -1,6 +1,5 @@
 """Override KDE bandwidth when the automatic estimate over-smooths a violin."""
-from dataviz import violin
-from dataviz.plot import save
+from dataviz import save, violin
 from dataviz.core.theme import Theme
 
 

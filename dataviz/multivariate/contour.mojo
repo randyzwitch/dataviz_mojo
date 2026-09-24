@@ -19,17 +19,16 @@ from dataviz.core.array_like import (
 )
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.validate import _check_grid_coordinates
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.legend import (
     _LegendLayout,
-    _RenderResult,
-    _data_extent,
-    _draw_continuous_axis_frame,
     _draw_legend_at,
-    _finished,
     _legend_layout,
     _levels_descending,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
+from dataviz.core.frame import _draw_continuous_axis_frame
 from dataviz.core.scale import _format_tick
 from dataviz.core.text import _Scaled
 from dataviz.core.scale import LinearScale

@@ -3,7 +3,7 @@ first-seen-order palette -- useful for a consistent color across
 several charts, or to make one category (here, a region that just
 missed its target) stand out from the rest.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.colors import CRIMSON
 
 

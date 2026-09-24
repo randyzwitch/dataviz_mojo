@@ -22,7 +22,8 @@ from _mark_registry import _H, _W, _representative_plot
 from dataviz.core.mark import Feature, Mark, _marks_supporting
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
-from dataviz.plot import Plot, render_svg
+from dataviz.plot import Plot
+from dataviz import render_svg
 
 
 def _count(s: String, needle: String) -> Int:

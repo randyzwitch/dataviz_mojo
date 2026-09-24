@@ -1,7 +1,7 @@
 # title: Color by Continuous Variable
 """Map a continuous data column onto point color via a gradient scale.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

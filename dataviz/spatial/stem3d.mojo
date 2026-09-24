@@ -38,17 +38,12 @@ from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import _Extent3D, _fit_frame3d
-from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _finished,
-    _min_max,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.scale import _min_max, MinMax
+from dataviz.core.validate import _require_non_empty
 from dataviz.spatial.bar3d import _Mesh, _Vertex
 from dataviz.spatial.scatter3d import (
     _depth_order,

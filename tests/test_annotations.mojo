@@ -26,15 +26,21 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
-from dataviz import SmoothMethod, Theme, bar, gantt, kdeplot, line, rugplot
 from dataviz.core.stats import _loess_at, _poly_fit
 from dataviz.core.theme import Theme
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz import (
     render,
     render_facets_svg,
     render_layers_svg,
     render_svg,
+    SmoothMethod,
+    Theme,
+    bar,
+    gantt,
+    kdeplot,
+    line,
+    rugplot,
 )
 from _test_helpers import (
     _attr_values,

@@ -1,7 +1,6 @@
 # title: Scale Violin Width by Count
 """Scale violin width by sample count instead of equalizing every category."""
-from dataviz import violin
-from dataviz.plot import save
+from dataviz import save, violin
 
 
 def main() raises:

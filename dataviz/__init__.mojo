@@ -32,27 +32,23 @@ from dataviz.frame_facets import (
 )
 from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz.core.x_label_rotation import XAxisLabelRotation
-from dataviz.plot import (
-    Plot,
-    area,
-    line,
-    render,
+from dataviz.plot import Plot
+from dataviz.basic.continuous import area, line, scatter
+from dataviz.rendering import render, render_pdf, render_svg, save
+from dataviz.facets import (
     render_facets,
     render_facets_pdf,
     render_facets_svg,
+    save_facets,
+)
+from dataviz.layers import (
     render_layers,
     render_layers_pdf,
     render_layers_svg,
-    render_pdf,
-    render_svg,
-    save,
-    save_facets,
     save_layers,
-    scatter,
 )
 
-# Unequal-cell composition (#347). Imported directly rather than
-# re-exported through plot.mojo, which layout.mojo depends on.
+# Unequal-cell composition (#347).
 from dataviz.layout import (
     Figure,
     GridCell,

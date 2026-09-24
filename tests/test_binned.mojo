@@ -7,7 +7,6 @@ compilation, so the suite is organized by family (#605).
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
 from dataviz.core.tooltips import Tooltips
-from dataviz import histogram, kdeplot
 from dataviz.binned.hexbin import _HexBins, _hexbin_bins, hexbin
 from dataviz.binned.hist2d import _hist2d_counts, hist2d
 from dataviz.binned.histogram import (
@@ -19,12 +18,14 @@ from dataviz.binned.histogram import (
 )
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz import (
     render,
     render_facets,
     render_layers_svg,
     render_svg,
+    histogram,
+    kdeplot,
 )
 from _test_helpers import (
     _assert_same_canvas,

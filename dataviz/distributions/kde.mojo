@@ -17,20 +17,18 @@ from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.stats import _present
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.plot import (
-    Plot,
-    _LegendLayout,
-    _RenderResult,
+from dataviz.plot import Plot, _finished
+from dataviz.core.legend import _LegendLayout
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import (
     _data_extent,
     _log_data_extent,
     _position_x_extent,
-    _draw_continuous_axis_frame,
-    _finished,
-    _min_max,
-    _require_non_empty,
 )
+from dataviz.core.frame import _draw_continuous_axis_frame
+from dataviz.core.scale import _min_max, LinearScale
+from dataviz.core.validate import _require_non_empty
 from canvas.geometry import snap_to_pixel_center
-from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 from dataframe import DataFrame

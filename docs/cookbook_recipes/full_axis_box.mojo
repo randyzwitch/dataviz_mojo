@@ -1,5 +1,5 @@
 """Draw all four axis lines, the box several journal styles require."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

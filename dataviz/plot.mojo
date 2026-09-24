@@ -25,8 +25,8 @@ mark's file, which holds the logic. The structs its fields hold live
 elsewhere: the ones every mark shares in plot_fields.mojo, and a data
 struct only one mark family reads in that family's file (`_GanttData`
 in gantt.mojo, `_BoxData` in box.mojo, ...). Every mark's `_render_*`
-lives in its own file, which imports from here and is imported back, a
-circular import Mojo resolves within one package.
+lives in its own file, which imports `Plot` from here and is imported
+back, a circular import Mojo resolves within one package.
 
 ## Where the rest of it went
 
@@ -54,9 +54,12 @@ imported back here:
 - `tooltip_labels.mojo` -- the hover text of each kind of datum
 - `plot_fields.mojo` -- the channel and settings structs `Plot` holds
 
-Every one of those names is imported back into this module, so where a
-symbol lives is not something a caller has to know: `from dataviz.plot
-import _Orientation` still resolves, as it did before the split.
+This module exports only what it defines, `Plot` and `_finished`
+(#825). Every other name is imported from the module that defines it,
+so an import states a real dependency; `scripts/check_import_direction.py`
+fails on a `from dataviz.plot import` of anything else. (Mojo re-exports
+every name a module imports, which is how this file had become the
+package's import hub without anyone deciding it should be.)
 
 The modules under `dataviz/core/` import nothing from the rest of the
 package (#824). A core function that needs something from a `Plot`
@@ -134,21 +137,13 @@ would. Facets, layering, and `color`/`size` encoding still need the
 """
 
 from std.collections import Dict
-from std.math import cos, log10, pi, sin
+from std.math import pi
 
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.color import Color
-from canvas.gradient import LinearGradient
-from canvas.fill_rule import FillRule
-from canvas.io.bmp import write_bmp
-from canvas.io.png import write_png
-from canvas.vector.draw_target import DrawTarget
-from canvas.geometry import FPoint, round_to_int
-from canvas.path import Path
-from canvas.vector.pdf import PdfCanvas, write_pdf
+from canvas.vector.pdf import PdfCanvas
 from canvas.vector.svg import SvgCanvas
-from canvas.text.render import draw_text, measure_text, FontWeight, TextAlign
 from canvas.text.font_cache import FontCache
 
 from dataviz.core.array_like import (
@@ -161,153 +156,31 @@ from dataviz.core.array_like import (
 )
 from dataviz.core.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
-from dataviz.core.color_scale import (
-    ColorScale,
-    _ColorDomainOverride,
-    categorical_palette_for,
-)
+from dataviz.core.color_scale import _ColorDomainOverride
 
-from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
-from dataviz.basic.continuous import (
-    _build_line_path,
-    _decimate_to_pixel_columns,
-    _draw_area_layer,
-    _draw_line_layer,
-    _draw_point_layer,
-    area,
-    line,
-    scatter,
-)
-from dataviz.core.point_channels import _PointChannels
-from dataviz.layout import (
-    Figure,
-    render_grid,
-    render_grid_pdf,
-    render_grid_svg,
-    save_grid,
-)
-from dataviz.facets import (
-    _render_facets_generic,
-    render_facets,
-    render_facets_pdf,
-    render_facets_svg,
-    save_facets,
-)
-from dataviz.core.frame import (
-    _BaselineRectF,
-    _CategoricalFrame,
-    _ContinuousFrame,
-    _Orientation,
-    _axis_pixel,
-    _axis_pixel_f,
-    _categorical_indices,
-    _draw_axis_spines,
-    _draw_categorical_axis_frame,
-    _draw_continuous_axis_frame,
-    _push_plot_clip,
-    _pull_off_axis_line_f,
-    _resolve_x_label_rotation,
-)
-from dataviz.layers import (
-    _render_bar_combo_layers,
-    _render_layers_generic,
-    _secondary_axis_y_title,
-    render_layers,
-    render_layers_pdf,
-    render_layers_svg,
-    save_layers,
-)
-from dataviz.core.legend import (
-    _LegendLayout,
-    _continuous_color_legend_layout,
-    _continuous_legend_labels,
-    _draw_continuous_color_legend,
-    _draw_continuous_color_legend_at,
-    _draw_legend,
-    _levels_descending,
-    _draw_legend_at,
-    _dynamic_legend_width,
-    _legend_layout,
-    _legend_origin_x,
-    _legend_origin_y,
-    _legend_reserve_for,
-)
-from dataviz.core.text import (
-    _Scaled,
-    _TextRequest,
-    _apply_labels,
-    _extend_text_requests,
-    _label_text_requests,
-    _max_label_width,
-    _replay_text_requests,
-)
-from dataviz.core.validate import (
-    _check_missing_policy,
-    _check_line_smoothing,
-    _check_unsupported_flags,
-    _domain_override_scale,
-    _require_non_empty,
-    _require_non_negative,
-    _require_some_positive,
-    _validate_categorical_encoding,
-    _validate_continuous_encoding,
-    _validate_color_domain,
-    _validate_domain_override,
-    _validate_tick_override,
-)
-from dataviz.core.axis_controls import _AxisControls, _TickOverride
-from dataviz.core.annotations import (
-    _AnnotationData,
-    _draw_annotation_areas,
-    _draw_annotation_bands,
-    _draw_annotation_best_fit,
-    _draw_annotation_smooth,
-    _draw_annotation_lines,
-    _draw_annotation_arrows,
-    _draw_annotation_points,
-    _draw_annotation_vlines,
-    _validate_log_scale_annotations,
-)
+from dataviz.basic.continuous import area
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.axis_controls import _TickOverride
+from dataviz.core.annotations import _AnnotationData
 
 from dataviz.core.line_style import LineStyle
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
-from dataviz.core.delaunay import Triangulation, delaunay
-from dataviz.core.mark import (
-    Feature,
-    Mark,
-    _require_mark,
-    _supporting_names,
-)
+from dataviz.core.delaunay import Triangulation
+from dataviz.core.mark import Mark, _require_mark
 from dataviz.core.marker import PointShape
 
-from dataviz.core.output_format import OutputFormat
-from dataviz.core.scale import (
-    LinearScale,
-    _format_fixed,
-    _label_decimals,
-    _min_max,
-    _symlog_forward,
-)
 from dataviz.core.stats import SmoothMethod
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
 from dataframe import DataFrame
-from dataviz.core.frame_input import (
-    _frame_floats,
-    _frame_strings,
-    _is_string_column,
-)
 
 from dataviz.radial.nightingale import _render_nightingale
 from dataviz.radial.polar import _render_polar
 
-from dataviz.basic.bar import _render_horizontal_bar
-from dataviz.distributions.beeswarm import _render_horizontal_beeswarm
 
-from dataviz.distributions.violin import _render_horizontal_violin
 from dataviz.categorical.waterfall import _WaterfallData
 from dataviz.distributions.box import _BoxData
 from dataviz.binned.hexbin import _HexbinData, _render_hexbin
@@ -317,12 +190,7 @@ from dataviz.spatial.scatter3d import _Xyz
 from dataviz.spatial.bar3d import _Bars3D, _Voxels
 from dataviz.spatial.stem3d import _Ribbon3D, _Vectors3D
 from dataviz.spatial.surface3d import _Surface
-from dataviz.binned.hist2d import _hist2d_counts
-from dataviz.distributions.boxen import (
-    _BoxenData,
-    _letter_values,
-    _render_boxenplot,
-)
+from dataviz.distributions.boxen import _BoxenData
 from dataviz.distributions.candlestick import _CandleData
 from dataviz.categorical.bullet import _BulletData
 from dataviz.categorical.population_pyramid import _PyramidData
@@ -345,9 +213,7 @@ from dataviz.grid.marimekko import _MarimekkoData
 from dataviz.core.graph_layout import GraphLayout
 from dataviz.relationships.edges import _EdgeData
 from dataviz.hierarchy_marks.hierarchy import _HierarchyData
-from dataviz.distributions.box import _box_stats, _render_horizontal_box
 
-from dataviz.categorical.grouped_bar import _render_horizontal_grouped_bar
 
 from dataviz.grid.corrplot import _render_corrplot
 from dataviz.grid.punchcard import _render_punchcard
@@ -371,68 +237,20 @@ from dataviz.binned.histogram import (
     bin_edges,
     histogram_bins,
     _HistogramData,
-    _bin_histogram,
-    _draw_histogram_layer,
 )
-from dataviz.categorical.lollipop import _render_horizontal_lollipop
-from dataviz.aggregation.pointplot import _render_pointplot
 from dataviz.basic.single_axis import _render_single_axis
 
-from dataviz.categorical.stacked_bar import _render_horizontal_stacked_bar
 from dataviz.categorical.streamgraph import _render_streamgraph
-from dataviz.categorical.waterfall import (
-    _render_waterfall,
-    _waterfall_running_totals,
-)
 from dataviz.categorical.gantt import _GanttData
 from dataviz.radial.nightingale import _NightingaleData
 from dataviz.categorical.grouped_bar import _GroupedBarData
-from dataviz.core.extent import (
-    _data_extent,
-    _log_data_extent,
-    _position_x_extent,
-    _symlog_data_extent,
-    _zero_baseline_y_extent,
-)
 from dataviz.rendering import (
     _MarkRenderer,
     _VectorMarkRenderer,
     _mark_callback,
     _vector_mark_callback,
-    _AUTO_SUPERSAMPLE,
-    _CURVED_SUPERSAMPLE,
-    _DrawnFigure,
     _RenderResult,
-    _all_at_dpi,
-    _at_dpi,
-    _auto_supersample,
-    _call_mark_renderer,
     _callback_continuous,
-    _dpi_factor,
-    _draw_figure_into,
-    _filled_annotations_go_under,
-    _ink_box,
-    _path_extension,
-    _render_generic,
-    _render_into,
-    _render_pdf_into,
-    _render_svg_into,
-    _require_extension,
-    _require_positive_supersample,
-    _resolve_description,
-    _resolve_output_format,
-    _resolve_supersample,
-    _svg_output_string,
-    _tight_box,
-    accessible_svg_string,
-    render,
-    render_pdf,
-    render_svg,
-    render_tight,
-    render_tight_pdf,
-    render_tight_svg,
-    save,
-    write_accessible_svg,
 )
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -443,15 +261,6 @@ from dataviz.core.plot_fields import (
     _ErrorBarData,
     _LabelData,
     _MarkStyle,
-)
-from dataviz.core.tooltip_labels import (
-    _cell_tooltip_label,
-    _edge_tooltip_label,
-    _point_tooltip_label,
-    _series_tooltip_label,
-    _span_tooltip_label,
-    _tooltip_label,
-    _xyz_tooltip_label,
 )
 
 

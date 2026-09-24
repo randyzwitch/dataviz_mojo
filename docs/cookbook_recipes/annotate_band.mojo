@@ -4,7 +4,7 @@
 fixed `(y0, y1)` pair, the band's edges are two curves that vary with
 `x`, so it can widen, narrow, or tilt along with the data it surrounds.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

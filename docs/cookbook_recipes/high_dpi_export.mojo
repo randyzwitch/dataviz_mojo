@@ -1,7 +1,7 @@
 # title: High-DPI Export
 """Render the same chart at a higher pixel density for a crisp export.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

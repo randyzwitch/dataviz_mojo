@@ -2,8 +2,7 @@
 it -- the defining visual choice of a ridgeline/joyplot, trading a
 flatter, non-overlapping stack for the classic dramatic cascade.
 """
-from dataviz import ridgeline
-from dataviz.plot import save
+from dataviz import save, ridgeline
 
 
 def main() raises:

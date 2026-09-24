@@ -10,7 +10,7 @@ from canvas.color import Color
 
 from dataviz.basic.continuous import scatter
 from dataviz.core.color_scale import shared_color_map
-from dataviz.plot import save
+from dataviz import save
 
 
 def main() raises:

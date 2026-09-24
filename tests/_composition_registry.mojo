@@ -37,6 +37,8 @@ from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 
 from dataviz import (
+    render,
+    render_svg,
     GridCell,
     Plot,
     Theme,
@@ -50,7 +52,6 @@ from dataviz import (
     render_grid_svg,
     scatter,
 )
-from dataviz.plot import render, render_svg
 
 comptime _COMPOSITION_COUNT = 6
 """How many entries `_composition_name` answers for."""

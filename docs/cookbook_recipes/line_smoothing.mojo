@@ -2,8 +2,7 @@
 """Curve a line (or an area's top edge) through its data points instead
 of drawing straight segments.
 """
-from dataviz import line
-from dataviz.plot import save
+from dataviz import save, line
 from dataviz.core.colors import CORNFLOWERBLUE
 from dataviz.core.theme import Theme
 

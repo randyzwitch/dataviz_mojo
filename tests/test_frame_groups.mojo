@@ -10,7 +10,11 @@ written themselves.
 
 from dataframe import Column, DataFrame, Series
 
+from dataviz.core.frame_input import _frame_groups, _frame_series
+from dataviz.core.missing import Missing
+from dataviz.core.theme import Theme
 from dataviz import (
+    render_svg,
     beeswarm,
     box,
     boxenplot,
@@ -24,10 +28,6 @@ from dataviz import (
     streamgraph,
     violin,
 )
-from dataviz.core.frame_input import _frame_groups, _frame_series
-from dataviz.core.missing import Missing
-from dataviz.core.theme import Theme
-from dataviz.plot import render_svg
 from std.utils.numerics import isnan
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

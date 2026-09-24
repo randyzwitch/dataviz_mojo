@@ -1,24 +1,21 @@
 from std.math import atan2, sqrt
 
-from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import Transform2D, round_to_int
 from canvas.path import Path
 from dataframe import DataFrame
 
 from dataviz.core.frame_input import _frame_floats
-from dataviz.plot import FontCache, _LegendLayout
+from canvas.text.font_cache import FontCache
+from dataviz.core.legend import _LegendLayout
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
+from dataviz.core.frame import _draw_continuous_axis_frame
+from dataviz.core.validate import _require_non_empty
 from canvas.vector.draw_target import DrawTarget
 
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _data_extent,
-    _draw_continuous_axis_frame,
-    _finished,
-    _require_non_empty,
-)
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme

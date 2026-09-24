@@ -3,7 +3,7 @@ accepts any numeric list type, not just `List[Float64]`, converting
 losslessly (a real widening cast, not integer division) and still
 showing whole-number labels as `"10"`, never `"10.0"`.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

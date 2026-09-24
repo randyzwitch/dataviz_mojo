@@ -1,5 +1,5 @@
 """Shorten ticks and label gaps to preserve space in a compact chart."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

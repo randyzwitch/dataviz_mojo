@@ -35,7 +35,8 @@ from dataviz.core.frame import _draw_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.plot import Plot, _RenderResult, _finished
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
 from dataviz.core.cluster import Dendrogram
 
 

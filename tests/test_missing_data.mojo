@@ -12,7 +12,14 @@ either policy -- it is not a missing measurement.
 
 from dataframe import Column, DataFrame, Series
 
+from dataviz.core.missing import Missing
+from dataviz.core.scale import _min_max
+from dataviz.core.stats import Estimator, ErrorBar, _aggregate, _estimate
+from dataviz.core.theme import Theme
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     area,
     bar,
     barplot,
@@ -26,11 +33,6 @@ from dataviz import (
     lineplot,
     scatter,
 )
-from dataviz.core.missing import Missing
-from dataviz.core.scale import _min_max
-from dataviz.core.stats import Estimator, ErrorBar, _aggregate, _estimate
-from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render, render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from std.utils.numerics import inf, nan
 

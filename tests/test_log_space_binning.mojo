@@ -15,7 +15,8 @@ from std.testing import TestSuite, assert_raises, assert_true
 from dataviz.binned.hexbin import hexbin
 from dataviz.binned.hist2d import hist2d
 from dataviz.binned.histogram import bin_edges, log_bin_edges
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import render, render_svg
 
 
 def _log_uniform(n: Int) -> List[Float64]:

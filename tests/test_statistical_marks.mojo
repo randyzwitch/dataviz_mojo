@@ -25,7 +25,8 @@ from dataviz.distributions.boxen import (
     boxenplot,
 )
 from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render_svg
+from dataviz.plot import Plot
+from dataviz import render_svg
 from _test_helpers import _count_tag
 
 

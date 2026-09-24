@@ -48,7 +48,25 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.path import PathOp
 from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.colors import RED
+from dataviz.core.scale import TickFormat
+from dataviz.relationships.edges import _edge_node_index
+from dataviz.plot import Plot
+from dataviz.core.render_result import _RenderResult
+from dataviz.rendering import (
+    _render_generic,
+    accessible_svg_string,
+    _resolve_description,
+    _svg_output_string,
+)
 from dataviz import (
+    render,
+    render_facets,
+    render_facets_svg,
+    render_layers,
+    render_layers_svg,
+    render_svg,
     sankey,
     LegendPosition,
     grouped_bar,
@@ -69,29 +87,12 @@ from dataviz import (
     treemap,
     waterfall,
 )
-from dataviz.core.color_scale import default_categorical_palette
-from dataviz.core.colors import RED
-from dataviz.core.scale import TickFormat
-from dataviz.relationships.edges import _edge_node_index
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _render_generic,
-    accessible_svg_string,
-    render,
-    render_facets,
-    render_facets_svg,
-    render_layers,
-    render_layers_svg,
-    render_svg,
-    _Scaled,
+from dataviz.core.text import _Scaled
+from dataviz.basic.continuous import (
     _build_line_path,
-    _categorical_indices,
     _decimate_to_pixel_columns,
-    _resolve_description,
-    _resolve_x_label_rotation,
-    _svg_output_string,
 )
+from dataviz.core.frame import _categorical_indices, _resolve_x_label_rotation
 from dataviz.core.line_style import LineStyle
 from dataviz.core.marker import PointShape, default_marker_shapes
 from dataviz.core.theme import Theme

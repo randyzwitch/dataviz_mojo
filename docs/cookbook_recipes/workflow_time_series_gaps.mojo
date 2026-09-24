@@ -19,8 +19,7 @@ the outage's own dates never became points.
 """
 from morrow import Morrow
 
-from dataviz import Plot, save
-from dataviz.plot import render_svg
+from dataviz import render_svg, Plot, save
 from std.utils.numerics import nan
 
 

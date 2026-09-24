@@ -2,8 +2,7 @@
 """Color each bar by whether its value is positive or negative, instead
 of one flat color.
 """
-from dataviz import bar
-from dataviz.plot import save
+from dataviz import save, bar
 from dataviz.core.theme import Theme
 
 

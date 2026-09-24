@@ -16,7 +16,15 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.cluster import linkage
+from dataviz.relationships.graph import _force_layout
+from std.math import sqrt
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.basic.continuous import _lighten
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     GraphLayout,
     arc_diagram,
     chord,
@@ -27,12 +35,6 @@ from dataviz import (
     tree,
     treemap,
 )
-from dataviz.core.cluster import linkage
-from dataviz.relationships.graph import _force_layout
-from std.math import sqrt
-from dataviz.core.color_scale import default_categorical_palette
-from dataviz.basic.continuous import _lighten
-from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

@@ -4,7 +4,8 @@
 `<title>` (and, when given, a `<desc>`) as its first child elements,
 exactly what a screen reader looks for.
 """
-from dataviz.plot import Plot, render_svg, write_accessible_svg
+from dataviz import Plot, render_svg
+from dataviz.rendering import write_accessible_svg
 
 
 def main() raises:

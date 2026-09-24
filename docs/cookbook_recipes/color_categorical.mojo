@@ -2,7 +2,7 @@
 """Map a discrete category column onto point color via the categorical
 palette.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

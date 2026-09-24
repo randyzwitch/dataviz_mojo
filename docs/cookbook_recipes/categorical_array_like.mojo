@@ -5,7 +5,7 @@ encode_categorical()`'s `x`, the same way a `Float64Sequence` struct
 plugs into `encode()`'s `x`/`y`.
 """
 from dataviz.core.array_like import StringSequence
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 struct UppercaseLabels(Copyable, Movable, StringSequence):

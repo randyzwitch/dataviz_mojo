@@ -4,7 +4,7 @@ stems extending left-to-right instead of the default vertical layout --
 the same "long or many category names" use case `horizontal_bar`
 covers, with a stem-and-point instead of a filled bar per category.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

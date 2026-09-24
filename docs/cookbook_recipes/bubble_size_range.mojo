@@ -2,7 +2,7 @@
 read as more dramatically different, instead of the default range's
 more subtle spread.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

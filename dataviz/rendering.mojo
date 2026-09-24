@@ -4,9 +4,9 @@
 core they share (`_render_generic`, `_draw_figure_into`) and the
 supersample, dpi and output-format resolution around it.
 
-Split out of plot.mojo, which imports every name here back, so `from
-dataviz.plot import render` still resolves; see plot.mojo's header for
-the circular-import convention this follows."""
+Split out of plot.mojo, which imports from here what its methods use;
+see plot.mojo's header for the circular-import convention this
+follows."""
 
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
@@ -70,7 +70,8 @@ from dataviz.core.output_format import OutputFormat
 from dataviz.core.render_result import _RenderResult
 from dataviz.core.scale import LinearScale
 from dataviz.binned.histogram import _draw_histogram_layer
-from dataviz.plot import Plot, _LabelData
+from dataviz.plot import Plot
+from dataviz.core.plot_fields import _LabelData
 from dataviz.core.extent import (
     _data_extent,
     _log_data_extent,

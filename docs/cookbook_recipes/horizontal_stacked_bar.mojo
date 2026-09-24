@@ -5,7 +5,7 @@ vertical layout -- `Plot.mark_stacked_bar(horizontal=True)`/
 names" use case `horizontal_bar` covers, with segments summing to a
 whole per category instead of side-by-side sub-bars.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

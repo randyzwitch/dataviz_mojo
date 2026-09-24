@@ -88,27 +88,37 @@ from dataviz.core.legend_position import LegendPosition
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from canvas.bounds import BoundsTarget
-from dataviz.plot import (
-    _DomainOverride,
+from dataviz.core.plot_fields import _DomainOverride
+from dataviz.rendering import (
     _all_at_dpi,
     _ink_box,
-    _require_non_empty,
     _resolve_supersample,
-    Plot,
-    _RenderResult,
-    _data_extent,
-    _log_data_extent,
-    _min_max,
     _render_generic,
     _render_into,
     _require_positive_supersample,
     _resolve_output_format,
     _svg_output_string,
-    _zero_baseline_y_extent,
     render,
     save,
 )
-from dataviz.core.scale import LinearScale
+from dataviz.core.validate import (
+    _require_non_empty,
+    _check_line_smoothing,
+    _check_step_smoothing,
+    _domain_override_scale,
+    _validate_color_domain,
+    _validate_domain_override,
+    _validate_categorical_encoding,
+    _validate_continuous_encoding,
+)
+from dataviz.plot import Plot
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import (
+    _data_extent,
+    _log_data_extent,
+    _zero_baseline_y_extent,
+)
+from dataviz.core.scale import _min_max, LinearScale
 from dataviz.core.text import (
     _Scaled,
     _TextRequest,
@@ -134,15 +144,6 @@ from dataviz.multivariate.triplot import (
     _draw_triplot_layer,
     _validate_tripcolor,
     _validate_triplot,
-)
-from dataviz.core.validate import (
-    _check_line_smoothing,
-    _check_step_smoothing,
-    _domain_override_scale,
-    _validate_color_domain,
-    _validate_domain_override,
-    _validate_categorical_encoding,
-    _validate_continuous_encoding,
 )
 
 

@@ -28,9 +28,10 @@ from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from canvas.geometry import round_to_int, snap_to_pixel_edge
 from dataviz.core.scale import LinearScale
-from dataviz.core.text import _Scaled
 from dataviz.core.stats import _percentile
-from dataviz.plot import Plot, _TextRequest, _finished, _push_plot_clip
+from dataviz.plot import Plot, _finished
+from dataviz.core.text import _TextRequest, _Scaled
+from dataviz.core.frame import _push_plot_clip
 from dataviz.core.scale import _format_fixed, _label_decimals, _min_max
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme

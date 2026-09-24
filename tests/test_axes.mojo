@@ -11,7 +11,21 @@ from std.testing import (
     assert_true,
 )
 from canvas.text.font_cache import FontCache
+from dataviz.core.frame import _fitting_ticks, _ticks_fit
+from dataviz.core.scale import TickFormat
+from dataviz.core.text import _Scaled, _max_label_width
+from dataviz.core.scale import (
+    LinearScale,
+    _symlog_forward,
+    _symlog_inverse,
+)
+from dataviz.core.theme import Theme
+from dataviz.plot import Plot
+from dataviz.core.extent import _symlog_data_extent
 from dataviz import (
+    render,
+    render_layers_svg,
+    render_svg,
     AxisPosition,
     Theme,
     bar,
@@ -22,22 +36,6 @@ from dataviz import (
     rugplot,
     save,
     scatter,
-)
-from dataviz.core.frame import _fitting_ticks, _ticks_fit
-from dataviz.core.scale import TickFormat
-from dataviz.core.text import _Scaled, _max_label_width
-from dataviz.core.scale import (
-    LinearScale,
-    _symlog_forward,
-    _symlog_inverse,
-)
-from dataviz.core.theme import Theme
-from dataviz.plot import (
-    Plot,
-    _symlog_data_extent,
-    render,
-    render_layers_svg,
-    render_svg,
 )
 from _test_helpers import _attr_values, _count_tag
 from morrow import Morrow, TimeZone

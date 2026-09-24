@@ -1,6 +1,5 @@
 """Widen Sankey node bars to emphasize nodes alongside flows."""
-from dataviz import sankey
-from dataviz.plot import save
+from dataviz import save, sankey
 
 
 def main() raises:

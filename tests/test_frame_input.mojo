@@ -9,10 +9,9 @@ adapter, and that one is the claim that it adapts and nothing else.
 
 from dataframe import Column, DataFrame, Series
 
-from dataviz import Plot, bar, line, scatter
 from dataviz.core.missing import Missing
 from dataviz.core.theme import Theme
-from dataviz.plot import render_svg
+from dataviz import render_svg, Plot, bar, line, scatter
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

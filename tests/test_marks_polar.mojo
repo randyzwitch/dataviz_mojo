@@ -23,7 +23,15 @@ from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_facets,
+    render_facets_svg,
+    render_layers,
+    render_layers_svg,
+    render_svg,
     gauge,
     nightingale,
     parallel,
@@ -34,17 +42,7 @@ from dataviz import (
     radialbar,
     single_axis,
 )
-from dataviz.core.color_scale import default_categorical_palette
-from dataviz.plot import (
-    Plot,
-    render,
-    render_facets,
-    render_facets_svg,
-    render_layers,
-    render_layers_svg,
-    render_svg,
-    _build_line_path,
-)
+from dataviz.basic.continuous import _build_line_path
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

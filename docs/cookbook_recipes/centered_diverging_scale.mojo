@@ -5,7 +5,7 @@ when the data is lopsided.
 """
 from canvas.color import Color
 from dataviz.grid.heatmap import heatmap
-from dataviz.plot import save
+from dataviz import save
 from dataviz.core.theme import Theme
 
 

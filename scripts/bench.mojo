@@ -10,7 +10,11 @@ This is a manual benchmark and is not part of `pixi run test`.
 from std.time import perf_counter
 from std.math import cos, pi, sin
 
+from dataviz.core.cluster import linkage
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     clustermap,
     bar,
     beeswarm,
@@ -27,8 +31,6 @@ from dataviz import (
     scatter,
     line,
 )
-from dataviz.core.cluster import linkage
-from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 from std.sys import argv
 

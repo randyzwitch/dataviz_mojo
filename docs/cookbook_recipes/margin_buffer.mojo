@@ -1,5 +1,5 @@
 """Pad the dynamically measured left margin with `margin_buffer`."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

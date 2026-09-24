@@ -26,13 +26,6 @@ from dataviz.core.color_scale import (
     _color_scale_for,
     categorical_palette_for,
 )
-from dataviz.core.frame import (
-    _CategoricalIndex,
-    _axis_pixel,
-    _axis_pixel_f,
-    _categorical_indices,
-    _pull_off_axis_line,
-)
 from dataviz.core.legend import (
     _draw_continuous_color_legend,
     _draw_continuous_color_legend_h,
@@ -48,16 +41,18 @@ from dataviz.core.marker import (
     default_marker_shapes,
 )
 from canvas.geometry import snap_to_pixel_center
-from dataviz.plot import (
-    Plot,
-    _finished,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _push_plot_clip,
-    _point_tooltip_label,
-    _zero_baseline_y_extent,
-    render,
-    render_svg,
-    save,
+    _CategoricalIndex,
+    _axis_pixel,
+    _axis_pixel_f,
+    _categorical_indices,
+    _pull_off_axis_line,
 )
+from dataviz.core.tooltip_labels import _point_tooltip_label
+from dataviz.core.extent import _zero_baseline_y_extent
+from dataviz.rendering import render, render_svg, save
 from dataviz.core.point_channels import _PointChannels
 from dataviz.core.scale import LinearScale, MinMax, _min_max
 from dataviz.core.step_style import StepStyle

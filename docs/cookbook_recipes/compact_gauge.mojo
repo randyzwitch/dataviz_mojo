@@ -4,8 +4,7 @@ the default three-quarter circle -- a shorter, wider dial that fits a
 dashboard tile row better.
 """
 from std.math import pi
-from dataviz import gauge
-from dataviz.plot import save
+from dataviz import save, gauge
 
 
 def main() raises:

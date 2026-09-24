@@ -8,14 +8,11 @@ from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.grid.heatmap import _draw_grid_axis_frame
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _cell_tooltip_label,
-    _categorical_indices,
-    _finished,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _cell_tooltip_label
+from dataviz.core.frame import _categorical_indices
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
 from dataviz.core.mark import _require_mark
 

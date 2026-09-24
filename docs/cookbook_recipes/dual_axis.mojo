@@ -6,7 +6,7 @@ chart, where the two series' units/scales are too different to share
 one axis without one of them going flat.
 """
 from canvas.color import Color
-from dataviz.plot import Plot, save_layers
+from dataviz import Plot, save_layers
 from dataviz.core.theme import Theme
 
 

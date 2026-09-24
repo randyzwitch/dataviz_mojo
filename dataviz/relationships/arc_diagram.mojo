@@ -12,15 +12,11 @@ from dataviz.core.frame_input import _frame_floats, _frame_strings
 
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _edge_tooltip_label,
-    _Scaled,
-    _TextRequest,
-    _min_max,
-    _finished,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _edge_tooltip_label
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.scale import _min_max
 from dataviz.relationships.edges import (
     _edge_node_index,
     _validate_edge_encoding,

@@ -23,8 +23,8 @@ from dataviz.layout import (
     uniform_cells,
 )
 from dataviz.core.output_format import OutputFormat
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz.rendering import (
     _all_at_dpi,
     _ink_box,
     _resolve_output_format,

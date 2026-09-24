@@ -4,7 +4,7 @@ vertical layout -- `Plot.mark_violin(horizontal=True)`/`violin(...,
 horizontal=True)`, the same "long or many category names" use case
 `horizontal_bar` covers.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

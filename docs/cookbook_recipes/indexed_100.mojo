@@ -2,7 +2,7 @@
 """Index each series to its own first value so two series on different
 scales become directly comparable.
 """
-from dataviz.plot import Plot, save_layers
+from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN
 from dataviz.core.theme import Theme
 

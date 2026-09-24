@@ -2,7 +2,7 @@
 """Layer two series that share one y-axis and one set of units --
 render_layers()'s default, no secondary_axis() needed.
 """
-from dataviz.plot import Plot, save_layers
+from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.core.theme import Theme
 

@@ -16,13 +16,13 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from dataframe import Column, DataFrame, Series
 
-from dataviz import bar3d, voxels
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import _Extent3D, _fit_frame3d
 from dataviz.core.mark import Mark
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import render, render_svg, bar3d, voxels
 from dataviz.spatial.bar3d import _face_color, _smallest_gap, _voxel_mesh
 
 

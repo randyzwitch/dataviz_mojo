@@ -14,11 +14,11 @@ and measures the spacing.
 
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
-from dataviz import Theme
 from dataviz.distributions.ecdf import ecdf
 from dataviz.distributions.kde import rugplot
 from dataviz.grid.image import pcolormesh
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import render, render_svg, Theme
 
 
 def _decades() -> List[Float64]:

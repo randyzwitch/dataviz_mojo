@@ -9,21 +9,19 @@ from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _BaselineRectF,
     _Orientation,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _tooltip_label,
     _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _finished,
     _pull_off_axis_line_f,
-    _zero_baseline_y_extent,
-    _validate_categorical_encoding,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.tooltip_labels import _tooltip_label
+from dataviz.core.extent import _zero_baseline_y_extent
+from dataviz.core.validate import _validate_categorical_encoding
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 

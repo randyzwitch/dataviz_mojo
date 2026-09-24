@@ -26,7 +26,17 @@ from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
 from dataframe import Column, DataFrame, Series
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.color_scale import ColorScale, default_categorical_palette
+from dataviz.grid.image import _draw_cells_as_image, _edge_pixels, _fill_cells
+from dataviz.core.colormaps import viridis
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_facets,
+    render_facets_svg,
+    render_layers,
+    render_layers_svg,
+    render_svg,
     bump,
     bullet,
     calendar_heatmap,
@@ -47,19 +57,7 @@ from dataviz import (
     waterfall,
     streamgraph,
 )
-from dataviz.core.color_scale import ColorScale, default_categorical_palette
-from dataviz.grid.image import _draw_cells_as_image, _edge_pixels, _fill_cells
-from dataviz.core.colormaps import viridis
-from dataviz.plot import (
-    Plot,
-    render,
-    render_facets,
-    render_facets_svg,
-    render_layers,
-    render_layers_svg,
-    render_svg,
-    _build_line_path,
-)
+from dataviz.basic.continuous import _build_line_path
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 from std.math import nan

@@ -56,7 +56,7 @@ from _composition_registry import (
 )
 from _mark_registry import _H, _W, _representative_plot
 from dataviz.core.mark import Mark
-from dataviz.plot import render, render_svg
+from dataviz import render, render_svg
 
 
 def _canvas_digest(c: Canvas) -> Int:

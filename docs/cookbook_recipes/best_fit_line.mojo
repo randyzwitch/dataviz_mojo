@@ -3,7 +3,7 @@
 `Plot.annotate_best_fit()` -- no manual regression math and no second
 layer needed.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.colors import CORNFLOWERBLUE
 from dataviz.core.theme import Theme
 

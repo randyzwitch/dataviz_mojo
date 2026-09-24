@@ -4,7 +4,7 @@ that reads as "above/below a midpoint" rather than a plain low-to-high
 range.
 """
 from canvas.color import Color
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

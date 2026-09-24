@@ -22,7 +22,16 @@ from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.color_scale import default_categorical_palette
+from dataviz.core.frame import _draw_continuous_axis_frame
+from dataviz.distributions.ecdf import _ecdf_points, _ecdf_step_style
+from dataviz.distributions.kde import _kde_curve
+from dataviz.core.legend import _LegendLayout
+from dataviz.layers import render_layers
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     StepStyle,
     ecdf,
     kdeplot,
@@ -35,13 +44,6 @@ from dataviz import (
     streamgraph,
     violin,
 )
-from dataviz.core.color_scale import default_categorical_palette
-from dataviz.core.frame import _draw_continuous_axis_frame
-from dataviz.distributions.ecdf import _ecdf_points, _ecdf_step_style
-from dataviz.distributions.kde import _kde_curve
-from dataviz.core.legend import _LegendLayout
-from dataviz.layers import render_layers
-from dataviz.plot import Plot, render, render_svg
 from dataviz.core.scale import LinearScale
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.theme import Theme

@@ -11,7 +11,10 @@ drawn on its own is the same chart as the same rows passed as lists.
 
 from dataframe import Column, DataFrame, Series
 
+from dataviz.core.missing import Missing
+from dataviz.core.theme import Theme
 from dataviz import (
+    render_svg,
     Plot,
     facet_by,
     pooled_extent,
@@ -19,9 +22,6 @@ from dataviz import (
     scatter,
     scatter_facets,
 )
-from dataviz.core.missing import Missing
-from dataviz.core.theme import Theme
-from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

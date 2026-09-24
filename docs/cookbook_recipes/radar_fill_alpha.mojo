@@ -1,6 +1,5 @@
 """Lower radar fill opacity so overlapping series remain visible."""
-from dataviz import radar
-from dataviz.plot import save
+from dataviz import save, radar
 from dataviz.core.theme import Theme
 
 

@@ -1,7 +1,7 @@
 # title: Custom Typography
 """Override the chart's typeface, title weight, and title font size.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

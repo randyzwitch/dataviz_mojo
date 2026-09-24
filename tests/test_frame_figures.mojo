@@ -1,8 +1,7 @@
 """Named-column inputs for jointplot and pairplot figures (#743)."""
 
 from dataframe import Column, DataFrame, Series
-from dataviz import jointplot, pairplot
-from dataviz.plot import render_svg
+from dataviz import render_svg, jointplot, pairplot
 from std.testing import TestSuite, assert_equal, assert_raises
 
 

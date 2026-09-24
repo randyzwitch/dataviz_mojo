@@ -11,19 +11,16 @@ from std.utils.numerics import isnan
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale, _color_scale_for
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _tooltip_label,
-    _Scaled,
-    _TextRequest,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _tooltip_label
+from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
+from dataviz.core.legend import (
     _continuous_color_legend_layout,
     _draw_continuous_color_legend_at,
-    _max_label_width,
-    _min_max,
-    _finished,
-    _require_non_empty,
 )
+from dataviz.core.scale import _min_max
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark
 

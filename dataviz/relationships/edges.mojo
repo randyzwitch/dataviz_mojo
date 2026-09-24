@@ -12,12 +12,9 @@ the family's marks import. `_EdgeData` lives here rather than on
 """
 
 
-from dataviz.plot import (
-    Plot,
-    _categorical_indices,
-    _require_non_empty,
-    _require_non_negative,
-)
+from dataviz.plot import Plot
+from dataviz.core.frame import _categorical_indices
+from dataviz.core.validate import _require_non_empty, _require_non_negative
 from dataviz.core.graph_layout import GraphLayout
 from dataviz.core.mark import Mark, _require_mark
 

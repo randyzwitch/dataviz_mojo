@@ -9,7 +9,6 @@ from std.math import cos, pi, sin, sqrt
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
-from dataviz import Theme, Triangulation, delaunay, streamplot
 from dataviz.core.color_scale import (
     _ColorDomainOverride,
     _color_scale_for,
@@ -27,7 +26,15 @@ from dataviz.multivariate.streamplot import (
 )
 from dataviz.multivariate.contour import contour, contourf
 from dataviz.multivariate.triplot import tripcolor
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import (
+    render,
+    render_svg,
+    Theme,
+    Triangulation,
+    delaunay,
+    streamplot,
+)
 from _test_helpers import (
     _assert_same_canvas,
     _attr_values,

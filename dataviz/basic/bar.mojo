@@ -11,23 +11,20 @@ from dataviz.core.frame_input import _frame_column, _frame_floats, _frame_morrow
 from canvas.text.render import TextAlign
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.frame import (
     _Orientation,
-    _Scaled,
-    _tooltip_label,
-    _TextRequest,
     _axis_pixel_f,
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
-    _LegendLayout,
-    _data_extent,
     _pull_off_axis_line_f,
-    _finished,
-    _zero_baseline_y_extent,
-    _validate_categorical_encoding,
 )
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.tooltip_labels import _tooltip_label
+from dataviz.core.legend import _LegendLayout
+from dataviz.core.extent import _data_extent, _zero_baseline_y_extent
+from dataviz.core.validate import _validate_categorical_encoding
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.theme import Theme
 from std.collections import Dict

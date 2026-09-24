@@ -5,7 +5,7 @@ scale_color_domain() to pin each chart to the result.
 """
 from dataviz.core.color_scale import shared_color_domain
 from dataviz.grid.heatmap import heatmap
-from dataviz.plot import save
+from dataviz import save
 
 
 def main() raises:
