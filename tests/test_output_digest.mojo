@@ -41,7 +41,11 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 from canvas.buffer import Canvas
 
-from _digest_provenance import _provenance_line, _validate_provenance
+from _digest_provenance import (
+    _locked_revision,
+    _provenance_line,
+    _validate_provenance,
+)
 
 from _composition_registry import (
     _COMPOSITION_COUNT,
@@ -188,7 +192,14 @@ def test_a_different_digest_toolchain_is_reported() raises:
     var wrong = "# toolchain: mojo=0.0.0 canvas_mojo=0.0.0 dataframe_mojo=0.0.0"
     with assert_raises(contains="output digest toolchain differs: recorded"):
         _validate_provenance(wrong)
-    _validate_provenance(_provenance_line())
+    var current = _provenance_line()
+    _validate_provenance(current)
+    var changed_pin = current.replace(
+        _locked_revision("canvas_mojo"),
+        "0000000000000000000000000000000000000000",
+    )
+    with assert_raises(contains="output digest toolchain differs: recorded"):
+        _validate_provenance(changed_pin)
 
 
 def test_the_digest_file_covers_every_mark_and_composition() raises:
