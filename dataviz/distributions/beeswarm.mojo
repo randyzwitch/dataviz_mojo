@@ -404,3 +404,24 @@ def beeswarm[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _render_beeswarm_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.BEESWARM`'s renderer, the one its setter binds: `_render_horizontal_beeswarm`
+    when the plot is horizontal, `_render_beeswarm` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_beeswarm(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_beeswarm(target, plot, ox0, oy0, ox1, oy1, cache=cache)

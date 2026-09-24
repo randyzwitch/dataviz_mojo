@@ -21,7 +21,7 @@ from dataviz import (
     render_layers_svg,
     render_layers_pdf,
 )
-from dataviz.core.mark import Mark, _MarkFamily
+from dataviz.core.mark import Mark
 from dataviz.plot import render_tight, render_tight_svg, render_tight_pdf
 
 
@@ -130,17 +130,23 @@ def test_count_is_one_past_the_last_named_mark() raises:
     )
 
 
-def test_every_mark_has_a_family() raises:
-    # `Plot._set_mark()` binds render callbacks from `Mark._family()`
-    # alone, and a setter whose mark has no row there fails to compile.
-    # That only fires for a setter a program actually calls, so sweep
-    # every mark here, where the failure names the mark and the table.
-    for value in range(Mark.COUNT):
-        var mark = Mark(value)
-        assert_true(
-            not (mark._family() == _MarkFamily.UNASSIGNED),
-            mark.name() + " has no row in Mark._family() (core/mark.mojo)",
-        )
+def test_a_mark_whose_setter_binds_no_renderer_is_named() raises:
+    # Each `mark_*()` setter binds its own renderer with `Plot._bind`.
+    # One that sets `_mark` and forgets would fall through to the
+    # continuous path, which would fail on the missing x/y columns with
+    # an error naming neither the mark nor the binding. Simulate that
+    # setter: a heatmap mark with the default plot's continuous binding.
+    var plot = Plot()
+    plot._mark = Mark.HEATMAP
+    var message = String()
+    try:
+        _ = render_svg(plot)
+    except e:
+        message = String(e)
+    assert_true(
+        message.startswith("Mark.HEATMAP has no renderer"),
+        "got: " + message,
+    )
 
 
 def test_dendrogram_is_in_the_enumerated_registry() raises:

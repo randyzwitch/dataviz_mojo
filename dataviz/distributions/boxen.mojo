@@ -497,3 +497,24 @@ def _encode_boxenplot(
     plot._continuous.x = List[Float64]()
     plot._continuous.y = List[Float64]()
     plot._boxen = data^
+
+
+def _render_boxenplot_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.BOXENPLOT`'s renderer, the one its setter binds: `_render_horizontal_boxenplot`
+    when the plot is horizontal, `_render_boxenplot` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_boxenplot(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_boxenplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)

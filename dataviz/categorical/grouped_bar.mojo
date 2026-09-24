@@ -664,3 +664,24 @@ def _encode_grouped_bar(
     plot._grouped_bar.series_names = series_names.copy()
     plot._grouped_bar.values = values.copy()
     plot._grouped_bar.errors = errors.copy()
+
+
+def _render_grouped_bar_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.GROUPED_BAR`'s renderer, the one its setter binds: `_render_horizontal_grouped_bar`
+    when the plot is horizontal, `_render_grouped_bar` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_grouped_bar(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)

@@ -583,3 +583,24 @@ def _encode_bullet(
     plot._bullet.measure = measures.copy()
     plot._bullet.target = targets.copy()
     plot._bullet.ranges = ranges.copy()
+
+
+def _render_bullet_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.BULLET`'s renderer, the one its setter binds: `_render_horizontal_bullet`
+    when the plot is horizontal, `_render_bullet` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_bullet(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_bullet(target, plot, ox0, oy0, ox1, oy1, cache=cache)

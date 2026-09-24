@@ -552,3 +552,24 @@ def _encode_waterfall(
     var bars = _waterfall_running_totals(deltas, is_total)
     plot._waterfall.y0 = bars.y0.copy()
     plot._waterfall.y1 = bars.y1.copy()
+
+
+def _render_waterfall_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.WATERFALL`'s renderer, the one its setter binds: `_render_horizontal_waterfall`
+    when the plot is horizontal, `_render_waterfall` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_waterfall(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_waterfall(target, plot, ox0, oy0, ox1, oy1, cache=cache)

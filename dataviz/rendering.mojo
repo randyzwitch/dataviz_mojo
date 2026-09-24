@@ -1493,7 +1493,7 @@ def _render_generic[
             " domain isn't widened for whisker endpoints yet"
         )
     _validate_log_scale_annotations(plot)
-    var selected = _call_selected_family(
+    var selected = _call_mark_renderer(
         target,
         plot,
         ox0,
@@ -1505,6 +1505,21 @@ def _render_generic[
     )
     if selected:
         return selected.take()
+    if not (
+        plot._mark == Mark.POINT
+        or plot._mark == Mark.LINE
+        or plot._mark == Mark.AREA
+        or plot._mark == Mark.EFFECT_SCATTER
+        or plot._mark == Mark.HISTOGRAM
+    ):
+        # Only the continuous marks bind `_callback_continuous`, which
+        # hands the plot back to this path. Any other mark here has a
+        # `mark_*()` setter that bound no renderer of its own.
+        raise Error(
+            plot._mark.name()
+            + " has no renderer: its mark_*() setter must call"
+            " Plot._bind[<its _render_* function>]()"
+        )
 
     _validate_continuous_encoding(plot, "Plot.encode()")
     _require_non_empty(len(plot._continuous.x), "Plot.encode()")
@@ -1648,6 +1663,76 @@ def _render_generic[
     return frame.result()
 
 
+comptime _MarkRenderer = def[T: DrawTarget](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int, *,
+    mut cache: FontCache,
+) raises thin -> _RenderResult
+"""A mark's own renderer, generic over the draw target: what
+`Plot._bind()` stores, specialized once per backend."""
+
+comptime _VectorMarkRenderer = def[T: DrawTarget](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int, *,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises thin -> _RenderResult
+"""`_MarkRenderer` for a renderer that draws differently to a vector
+target (the image marks); stored by `Plot._bind_vector()`."""
+
+
+def _mark_callback[
+    f: _MarkRenderer, T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> Optional[_RenderResult]:
+    """`f` in the stored callback's shape. Referencing only `f`, it
+    compiles only that mark's renderer."""
+    return Optional(f[T](target, plot, ox0, oy0, ox1, oy1, cache=cache))
+
+
+def _vector_mark_callback[
+    f: _VectorMarkRenderer, T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> Optional[_RenderResult]:
+    """`_mark_callback` for a `_VectorMarkRenderer`."""
+    return Optional(
+        f[T](
+            target,
+            plot,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
+            vector_target=vector_target,
+        )
+    )
+
+
 def _callback_continuous[
     T: DrawTarget
 ](
@@ -1664,7 +1749,7 @@ def _callback_continuous[
     return None
 
 
-def _call_selected_family[
+def _call_mark_renderer[
     T: DrawTarget
 ](
     mut target: T,
@@ -1678,7 +1763,7 @@ def _call_selected_family[
 ) raises -> Optional[_RenderResult]:
     """Invoke the selected callback for this concrete backend."""
     comptime if T == Canvas:
-        return plot._render_canvas_family(
+        return plot._render_canvas(
             rebind[Canvas](target),
             plot,
             ox0,
@@ -1689,7 +1774,7 @@ def _call_selected_family[
             vector_target,
         )
     elif T == SvgCanvas:
-        return plot._render_svg_family(
+        return plot._render_svg(
             rebind[SvgCanvas](target),
             plot,
             ox0,
@@ -1700,7 +1785,7 @@ def _call_selected_family[
             vector_target,
         )
     elif T == PdfCanvas:
-        return plot._render_pdf_family(
+        return plot._render_pdf(
             rebind[PdfCanvas](target),
             plot,
             ox0,
@@ -1711,8 +1796,8 @@ def _call_selected_family[
             vector_target,
         )
     else:
-        comptime assert T == BoundsTarget, "Unsupported family callback target"
-        return plot._render_bounds_family(
+        comptime assert T == BoundsTarget, "Unsupported render callback target"
+        return plot._render_bounds(
             rebind[BoundsTarget](target),
             plot,
             ox0,

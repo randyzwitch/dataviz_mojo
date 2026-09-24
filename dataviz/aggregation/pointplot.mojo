@@ -447,3 +447,24 @@ def pointplot[
         resolved_y,
         subtitle=subtitle,
     )
+
+
+def _render_pointplot_oriented[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`Mark.POINTPLOT`'s renderer, the one its setter binds: `_render_horizontal_pointplot`
+    when the plot is horizontal, `_render_pointplot` otherwise."""
+    if plot._horizontal:
+        return _render_horizontal_pointplot(
+            target, plot, ox0, oy0, ox1, oy1, cache=cache
+        )
+    return _render_pointplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
