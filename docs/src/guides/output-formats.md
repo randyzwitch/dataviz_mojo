@@ -25,4 +25,4 @@ increase both the pixel dimensions and `Theme.scale` by the same factor.
 
 See [Multi-format export](../../cookbook/export_formats/),
 [High-DPI export](../../cookbook/high_dpi_export/), and
-[save](../../dataviz/plot/save/).
+[save](../../dataviz/rendering/save/).

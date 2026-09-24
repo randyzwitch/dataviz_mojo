@@ -34,6 +34,19 @@ from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 
 
+struct _GanttData(Copyable, Movable):
+    """One start/end span per category, for `Mark.GANTT`/`SPAN_CHART`. See
+    `encode_gantt()`. Stored on `Plot._gantt`.
+    """
+
+    var start: List[Float64]
+    var end: List[Float64]
+
+    def __init__(out self):
+        self.start = List[Float64]()
+        self.end = List[Float64]()
+
+
 struct _HorizontalCategoricalFrame(Movable):
     """Layout for marks with a continuous x-axis and categorical y-axis."""
 

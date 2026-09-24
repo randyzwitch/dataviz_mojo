@@ -2,7 +2,7 @@
 `mark`. Same small-struct-with-comptime-constants-and-`__eq__`
 pattern as canvas.FillRule/canvas.TextAlign.
 
-Each mark renders in its own file (plot.mojo for POINT/LINE/AREA/
+Each mark renders in its own file (rendering.mojo for POINT/LINE/AREA/
 EFFECT_SCATTER, `<mark>.mojo` otherwise); its `_render_*` docstring
 describes the drawing. By data shape:
 

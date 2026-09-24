@@ -34,4 +34,4 @@ shape, position, labels, or line patterns with color. See the [named palettes](.
 
 See [SVG accessibility](../../cookbook/svg_accessibility/),
 [High-contrast theme](../../cookbook/high_contrast_theme/), and
-[accessible SVG helpers](../../dataviz/plot/).
+[accessible SVG helpers](../../dataviz/rendering/).

@@ -32,6 +32,31 @@ from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
+struct _GroupedBarData(Copyable, Movable):
+    """One name per series and one value per (series, category) pair, for
+    `Mark.GROUPED_BAR`/`STACKED_BAR`/`BUMP`/`STREAMGRAPH`. See
+    `encode_grouped_bar()`. Stored on `Plot._grouped_bar`.
+    """
+
+    var series_names: List[String]
+    var values: List[List[Float64]]
+    var errors: List[List[Float64]]
+    """Optional per-(series, category) symmetric error-bar half-width
+, shaped like `values`; empty when `encode_grouped_bar()`'s
+    `errors` wasn't given. `Mark.GROUPED_BAR` only, checked in
+    `_validate_grouped_bar_series`."""
+
+    var percent: Bool
+    """`Mark.STACKED_BAR` only: normalize each category's segments to
+    sum to 100%. See `mark_stacked_bar()`."""
+
+    def __init__(out self):
+        self.series_names = List[String]()
+        self.values = List[List[Float64]]()
+        self.errors = List[List[Float64]]()
+        self.percent = False
+
+
 def _validate_grouped_bar_series(plot: Plot) raises:
     """`Plot.encode_grouped_bar()`'s deferred length checks:
     `series_names`/`values` the same length, and every `values[j]` the
