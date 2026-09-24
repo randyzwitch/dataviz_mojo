@@ -1211,3 +1211,84 @@ def pcolormesh(
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def pcolormesh(
+    df: DataFrame,
+    row: String,
+    column: String,
+    value: String,
+    x_edges: List[Float64],
+    y_edges: List[Float64],
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Draw an irregular cell mesh from long-form DataFrame values.
+
+    `row` and `column` name numeric cell-center coordinates. The frame
+    is pivoted into a grid in ascending coordinate order; absent cells
+    stay blank. Explicit `x_edges` and `y_edges` give the boundaries of
+    those columns and rows, so uneven cell widths are preserved.
+
+    Args:
+        df: One row per measured cell.
+        row: Numeric column of cell-center y coordinates.
+        column: Numeric column of cell-center x coordinates.
+        value: Numeric column of cell values.
+        x_edges: Boundaries of the sorted x coordinates, one extra.
+        y_edges: Boundaries of the sorted y coordinates, one extra.
+        theme: See the grid overload.
+        width: See the grid overload.
+        height: See the grid overload.
+        title: See the grid overload.
+        subtitle: See the grid overload.
+        x_title: See the grid overload.
+        y_title: See the grid overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A named column is invalid, a cell repeats, the edge
+            lengths do not fit the grid, or a center falls outside its
+            corresponding cell.
+    """
+    var grid = _frame_grid(
+        df, row, column, value, "pcolormesh()", theme.missing
+    )
+    if len(x_edges) != len(grid[1]) + 1 or len(y_edges) != len(grid[0]) + 1:
+        raise Error(
+            "pcolormesh(): x_edges and y_edges must have one more value"
+            " than the frame's distinct column and row coordinates"
+        )
+    for c in range(len(grid[1])):
+        if grid[1][c] <= x_edges[c] or grid[1][c] >= x_edges[c + 1]:
+            raise Error(
+                "pcolormesh(): column coordinate "
+                + String(grid[1][c])
+                + " is outside its cell boundaries"
+            )
+    for r in range(len(grid[0])):
+        if grid[0][r] <= y_edges[r] or grid[0][r] >= y_edges[r + 1]:
+            raise Error(
+                "pcolormesh(): row coordinate "
+                + String(grid[0][r])
+                + " is outside its cell boundaries"
+            )
+    return pcolormesh(
+        x_edges=x_edges,
+        y_edges=y_edges,
+        z=grid[2],
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else column,
+        y_title=y_title if y_title.byte_length() > 0 else row,
+    )

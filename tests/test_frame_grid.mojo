@@ -12,7 +12,15 @@ by hand.
 
 from dataframe import Column, DataFrame, Series
 
-from dataviz import contour, contourf, imshow, streamplot, surface3d, wire3d
+from dataviz import (
+    contour,
+    contourf,
+    imshow,
+    pcolormesh,
+    streamplot,
+    surface3d,
+    wire3d,
+)
 from dataviz.core.frame_input import _frame_grid
 from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
@@ -142,6 +150,20 @@ def test_every_field_mark_takes_a_holed_frame() raises:
     )
     svgs.append(
         render_svg(
+            pcolormesh(
+                df,
+                row="y",
+                column="x",
+                value="z",
+                x_edges=[-0.5, 0.5, 1.5, 2.5, 3.5],
+                y_edges=[-0.5, 0.5, 1.5, 2.5],
+                width=320,
+                height=240,
+            )
+        ).to_string()
+    )
+    svgs.append(
+        render_svg(
             contour(df, row="y", column="x", value="z", width=320, height=240)
         ).to_string()
     )
@@ -212,6 +234,59 @@ def test_streamplot_pivots_both_components_onto_one_grid() raises:
     ).to_string()
     assert_true(svg.byte_length() > 500, "a field of streamlines")
     assert_true(">x</text>" in svg, "the x axis is titled by its column")
+
+
+def test_pcolormesh_frame_keeps_irregular_cell_boundaries() raises:
+    var x_edges: List[Float64] = [-0.5, 0.4, 1.6, 2.7, 4.5]
+    var y_edges: List[Float64] = [-0.4, 0.6, 1.3, 3.5]
+    var by_frame = render_svg(
+        pcolormesh(
+            _full_frame(),
+            row="y",
+            column="x",
+            value="z",
+            x_edges=x_edges,
+            y_edges=y_edges,
+            width=320,
+            height=240,
+        )
+    ).to_string()
+    var grid = List[List[Float64]]()
+    for r in range(3):
+        var line = List[Float64]()
+        for c in range(4):
+            line.append(Float64(r * 10 + c))
+        grid.append(line^)
+    var by_hand = render_svg(
+        pcolormesh(
+            x_edges,
+            y_edges,
+            grid,
+            width=320,
+            height=240,
+            x_title="x",
+            y_title="y",
+        )
+    ).to_string()
+    assert_equal(by_frame, by_hand, "frame cells keep supplied edges")
+    with assert_raises(contains="one more value"):
+        _ = pcolormesh(
+            _full_frame(),
+            row="y",
+            column="x",
+            value="z",
+            x_edges=[-0.5, 0.5],
+            y_edges=y_edges,
+        )
+    with assert_raises(contains="outside its cell boundaries"):
+        _ = pcolormesh(
+            _full_frame(),
+            row="y",
+            column="x",
+            value="z",
+            x_edges=[0.1, 0.4, 1.6, 2.7, 4.5],
+            y_edges=y_edges,
+        )
 
 
 def main() raises:
