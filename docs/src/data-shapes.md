@@ -112,13 +112,15 @@ from the root. Duplicate IDs, missing parents, multiple roots, and cycles are
 invalid. See [Sunburst](../examples/hierarchical/sunburst/), [Tree](../examples/hierarchical/tree/), and
 [Treemap](../examples/hierarchical/treemap/).
 
-## NumPy, pandas, and custom containers
+## NumPy, pandas, MAX, and custom containers
 
 `Plot.encode()` accepts NumPy arrays, pandas Series, and plain Python numeric
 lists through its `PythonObject` overload. `Plot.encode_categorical()` accepts
 the same numeric forms for `y`; categorical `x` remains a Mojo string list or
-string sequence. NumPy must be installed in the caller's environment, but it
-is not a dataviz_mojo runtime dependency. See the
+string sequence. Python MAX `Tensor` and `Buffer` inputs are also accepted;
+their `to_numpy()` method moves device data to host memory before the same
+one-copy conversion to Mojo floats. NumPy must be installed in the caller's environment, but it is not a dataviz_mojo runtime dependency. MAX is
+optional and tested with `pixi run -e max-adapter test-max-adapter`. See the
 [NumPy and pandas recipe](../cookbook/numpy_pandas_data/).
 
 For a Mojo-native container, conform its type to `Float64Sequence` or
