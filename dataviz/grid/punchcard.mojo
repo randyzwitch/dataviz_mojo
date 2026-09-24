@@ -17,6 +17,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import _require_mark
 
 
 struct _PunchcardData(Copyable, Movable):
@@ -281,3 +282,22 @@ def punchcard[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_punchcard(
+    mut plot: Plot,
+    x: List[String],
+    y: List[String],
+    sizes: List[Float64],
+) raises:
+    """`Plot.encode_punchcard()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD
+    )
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._punchcard.x = x.copy()
+    plot._punchcard.y = y.copy()
+    plot._punchcard.sizes = sizes.copy()

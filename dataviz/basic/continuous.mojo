@@ -14,6 +14,11 @@ from canvas.vector.draw_target import DrawTarget
 from morrow import Morrow
 
 from dataframe import DataFrame
+from dataviz.core.frame_input import (
+    _frame_floats,
+    _frame_strings,
+    _is_string_column,
+)
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import (
@@ -58,6 +63,8 @@ from dataviz.core.step_style import StepStyle
 from dataviz.core.text import _Scaled, _TextRequest, _text_advance
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _check_line_smoothing, _check_step_smoothing
+from std.collections import Dict
+from dataviz.core.mark import _require_mark
 
 
 def _is_missing(value: Float64) -> Bool:
@@ -1685,3 +1692,120 @@ def area(
     """
     var plot = Plot().mark_area(step=step).encode_time(x, y)
     return _finished(plot^, theme, width, height, title, x_title, y_title)
+
+
+def _encode(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    color: List[Float64],
+    color_categories: List[String],
+    size: List[Float64],
+    y_err: List[Float64],
+    y_err_lower: List[Float64],
+    y_err_upper: List[Float64],
+    color_map: Dict[String, Color],
+    shape_map: Dict[String, PointShape],
+    labels: List[String],
+) raises:
+    """`Plot.encode()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode = List[Mark]()
+    _ok_encode.append(Mark.POINT)
+    _ok_encode.append(Mark.LINE)
+    _ok_encode.append(Mark.AREA)
+    _ok_encode.append(Mark.EFFECT_SCATTER)
+    _require_mark(plot._mark, "encode", "mark_point()", _ok_encode^)
+    plot._continuous.x = x.copy()
+    plot._continuous.y = y.copy()
+    plot._categorical.x = List[String]()
+    plot._channels.color = color.copy()
+    plot._channels.color_categories = color_categories.copy()
+    plot._channels.size = size.copy()
+    plot._y_err.symmetric = y_err.copy()
+    plot._y_err.lower = y_err_lower.copy()
+    plot._y_err.upper = y_err_upper.copy()
+    plot._channels.color_map = color_map.copy()
+    plot._channels.shape_map = shape_map.copy()
+    plot._channels.point_labels = labels.copy()
+
+
+def _encode_time(
+    mut plot: Plot,
+    x: List[Morrow],
+    y: List[Float64],
+) raises:
+    """`Plot.encode_time()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_time = List[Mark]()
+    _ok_encode_time.append(Mark.POINT)
+    _ok_encode_time.append(Mark.LINE)
+    _ok_encode_time.append(Mark.AREA)
+    _ok_encode_time.append(Mark.EFFECT_SCATTER)
+    _require_mark(plot._mark, "encode_time", "mark_line()", _ok_encode_time^)
+    var seconds = List[Float64](capacity=len(x))
+    for i in range(len(x)):
+        seconds.append(x[i].timestamp())
+    plot._categorical.x = List[String]()
+    plot._continuous.x = seconds^
+    plot._continuous.y = y.copy()
+    plot._x_time = True
+    if len(x) > 0:
+        plot._x_tz_offset = x[0].tz.offset
+
+
+def _encode_frame(
+    var plot: Plot,
+    df: DataFrame,
+    x: String,
+    y: String,
+    color: String,
+    size: String,
+    labels: String,
+) raises -> Plot:
+    """`Plot.encode_frame()`'s body, which forwards here with every
+    argument; see that method for the contract. Takes and returns the
+    plot by value because it finishes by chaining to `encode()` or
+    `encode_categorical()`."""
+    comptime caller = "Plot.encode_frame()"
+    var policy = plot._theme.missing
+    var label = plot._theme.missing_category_label
+    var y_values = _frame_floats(df, y, caller, policy)
+    var color_values = List[Float64]()
+    var color_categories = List[String]()
+    if color.byte_length() > 0:
+        if _is_string_column(df, color):
+            color_categories = _frame_strings(df, color, caller, policy, label)
+        else:
+            color_values = _frame_floats(df, color, caller, policy)
+    var size_values = List[Float64]()
+    if size.byte_length() > 0:
+        size_values = _frame_floats(df, size, caller, policy)
+    var label_values = List[String]()
+    if labels.byte_length() > 0:
+        label_values = _frame_strings(df, labels, caller, policy, label)
+
+    if plot._labels.x_title.byte_length() == 0:
+        plot._labels.x_title = x
+    if plot._labels.y_title.byte_length() == 0:
+        plot._labels.y_title = y
+
+    if _is_string_column(df, x):
+        if len(size_values) > 0 or len(label_values) > 0:
+            raise Error(
+                caller
+                + ': a categorical x ("'
+                + x
+                + '") takes no size= or labels= channel'
+            )
+        return plot^.encode_categorical(
+            x=_frame_strings(df, x, caller, policy, label), y=y_values
+        )
+    return plot^.encode(
+        x=_frame_floats(df, x, caller, policy),
+        y=y_values,
+        color=color_values,
+        color_categories=color_categories,
+        size=size_values,
+        labels=label_values,
+    )

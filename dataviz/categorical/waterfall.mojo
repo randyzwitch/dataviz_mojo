@@ -32,6 +32,7 @@ from dataviz.core.scale import (
     _label_decimals,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _WaterfallData(Copyable, Movable):
@@ -531,3 +532,23 @@ def waterfall[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_waterfall(
+    mut plot: Plot,
+    categories: List[String],
+    deltas: List[Float64],
+    is_total: List[Bool],
+) raises:
+    """`Plot.encode_waterfall()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL
+    )
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = deltas.copy()
+    plot._waterfall.is_total = is_total.copy()
+    var bars = _waterfall_running_totals(deltas, is_total)
+    plot._waterfall.y0 = bars.y0.copy()
+    plot._waterfall.y1 = bars.y1.copy()

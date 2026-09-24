@@ -35,6 +35,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _TriplotData(Copyable, Movable):
@@ -869,3 +870,44 @@ def tripcolor[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_triplot(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    z: List[Float64],
+    triangulation: Triangulation,
+    facecolors: List[Float64],
+    gouraud: Bool,
+) raises:
+    """`Plot.encode_triplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    if gouraud and len(facecolors) > 0:
+        raise Error(
+            "Plot.encode_triplot(): facecolors is one value per triangle,"
+            " so gouraud=True has nothing to interpolate between. Pass"
+            " one or the other"
+        )
+    if len(facecolors) > 0 and triangulation.count() == 0:
+        raise Error(
+            "Plot.encode_triplot(facecolors=...): needs a triangulation"
+            " to index against. Without one this package computes the"
+            " triangles itself, in an order that is an artifact of the"
+            " insertion sequence and not predictable from outside, so"
+            " a per-triangle column would be assigned arbitrarily."
+            " Pass triangulation=delaunay(x, y), or build a"
+            " Triangulation from your own triangle list (#397)"
+        )
+    var _ok_encode_triplot = List[Mark]()
+    _ok_encode_triplot.append(Mark.TRIPLOT)
+    _ok_encode_triplot.append(Mark.TRIPCOLOR)
+    _require_mark(
+        plot._mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^
+    )
+    plot._triplot.x = x.copy()
+    plot._triplot.y = y.copy()
+    plot._triplot.z = z.copy()
+    plot._triplot.triangulation = triangulation.copy()
+    plot._triplot.facecolors = facecolors.copy()
+    plot._triplot.gouraud = gouraud

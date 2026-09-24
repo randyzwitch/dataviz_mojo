@@ -28,6 +28,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _HeatmapData(Copyable, Movable):
@@ -513,3 +514,20 @@ def heatmap[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_heatmap(
+    mut plot: Plot,
+    x: List[String],
+    y: List[String],
+    value: List[Float64],
+) raises:
+    """`Plot.encode_heatmap()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP)
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._heatmap.x = x.copy()
+    plot._heatmap.y = y.copy()
+    plot._heatmap.value = value.copy()

@@ -32,6 +32,7 @@ from dataviz.plot import (
 )
 from dataviz.radial.polar import _polar_point
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _RadarData(Copyable, Movable):
@@ -486,3 +487,47 @@ def radar[
         x_title=x_title,
         y_title=y_title,
     )
+
+
+def _encode_radar(
+    mut plot: Plot,
+    indicators: List[String],
+    max_values: List[Float64],
+    series_names: List[String],
+    series_values: List[List[Float64]],
+) raises:
+    """`Plot.encode_radar()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_radar", "mark_radar()", Mark.RADAR)
+    if len(indicators) != len(max_values):
+        raise Error(
+            "Plot.encode_radar(): indicators and max_values must have the"
+            " same length (got "
+            + String(len(indicators))
+            + " and "
+            + String(len(max_values))
+            + ")"
+        )
+    if len(series_names) != len(series_values):
+        raise Error(
+            "Plot.encode_radar(): series_names and series_values must have"
+            " the same length (got "
+            + String(len(series_names))
+            + " and "
+            + String(len(series_values))
+            + ")"
+        )
+    for values in series_values:
+        if len(values) != len(indicators):
+            raise Error(
+                "Plot.encode_radar(): every series in series_values must"
+                " have one value per indicator (expected "
+                + String(len(indicators))
+                + ", got "
+                + String(len(values))
+                + ")"
+            )
+    plot._radar.indicators = indicators.copy()
+    plot._radar.max_values = max_values.copy()
+    plot._radar.series_names = series_names.copy()
+    plot._radar.series_values = series_values.copy()

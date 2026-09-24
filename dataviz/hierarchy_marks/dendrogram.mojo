@@ -36,6 +36,7 @@ from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot, _RenderResult, _finished
+from dataviz.core.cluster import Dendrogram
 
 
 def _dendrogram_bracket_label(height: Float64) -> String:
@@ -509,3 +510,34 @@ def dendrogram(
         x_title=x_title,
         y_title=y_title,
     )
+
+
+def _encode_dendrogram(
+    mut plot: Plot,
+    tree: Dendrogram,
+    labels: List[String],
+    horizontal: Bool,
+):
+    """`Plot.encode_dendrogram()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var left = List[Int](capacity=len(tree.merges))
+    var right = List[Int](capacity=len(tree.merges))
+    var height = List[Float64](capacity=len(tree.merges))
+    # The tree names leaves by their original row index; the drawing
+    # needs their position along the axis, which is where that row
+    # sits in the leaf order.
+    var position_of = List[Int](capacity=len(tree.leaf_order))
+    for _ in range(len(tree.leaf_order)):
+        position_of.append(0)
+    for i in range(len(tree.leaf_order)):
+        position_of[tree.leaf_order[i]] = i
+    var n = len(tree.leaf_order)
+    for m in tree.merges:
+        left.append(position_of[m.left] if m.left < n else m.left)
+        right.append(position_of[m.right] if m.right < n else m.right)
+        height.append(m.height)
+    plot._dendrogram.left = left^
+    plot._dendrogram.right = right^
+    plot._dendrogram.height = height^
+    plot._dendrogram.labels = labels.copy()
+    plot._dendrogram.horizontal = horizontal

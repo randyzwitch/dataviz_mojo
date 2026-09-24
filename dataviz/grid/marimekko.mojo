@@ -22,6 +22,7 @@ from dataviz.plot import (
     _require_non_empty,
 )
 from dataviz.core.theme import Theme
+from dataviz.core.mark import _require_mark
 
 
 struct _MarimekkoData(Copyable, Movable):
@@ -348,3 +349,19 @@ def marimekko[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_marimekko(
+    mut plot: Plot,
+    categories: List[String],
+    subcategories: List[String],
+    values: List[List[Float64]],
+) raises:
+    """`Plot.encode_marimekko()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO
+    )
+    plot._marimekko.categories = categories.copy()
+    plot._marimekko.subcategories = subcategories.copy()
+    plot._marimekko.values = values.copy()

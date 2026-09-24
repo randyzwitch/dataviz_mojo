@@ -23,6 +23,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import _min_max
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _ParallelData(Copyable, Movable):
@@ -339,3 +340,38 @@ def parallel(
         x_title=x_title,
         y_title=y_title,
     )
+
+
+def _encode_parallel(
+    mut plot: Plot,
+    dims: List[String],
+    row_names: List[String],
+    data: List[List[Float64]],
+) raises:
+    """`Plot.encode_parallel()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL
+    )
+    if len(row_names) != len(data):
+        raise Error(
+            "Plot.encode_parallel(): row_names and data must have the same"
+            " length (got "
+            + String(len(row_names))
+            + " and "
+            + String(len(data))
+            + ")"
+        )
+    for row in data:
+        if len(row) != len(dims):
+            raise Error(
+                "Plot.encode_parallel(): every row in data must have one"
+                " value per dimension (expected "
+                + String(len(dims))
+                + ", got "
+                + String(len(row))
+                + ")"
+            )
+    plot._parallel.dims = dims.copy()
+    plot._parallel.row_names = row_names.copy()
+    plot._parallel.data = data.copy()

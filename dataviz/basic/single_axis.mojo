@@ -27,6 +27,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _SingleAxisFrame(Movable):
@@ -371,3 +372,28 @@ def single_axis[
     return _finished(
         plot^, theme, width, height, title, x_title, "", subtitle=subtitle
     )
+
+
+def _encode_single_axis(
+    mut plot: Plot,
+    x: List[Float64],
+    color: List[Float64],
+    color_categories: List[String],
+    size: List[Float64],
+) raises:
+    """`Plot.encode_single_axis()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_single_axis",
+        "mark_single_axis()",
+        Mark.SINGLE_AXIS,
+    )
+    plot._continuous.x = x.copy()
+    plot._categorical.x = List[String]()
+    plot._continuous.y = List[Float64]()
+    for _ in range(len(x)):
+        plot._continuous.y.append(0.0)
+    plot._channels.color = color.copy()
+    plot._channels.color_categories = color_categories.copy()
+    plot._channels.size = size.copy()

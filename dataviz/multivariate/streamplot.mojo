@@ -52,6 +52,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 comptime _STEP = 0.25
@@ -889,3 +890,27 @@ def streamplot[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_streamplot(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    u: List[List[Float64]],
+    v: List[List[Float64]],
+) raises:
+    """`Plot.encode_streamplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_streamplot",
+        "mark_streamplot()",
+        Mark.STREAMPLOT,
+    )
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._stream.x = x.copy()
+    plot._stream.y = y.copy()
+    plot._stream.u = u.copy()
+    plot._stream.v = v.copy()

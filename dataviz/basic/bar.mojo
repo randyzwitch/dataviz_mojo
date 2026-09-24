@@ -30,6 +30,9 @@ from dataviz.plot import (
 )
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.theme import Theme
+from std.collections import Dict
+from dataviz.core.mark import Mark, _require_mark
+from dataviz.binned.histogram import BinRule, _bin_histogram
 
 
 def _bar_fill_color(theme: Theme, value: Float64) -> Color:
@@ -622,3 +625,113 @@ def bar[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_categorical(
+    mut plot: Plot,
+    x: List[String],
+    y: List[Float64],
+    y_err: List[Float64],
+    y_err_lower: List[Float64],
+    y_err_upper: List[Float64],
+) raises:
+    """`Plot.encode_categorical()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_categorical = List[Mark]()
+    _ok_encode_categorical.append(Mark.BAR)
+    _ok_encode_categorical.append(Mark.LOLLIPOP)
+    _ok_encode_categorical.append(Mark.POINTPLOT)
+    _ok_encode_categorical.append(Mark.ARC)
+    _ok_encode_categorical.append(Mark.FUNNEL)
+    _ok_encode_categorical.append(Mark.NIGHTINGALE)
+    _ok_encode_categorical.append(Mark.POLAR_BAR)
+    _ok_encode_categorical.append(Mark.RADIALBAR)
+    _require_mark(
+        plot._mark,
+        "encode_categorical",
+        "mark_bar()",
+        _ok_encode_categorical^,
+    )
+    var first_position = Dict[String, Int]()
+    for i in range(len(x)):
+        var category = x[i]
+        if category in first_position:
+            raise Error(
+                'Plot.encode_categorical(): duplicate category "'
+                + category
+                + '" at positions '
+                + String(first_position[category])
+                + " and "
+                + String(i)
+            )
+        first_position[category] = i
+    plot._categorical.x = x.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = y.copy()
+    plot._y_err.symmetric = y_err.copy()
+    plot._y_err.lower = y_err_lower.copy()
+    plot._y_err.upper = y_err_upper.copy()
+    plot._x_time = False
+
+
+def _encode_time_bars(
+    mut plot: Plot,
+    dates: List[Morrow],
+    values: List[Float64],
+    y_err: List[Float64],
+    y_err_lower: List[Float64],
+    y_err_upper: List[Float64],
+) raises:
+    """`Plot.encode_time_bars()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_time_bars", "mark_bar()", Mark.BAR)
+    if plot._horizontal:
+        raise Error(
+            "Plot.encode_time_bars(): horizontal bars cannot use a time x-axis"
+        )
+    var seconds = List[Float64](capacity=len(dates))
+    var labels = List[String](capacity=len(dates))
+    for date in dates:
+        seconds.append(date.timestamp())
+        labels.append(date.format("YYYY-MM-DD HH:mm:ss"))
+    plot._categorical.x = labels^
+    plot._continuous.x = seconds^
+    plot._continuous.y = values.copy()
+    plot._y_err.symmetric = y_err.copy()
+    plot._y_err.lower = y_err_lower.copy()
+    plot._y_err.upper = y_err_upper.copy()
+    plot._x_time = True
+    if len(dates) > 0:
+        plot._x_tz_offset = dates[0].tz.offset
+
+
+def _encode_binned_categories(
+    mut plot: Plot,
+    data: List[Float64],
+    bins: Int,
+) raises:
+    """`Plot.encode_binned_categories()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
+    )
+    var binned = _bin_histogram(data, bins)
+    plot._categorical.x = binned.labels.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = binned.counts.copy()
+
+
+def _encode_binned_categories(
+    mut plot: Plot,
+    data: List[Float64],
+    rule: BinRule,
+) raises:
+    """`Plot.encode_binned_categories()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
+    )
+    var binned = _bin_histogram(data, rule)
+    plot._categorical.x = binned.labels.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = binned.counts.copy()

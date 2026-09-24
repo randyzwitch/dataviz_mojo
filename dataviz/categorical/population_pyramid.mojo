@@ -25,6 +25,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _PyramidData(Copyable, Movable):
@@ -409,3 +410,28 @@ def population_pyramid[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_population_pyramid(
+    mut plot: Plot,
+    categories: List[String],
+    left_values: List[Float64],
+    right_values: List[Float64],
+    left_name: String,
+    right_name: String,
+) raises:
+    """`Plot.encode_population_pyramid()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_population_pyramid",
+        "mark_population_pyramid()",
+        Mark.POPULATION_PYRAMID,
+    )
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._pyramid.left = left_values.copy()
+    plot._pyramid.right = right_values.copy()
+    plot._pyramid.left_name = left_name
+    plot._pyramid.right_name = right_name

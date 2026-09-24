@@ -49,6 +49,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 from canvas.text.render import TextAlign
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Xyz(Copyable, Movable):
@@ -613,3 +614,22 @@ def plot3d[
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
     )
+
+
+def _encode_xyz(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    z: List[Float64],
+) raises:
+    """`Plot.encode_xyz()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_xyz = List[Mark]()
+    _ok_encode_xyz.append(Mark.SCATTER3D)
+    _ok_encode_xyz.append(Mark.PLOT3D)
+    _ok_encode_xyz.append(Mark.TRISURF3D)
+    _ok_encode_xyz.append(Mark.STEM3D)
+    _require_mark(plot._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^)
+    plot._xyz.x = x.copy()
+    plot._xyz.y = y.copy()
+    plot._xyz.z = z.copy()
