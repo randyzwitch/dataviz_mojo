@@ -38,8 +38,48 @@ from std.utils.numerics import isnan, nan
 from dataframe import DataFrame
 from dataframe.dtype import DataType
 from dataframe.series import Series
+from morrow import Morrow
 
 from dataviz.core.missing import Missing
+
+
+def _frame_morrow(
+    df: DataFrame, name: String, caller: String
+) raises -> List[Morrow]:
+    """Read a date or datetime column as UTC instants for a time axis."""
+    var series = _frame_column(df, name, caller)
+    var dtype = series.dtype()
+    if not dtype.is_date() and not dtype.is_datetime():
+        raise Error(
+            caller
+            + ': column "'
+            + name
+            + '" is '
+            + dtype.name()
+            + ", not a date or datetime column"
+        )
+    if series.null_count() > 0:
+        for i in range(len(series)):
+            if series.get(i).is_null():
+                raise Error(
+                    caller
+                    + ': time column "'
+                    + name
+                    + '" has a missing value at row '
+                    + String(i)
+                )
+    var column = series.numeric[DType.int64]()
+    var values = column.unsafe_values()
+    var out = List[Morrow](capacity=len(series))
+    for i in range(len(series)):
+        var raw = values[unsafe_offset=i]
+        var seconds = Float64(raw) * 86400.0
+        if dtype.is_datetime():
+            var rate = dtype.per_second()
+            seconds = Float64(raw // rate) + Float64(raw % rate) / Float64(rate)
+        out.append(Morrow.utcfromtimestamp(seconds))
+    _ = series.null_count()
+    return out^
 
 
 def _frame_column(df: DataFrame, name: String, caller: String) raises -> Series:

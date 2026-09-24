@@ -11,7 +11,8 @@ boolean flag column, an optional channel -- by rendering the frame call
 and the list call and demanding the same bytes.
 """
 
-from dataframe import Column, DataFrame, Series
+from dataframe import Column, DataFrame, DataType, Series
+from morrow import Morrow
 
 from _test_helpers import _attr_values
 
@@ -628,6 +629,68 @@ def test_parallel_all_missing_row_has_no_path() raises:
         len(_attr_values(svg, "path", "d")),
         1,
         "the row without observations cannot draw a line",
+    )
+
+
+def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var days: List[Int64] = [19783, 19786, 19787]
+    var o: List[Float64] = [10.0, 11.0, 12.0]
+    var h: List[Float64] = [12.0, 13.0, 14.0]
+    var l: List[Float64] = [9.0, 10.0, 11.0]
+    var c: List[Float64] = [11.0, 12.0, 13.0]
+    var df = DataFrame(
+        [
+            Series("day", Column[Int64](days.copy())).with_dtype(DataType.DATE),
+            Series("open", Column[Float64](o.copy())),
+            Series("high", Column[Float64](h.copy())),
+            Series("low", Column[Float64](l.copy())),
+            Series("close", Column[Float64](c.copy())),
+        ]
+    )
+    var expected = render_svg(
+        candlestick(dates, o, h, l, c, x_title="day")
+    ).to_string()
+    var from_frame = candlestick(
+        df, categories="day", open="open", high="high", low="low", close="close"
+    )
+    assert_true(from_frame._x_time, "date column uses a time axis")
+    assert_equal(
+        render_svg(from_frame).to_string(), expected, "date column matches list"
+    )
+    var micros: List[Int64] = [
+        1709251200000000,
+        1709510400000000,
+        1709596800000000,
+    ]
+    var stamps = DataFrame(
+        [
+            Series("day", Column[Int64](micros.copy())).with_dtype(
+                DataType.datetime("us")
+            ),
+            Series("open", Column[Float64](o.copy())),
+            Series("high", Column[Float64](h.copy())),
+            Series("low", Column[Float64](l.copy())),
+            Series("close", Column[Float64](c.copy())),
+        ]
+    )
+    assert_equal(
+        render_svg(
+            candlestick(
+                stamps,
+                categories="day",
+                open="open",
+                high="high",
+                low="low",
+                close="close",
+            )
+        ).to_string(),
+        expected,
+        "datetime column matches list",
     )
 
 
