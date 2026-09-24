@@ -1,4 +1,7 @@
 from std.math import cos, pi
+from std.utils.numerics import isnan
+
+from dataframe import DataFrame
 
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
@@ -11,6 +14,11 @@ from dataviz.core.array_like import (
     _materialize_scalar_list,
 )
 from dataviz.core.color_scale import categorical_palette_for
+from dataviz.core.frame_input import (
+    _frame_floats,
+    _frame_series,
+    _frame_strings,
+)
 from dataviz.plot import (
     Plot,
     _RenderResult,
@@ -211,6 +219,110 @@ def _render_radar[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def radar(
+    df: DataFrame,
+    indicator: String,
+    series: String,
+    value: String,
+    max_value: String,
+    grid_rings: Int = 4,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Draw a radar chart from one row per (series, indicator) pair (#743).
+
+    The `max_value` column repeats each indicator's maximum for every
+    series. Its entries for an indicator must agree. Both indicator and
+    series order follow first appearance in the frame.
+
+    Args:
+        df: The frame containing the long-form observations.
+        indicator: String column naming each spoke.
+        series: String column naming each polygon.
+        value: Numeric column with the observed values.
+        max_value: Numeric column with the indicator maxima.
+        grid_rings: Number of concentric web rings.
+        theme: Plot styling and missing-value policy.
+        width: Plot width in pixels.
+        height: Plot height in pixels.
+        title: Chart title.
+        subtitle: Secondary title.
+        x_title: Horizontal axis title.
+        y_title: Vertical axis title.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: A named column is invalid, a series/indicator pair is
+            missing or repeated, or an indicator has inconsistent maxima.
+    """
+    var pivot = _frame_series(
+        df,
+        indicator,
+        series,
+        value,
+        "radar()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var indicators = _frame_strings(
+        df,
+        indicator,
+        "radar()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var maxima = _frame_floats(df, max_value, "radar()", theme.missing)
+    var max_values = List[Float64]()
+    for spoke in pivot[0]:
+        var found = False
+        var maximum = 0.0
+        for i in range(len(indicators)):
+            if indicators[i] != spoke:
+                continue
+            if isnan(maxima[i]):
+                raise Error(
+                    'radar(): maximum for indicator "'
+                    + spoke
+                    + '" is missing at row '
+                    + String(i)
+                )
+            if not found:
+                maximum = maxima[i]
+                found = True
+            elif maxima[i] != maximum:
+                raise Error(
+                    'radar(): maximum for indicator "'
+                    + spoke
+                    + '" differs across series (got '
+                    + String(maxima[i])
+                    + " after "
+                    + String(maximum)
+                    + ")"
+                )
+        max_values.append(maximum)
+    return radar(
+        pivot[0],
+        max_values^,
+        pivot[1],
+        pivot[2],
+        grid_rings=grid_rings,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def radar(

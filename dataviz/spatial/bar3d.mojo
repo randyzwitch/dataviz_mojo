@@ -33,8 +33,10 @@ from canvas.geometry import FPoint
 from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
+from std.utils.numerics import isfinite
 
 from dataviz.core.frame_input import _frame_floats
+from dataviz.core.missing import Missing
 from dataviz.basic.continuous import _lighten
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.camera3d import Camera3D
@@ -850,4 +852,102 @@ def voxels(
     var plot = Plot().mark_voxels(elev=elev, azim=azim).encode_voxels(filled)
     return _finished(
         plot^, theme, width, height, title, "", "", subtitle=subtitle
+    )
+
+
+def _voxel_index(value: Float64, axis: String) raises -> Int:
+    """One nonnegative integer coordinate from a sparse voxel table."""
+    if not isfinite(value) or value < 0.0 or value != Float64(Int(value)):
+        raise Error(
+            "voxels(): "
+            + axis
+            + " coordinates must be finite, nonnegative integers"
+        )
+    return Int(value)
+
+
+def voxels(
+    df: DataFrame,
+    x: String,
+    y: String,
+    z: String,
+    elev: Float64 = 30.0,
+    azim: Float64 = -60.0,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 480,
+    title: String = "",
+    subtitle: String = "",
+) raises -> Plot:
+    """Draw occupied voxels from a sparse DataFrame of coordinates.
+
+    Each row marks one filled unit cube. `x`, `y`, and `z` must be
+    zero-based integer coordinates; unlisted cells are empty. The
+    highest coordinate on each axis sets the grid's extent.
+
+    Args:
+        df: The frame listing occupied cells.
+        x: Numeric column of voxel column indices.
+        y: Numeric column of voxel row indices.
+        z: Numeric column of voxel layer indices.
+        elev: See the grid overload.
+        azim: See the grid overload.
+        theme: See the grid overload.
+        width: See the grid overload.
+        height: See the grid overload.
+        title: See the grid overload.
+        subtitle: See the grid overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: There are no occupied cells, a column is invalid, a
+            coordinate is not a nonnegative integer, or a cell repeats.
+    """
+    var xs = _frame_floats(df, x, "voxels()", Missing.RAISE)
+    var ys = _frame_floats(df, y, "voxels()", Missing.RAISE)
+    var zs = _frame_floats(df, z, "voxels()", Missing.RAISE)
+    if len(xs) == 0:
+        raise Error("voxels(): needs at least one occupied cell")
+    var max_x = 0
+    var max_y = 0
+    var max_z = 0
+    for i in range(len(xs)):
+        max_x = max(max_x, _voxel_index(xs[i], "x"))
+        max_y = max(max_y, _voxel_index(ys[i], "y"))
+        max_z = max(max_z, _voxel_index(zs[i], "z"))
+    var filled = List[List[List[Bool]]](capacity=max_z + 1)
+    for _ in range(max_z + 1):
+        var layer = List[List[Bool]](capacity=max_y + 1)
+        for _ in range(max_y + 1):
+            var row = List[Bool](capacity=max_x + 1)
+            for _ in range(max_x + 1):
+                row.append(False)
+            layer.append(row^)
+        filled.append(layer^)
+    for i in range(len(xs)):
+        var col = Int(xs[i])
+        var row = Int(ys[i])
+        var layer = Int(zs[i])
+        if filled[layer][row][col]:
+            raise Error(
+                "voxels(): duplicate occupied cell at ("
+                + String(col)
+                + ", "
+                + String(row)
+                + ", "
+                + String(layer)
+                + ")"
+            )
+        filled[layer][row][col] = True
+    return voxels(
+        filled=filled,
+        elev=elev,
+        azim=azim,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
     )

@@ -37,6 +37,16 @@ from dataviz.core.annotations import (
 )
 from dataviz.basic.arc import _arc_total, _draw_arc_wedges, _render_arc
 from dataviz.basic.bar import _bar_y_domain_data, _draw_bar_rects, _render_bar
+from dataviz.categorical.grouped_bar import (
+    _draw_grouped_bars,
+    _grouped_bar_domain_data,
+    _validate_grouped_bar_series,
+)
+from dataviz.categorical.stacked_bar import (
+    _draw_stacked_segments,
+    _stacked_bar_domain_data,
+    _validate_stacked_bar_percent,
+)
 from dataviz.multivariate.barbs import _draw_barbs_layer, _validate_barbs
 from dataviz.binned.histogram import _draw_histogram_layer
 from dataviz.basic.continuous import (
@@ -342,8 +352,9 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        frame, isolines over a filled contour, or a scatter over a
        triangulated field all draw. `Mark.BAR` layers with identical
        ordered categories share a categorical frame and occupy adjacent
-       subbands; POINT/LINE/AREA layers align to category centers. This
-       path dispatches to `_render_bar_combo_layers` with a narrower scope.
+       subbands. One `Mark.GROUPED_BAR` or `Mark.STACKED_BAR` layer can
+       instead own the whole category band. POINT/LINE/AREA layers align
+       to category centers. These dispatch to `_render_bar_combo_layers`.
 
        Two or more `Mark.ARC` plots draw concentric rings,
        `plots[0]` outermost. Each ring keeps its own proportions and palette;
@@ -452,9 +463,10 @@ def _render_bar_combo_layers[
     *,
     mut cache: FontCache,
 ) raises -> _RenderResult:
-    """Render one or more BAR layers on a shared categorical x-axis.
+    """Render categorical bars with point, line, or area overlays.
 
-    Matching bar layers occupy adjacent subbands within each category;
+    Matching BAR layers occupy adjacent subbands within each category. One
+    GROUPED_BAR or STACKED_BAR layer can instead own the full category band.
     POINT/LINE/AREA layers align to the full category band center.
 
     Every non-bar layer aligns to the categories by position:
@@ -466,36 +478,55 @@ def _render_bar_combo_layers[
     Scope: no `color`/`color_categories`/`size`/`y_err*`/`labels`
     encoding on non-bar layers, no `Plot.secondary_axis()`/
     `scale_y_log()`/`scale_x_log()`/`mark_bar(horizontal=True)`, and no
-    `Plot.annotate_*()` on any layer; each raises. The bar layer keeps
-    its own `Theme.color_by_sign`/`show_data_labels` through
-    `_draw_bar_rects`.
+    `Plot.annotate_*()` on any layer; each raises. Bar layers keep their
+    own data labels, palettes, and error whiskers through their mark's
+    drawing helper.
 
     Bar layers draw first, in list order, beneath every continuous layer.
     The shared y-domain always includes a zero baseline
-    (`_zero_baseline_y_extent`), as `Mark.BAR` requires.
+    (`_zero_baseline_y_extent`), as categorical bars require.
     """
     var bar_categories = plots[bar_index]._categorical.x.copy()
     var bar_count = 0
+    var subdivided_count = 0
     for i in range(len(plots)):
-        if not (plots[i]._mark == Mark.BAR):
+        var mark = plots[i]._mark
+        if not (
+            mark == Mark.BAR
+            or mark == Mark.GROUPED_BAR
+            or mark == Mark.STACKED_BAR
+        ):
             continue
-        _validate_categorical_encoding(plots[i])
+        if mark == Mark.BAR:
+            _validate_categorical_encoding(plots[i])
+            bar_count += 1
+        else:
+            _validate_grouped_bar_series(plots[i])
+            if mark == Mark.STACKED_BAR:
+                _validate_stacked_bar_percent(
+                    plots[i], len(plots[i]._grouped_bar.series_names)
+                )
+            subdivided_count += 1
         if len(plots[i]._categorical.x) != len(bar_categories):
             raise Error(
-                "render_layers(): every Mark.BAR layer must have the same"
-                " categories in the same order (layer "
+                "render_layers(): every categorical bar layer must have the"
+                " same categories in the same order (layer "
                 + String(i)
                 + ")"
             )
         for k in range(len(bar_categories)):
             if plots[i]._categorical.x[k] != bar_categories[k]:
                 raise Error(
-                    "render_layers(): every Mark.BAR layer must have the same"
-                    " categories in the same order (layer "
+                    "render_layers(): every categorical bar layer must have the"
+                    " same categories in the same order (layer "
                     + String(i)
                     + ")"
                 )
-        bar_count += 1
+    if subdivided_count > 0 and bar_count + subdivided_count > 1:
+        raise Error(
+            "render_layers(): a grouped or stacked bar layer must be the only"
+            " categorical bar layer; overlay point, line, or area layers"
+        )
 
     for i in range(len(plots)):
         if plots[i]._secondary_axis:
@@ -537,7 +568,11 @@ def _render_bar_combo_layers[
                 + String(i)
                 + ")"
             )
-        if plots[i]._mark == Mark.BAR:
+        if (
+            plots[i]._mark == Mark.BAR
+            or plots[i]._mark == Mark.GROUPED_BAR
+            or plots[i]._mark == Mark.STACKED_BAR
+        ):
             continue
         if not (
             plots[i]._mark == Mark.POINT
@@ -545,14 +580,14 @@ def _render_bar_combo_layers[
             or plots[i]._mark == Mark.AREA
         ):
             raise Error(
-                "render_layers(): alongside a Mark.BAR layer, every other layer"
+                "render_layers(): alongside categorical bars, every other layer"
                 " must be Mark.POINT/LINE/AREA (layer "
                 + String(i)
                 + ")"
             )
         if len(plots[i]._continuous.x) != len(bar_categories):
             raise Error(
-                "render_layers(): with a Mark.BAR layer present, every other"
+                "render_layers(): with categorical bars present, every other"
                 " layer's own data must have one entry per bar category --"
                 " layer "
                 + String(i)
@@ -600,6 +635,14 @@ def _render_bar_combo_layers[
         if plots[i]._mark == Mark.BAR:
             for v in _bar_y_domain_data(plots[i]):
                 combined_y.append(v)
+        elif plots[i]._mark == Mark.GROUPED_BAR:
+            for v in _grouped_bar_domain_data(plots[i]):
+                combined_y.append(v)
+        elif plots[i]._mark == Mark.STACKED_BAR:
+            for v in _stacked_bar_domain_data(
+                plots[i], len(plots[i]._grouped_bar.series_names)
+            ):
+                combined_y.append(v)
         else:
             for v in plots[i]._continuous.y:
                 combined_y.append(v)
@@ -612,6 +655,14 @@ def _render_bar_combo_layers[
     var series_names = List[String]()
     var series_colors = List[Color]()
     for i in range(len(plots)):
+        if (
+            plots[i]._mark == Mark.GROUPED_BAR
+            or plots[i]._mark == Mark.STACKED_BAR
+        ) and plots[i]._theme.show_legend:
+            var palette = categorical_palette_for(plots[i]._theme)
+            for j in range(len(plots[i]._grouped_bar.series_names)):
+                series_names.append(plots[i]._grouped_bar.series_names[j])
+                series_colors.append(palette[j % len(palette)])
         if plots[i]._labels.series_name.byte_length() > 0:
             series_names.append(plots[i]._labels.series_name)
             series_colors.append(plots[i]._theme.mark_color)
@@ -651,6 +702,30 @@ def _render_bar_combo_layers[
 
     var bar_slot = 0
     for i in range(len(plots)):
+        if plots[i]._mark == Mark.GROUPED_BAR:
+            _draw_grouped_bars(
+                target,
+                plots[i],
+                frame.x_scale,
+                frame.y_scale,
+                frame.py1,
+                _Orientation(False),
+                categorical_palette_for(plots[i]._theme),
+                frame.text_requests,
+            )
+            continue
+        if plots[i]._mark == Mark.STACKED_BAR:
+            _draw_stacked_segments(
+                target,
+                plots[i],
+                frame.x_scale,
+                frame.y_scale,
+                frame.py1,
+                _Orientation(False),
+                categorical_palette_for(plots[i]._theme),
+                frame.text_requests,
+            )
+            continue
         if not (plots[i]._mark == Mark.BAR):
             continue
         _draw_bar_rects(
@@ -667,7 +742,11 @@ def _render_bar_combo_layers[
         bar_slot += 1
 
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR:
+        if (
+            plots[i]._mark == Mark.BAR
+            or plots[i]._mark == Mark.GROUPED_BAR
+            or plots[i]._mark == Mark.STACKED_BAR
+        ):
             continue
         var layer_theme = plots[i]._theme
         _check_line_smoothing(layer_theme)
@@ -1167,8 +1246,8 @@ def _render_layers_generic[
     then each layer's own `_draw_*_layer` for its geometry. What differs:
     domains computed across every layer's data (`_layer_domain`), a
     legend column sized across every layer with a legend-y cursor
-    threaded through in order, and an optional secondary axis. Exactly
-    one `Mark.BAR` layer dispatches to `_render_bar_combo_layers` first.
+    threaded through in order, and an optional secondary axis. Categorical
+    bar marks dispatch to `_render_bar_combo_layers` first.
 
     `_is_layerable_mark` is the allow-list and its docstring carries the
     reasoning. Every admitted mark has its geometry after
@@ -1188,7 +1267,7 @@ def _render_layers_generic[
     (there is no secondary x-axis). Returns a `_RenderResult` whose inner
     rect centers `plots[0]`'s titles.
 
-    Not reached by a `Mark.BAR` combo chart (`_render_bar_combo_layers`,
+    Not reached by a categorical bar combo chart (`_render_bar_combo_layers`,
     dispatched below before any of this runs): that path rejects every
     `annotate_*()` kind outright rather than drawing them against its
     categorical x-axis.
@@ -1244,7 +1323,11 @@ def _render_layers_generic[
     # on the whole category band.
     var bar_layer_index = -1
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR and bar_layer_index < 0:
+        if (
+            plots[i]._mark == Mark.BAR
+            or plots[i]._mark == Mark.GROUPED_BAR
+            or plots[i]._mark == Mark.STACKED_BAR
+        ) and bar_layer_index < 0:
             bar_layer_index = i
     if bar_layer_index >= 0:
         return _render_bar_combo_layers(

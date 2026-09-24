@@ -24,6 +24,7 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from canvas.vector.svg import SvgCanvas
+from dataframe import Column, DataFrame, Series
 from dataviz.core.tooltips import Tooltips
 from dataviz import (
     bump,
@@ -61,6 +62,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from std.math import nan
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -3118,6 +3120,101 @@ def test_a_pie_slice_draws_its_share_as_a_percentage() raises:
         pie(cats, vals, theme=t, width=300, height=300)
     ).to_string()
     assert_true(">75%</text>" in on and ">25%</text>" in on)
+
+
+def test_bullet_frame_reads_row_specific_range_columns() raises:
+    var frame = DataFrame(
+        [
+            Series("region", Column[String](["North", "South"])),
+            Series("actual", Column[Float64]([84.0, 72.0])),
+            Series("goal", Column[Float64]([90.0, 80.0])),
+            Series("low", Column[Float64]([60.0, 50.0])),
+            Series("middle", Column[Float64]([80.0, 70.0])),
+            Series("high", Column[Float64]([100.0, 90.0])),
+        ]
+    )
+    var by_frame = render_svg(
+        bullet(
+            frame,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["low", "middle", "high"],
+            horizontal=True,
+            width=360,
+            height=260,
+        )
+    ).to_string()
+    var by_lists = render_svg(
+        bullet(
+            ["North", "South"],
+            [84.0, 72.0],
+            [90.0, 80.0],
+            [[60.0, 80.0, 100.0], [50.0, 70.0, 90.0]],
+            horizontal=True,
+            width=360,
+            height=260,
+            x_title="region",
+            y_title="actual",
+        )
+    ).to_string()
+    assert_equal(by_frame, by_lists, "frame bullet matches row-specific ranges")
+    with assert_raises(contains="at least one column"):
+        _ = bullet(
+            frame,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=List[String](),
+        )
+    var bad_measure = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([nan[DType.float64]()])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([100.0])),
+        ]
+    )
+    with assert_raises(contains='column "actual" has a non-finite value'):
+        _ = bullet(
+            bad_measure,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
+        )
+    var null_measure = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([84.0], [False])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([100.0])),
+        ]
+    )
+    with assert_raises(contains='column "actual" has a non-finite value'):
+        _ = bullet(
+            null_measure,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
+        )
+    var bad_range = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([84.0])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([nan[DType.float64]()])),
+        ]
+    )
+    with assert_raises(contains='column "high" has a non-finite value'):
+        _ = bullet(
+            bad_range,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
+        )
 
 
 def main() raises:

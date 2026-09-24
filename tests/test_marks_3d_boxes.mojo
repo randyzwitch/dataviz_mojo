@@ -14,6 +14,7 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 from canvas.buffer import Canvas
 from canvas.color import Color
+from dataframe import Column, DataFrame, Series
 
 from dataviz import bar3d, voxels
 from dataviz.core.camera3d import Camera3D
@@ -21,7 +22,7 @@ from dataviz.core.frame3d import _Extent3D, _fit_frame3d
 from dataviz.core.mark import Mark
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render
+from dataviz.plot import Plot, render, render_svg
 from dataviz.spatial.bar3d import _face_color, _smallest_gap, _voxel_mesh
 
 
@@ -272,6 +273,43 @@ def test_a_ragged_voxel_row_names_the_row() raises:
 def test_encode_voxels_rejects_a_mark_with_no_grid() raises:
     with assert_raises(contains="encode_voxels"):
         _ = Plot().mark_bar3d().encode_voxels(_solid(1, 1, 1))
+
+
+def test_voxels_frame_marks_sparse_occupied_cells() raises:
+    var frame = DataFrame(
+        [
+            Series("col", Column[Float64]([0.0, 1.0, 0.0])),
+            Series("row", Column[Float64]([0.0, 0.0, 1.0])),
+            Series("layer", Column[Float64]([0.0, 0.0, 1.0])),
+        ]
+    )
+    var by_frame = render_svg(
+        voxels(frame, x="col", y="row", z="layer", width=360, height=280)
+    ).to_string()
+    var grid: List[List[List[Bool]]] = [
+        [[True, True], [False, False]],
+        [[False, False], [True, False]],
+    ]
+    var by_grid = render_svg(voxels(grid, width=360, height=280)).to_string()
+    assert_equal(by_frame, by_grid, "sparse frame matches filled grid")
+    var fractional = DataFrame(
+        [
+            Series("x", Column[Float64]([0.5])),
+            Series("y", Column[Float64]([0.0])),
+            Series("z", Column[Float64]([0.0])),
+        ]
+    )
+    with assert_raises(contains="nonnegative integers"):
+        _ = voxels(fractional, x="x", y="y", z="z")
+    var repeated = DataFrame(
+        [
+            Series("x", Column[Float64]([0.0, 0.0])),
+            Series("y", Column[Float64]([0.0, 0.0])),
+            Series("z", Column[Float64]([0.0, 0.0])),
+        ]
+    )
+    with assert_raises(contains="duplicate occupied cell"):
+        _ = voxels(repeated, x="x", y="y", z="z")
 
 
 def main() raises:
