@@ -22,6 +22,7 @@ from dataviz import (
     calendar_heatmap,
     candlestick,
     corrplot,
+    dendrogram,
     ecdf,
     funnel,
     gantt,
@@ -762,6 +763,38 @@ def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
         expected,
         "datetime column matches list",
     )
+
+
+def test_dendrogram_clusters_frame_rows_by_named_features() raises:
+    var frame = DataFrame(
+        [
+            Series("name", Column[String](["A", "B", "C"])),
+            Series("f1", Column[Float64]([0.0, 1.0, 10.0])),
+            Series("f2", Column[Float64]([0.0, 1.0, 10.0])),
+        ]
+    )
+    var by_frame = render_svg(
+        dendrogram(
+            frame,
+            features=["f1", "f2"],
+            labels="name",
+            width=360,
+            height=260,
+        )
+    ).to_string()
+    var by_rows = render_svg(
+        dendrogram(
+            [[0.0, 0.0], [1.0, 1.0], [10.0, 10.0]],
+            labels=["A", "B", "C"],
+            width=360,
+            height=260,
+        )
+    ).to_string()
+    assert_equal(by_frame, by_rows, "frame rows match list rows")
+    with assert_raises(contains="at least one column"):
+        _ = dendrogram(frame, features=List[String]())
+    with assert_raises(contains='no column named "absent"'):
+        _ = dendrogram(frame, features=["absent"])
 
 
 def main() raises:
