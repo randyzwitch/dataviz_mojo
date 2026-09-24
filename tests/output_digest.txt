@@ -2,7 +2,7 @@
 # Every Mark first, then the compositions, which are hand-maintained
 # in tests/_composition_registry.mojo.
 # Regenerate with `pixi run digest-update`; see tests/test_output_digest.mojo.
-# toolchain: mojo=1.1.0 canvas_mojo=0.41.0 dataframe_mojo=0.1.3
+# toolchain: mojo=1.1.0 canvas_mojo=0.41.0@d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf dataframe_mojo=0.1.3@2c7943249a0bfb7a58de8fd8b23386100770f3e3
 Mark.POINT 217461536843577465 4009 412865803
 Mark.LINE 217000832566943518 3899 928958965
 Mark.BAR 194262634825353913 2589 151778103
