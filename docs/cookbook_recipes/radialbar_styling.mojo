@@ -1,7 +1,6 @@
 # title: Radial Bar Styling
 """Darken radial-bar tracks and widen the gaps between rings."""
-from dataviz import radialbar
-from dataviz.plot import save
+from dataviz import save, radialbar
 from dataviz.core.theme import Theme
 from canvas.color import Color
 

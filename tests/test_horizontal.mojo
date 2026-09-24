@@ -16,7 +16,11 @@ regardless of orientation, so neither gets a horizontal-specific
 test.
 """
 
+from dataviz.core.stats import ErrorBar
+from dataviz.plot import Plot
 from dataviz import (
+    render_layers_svg,
+    render_svg,
     bar,
     beeswarm,
     box,
@@ -26,8 +30,6 @@ from dataviz import (
     stacked_bar,
     violin,
 )
-from dataviz.core.stats import ErrorBar
-from dataviz.plot import Plot, render_layers_svg, render_svg
 from _test_helpers import _attr_values
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true

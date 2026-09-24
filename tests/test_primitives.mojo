@@ -12,7 +12,6 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
-from dataviz import area, bar, line, scatter
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import (
     Frame3D,
@@ -53,7 +52,8 @@ from dataviz.core.color_scale import ColorScale
 from dataviz.core.colormaps import cividis, inferno, magma, plasma, viridis
 from dataviz.core.colors import BLACK, BLUE, RED, WHITE
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import render, render_svg, area, bar, line, scatter
 from dataviz.core.scale import (
     LinearScale,
     MinMax,

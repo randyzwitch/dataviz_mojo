@@ -11,17 +11,16 @@ from dataframe import DataFrame
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.basic.bar import _bar_y_domain_data
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _Orientation,
-    _RenderResult,
-    _Scaled,
     _axis_pixel_f,
-    _data_extent,
     _draw_categorical_axis_frame,
-    _finished,
-    _validate_categorical_encoding,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled
+from dataviz.core.extent import _data_extent
+from dataviz.core.validate import _validate_categorical_encoding
 from dataviz.core.stats import ErrorBar, Estimator, _Aggregate, _aggregate
 from dataviz.core.theme import Theme
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals

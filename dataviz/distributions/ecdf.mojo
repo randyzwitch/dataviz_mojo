@@ -8,16 +8,13 @@ from dataviz.basic.continuous import (
     _decimate_to_pixel_columns,
     _step_points,
 )
-from dataviz.plot import (
-    _Scaled,
-    Plot,
-    _LegendLayout,
-    _RenderResult,
-    _position_x_extent,
-    _draw_continuous_axis_frame,
-    _finished,
-    _require_non_empty,
-)
+from dataviz.core.text import _Scaled
+from dataviz.plot import Plot, _finished
+from dataviz.core.legend import _LegendLayout
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _position_x_extent
+from dataviz.core.frame import _draw_continuous_axis_frame
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme

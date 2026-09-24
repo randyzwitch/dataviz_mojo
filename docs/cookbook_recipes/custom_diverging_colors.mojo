@@ -3,8 +3,7 @@ the default red -- `color_by_sign` alone always pairs `mark_color`
 with `mark_color_negative`, so recoloring one to match a report's own
 palette means overriding both together.
 """
-from dataviz import bar
-from dataviz.plot import save
+from dataviz import save, bar
 from dataviz.core.colors import SEAGREEN, GOLDENROD
 from dataviz.core.theme import Theme
 

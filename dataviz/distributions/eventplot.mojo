@@ -26,13 +26,10 @@ from canvas.geometry import snap_to_pixel_center
 
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.distributions.kde import _draw_snapped_ticks
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _data_extent,
-    _finished,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme

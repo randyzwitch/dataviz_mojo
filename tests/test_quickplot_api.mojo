@@ -22,7 +22,10 @@ Covers:
 
 from canvas.buffer import Canvas
 from canvas.color import Color
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     area,
     bar,
     beeswarm,
@@ -65,7 +68,6 @@ from dataviz import (
     violin,
     waterfall,
 )
-from dataviz.plot import Plot, render, render_svg
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal
 

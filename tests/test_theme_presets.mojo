@@ -11,7 +11,9 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from std.testing import TestSuite, assert_equal, assert_true
 
+from dataviz.plot import Plot
 from dataviz import (
+    render,
     bar,
     bullet,
     effect_scatter,
@@ -21,7 +23,6 @@ from dataviz import (
     radialbar,
     sunburst,
 )
-from dataviz.plot import Plot, render
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.theme import Theme
 from dataviz.core.themes import dark, high_contrast, minimal, print_safe

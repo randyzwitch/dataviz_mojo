@@ -1,6 +1,5 @@
 """Narrow violins to keep dense category layouts separated."""
-from dataviz import violin
-from dataviz.plot import save
+from dataviz import save, violin
 
 
 def main() raises:

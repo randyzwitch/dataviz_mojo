@@ -28,14 +28,13 @@ from dataviz.core.array_like import (
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.mark import Mark
 from canvas.geometry import snap_to_pixel_edge
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _draw_continuous_axis_frame,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled
+from dataviz.core.frame import _draw_continuous_axis_frame
+from dataviz.core.legend import (
     _continuous_color_legend_layout,
     _draw_continuous_color_legend_at,
-    _finished,
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme

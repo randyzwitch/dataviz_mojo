@@ -4,7 +4,7 @@ clearly subordinate to the title -- useful once a chart's title
 already carries the main point and the rest is supporting detail.
 """
 from canvas.color import Color
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

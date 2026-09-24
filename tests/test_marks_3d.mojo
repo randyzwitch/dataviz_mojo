@@ -16,7 +16,13 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.color_scale import _ColorDomainOverride, _color_scale_for
+from dataviz.core.mark import Mark
+from dataviz.core.theme import Theme
+from dataviz.plot import Plot
 from dataviz import (
+    render,
+    render_svg,
     fill_between3d,
     scatter3d,
     quiver3d,
@@ -25,10 +31,6 @@ from dataviz import (
     trisurf3d,
     wire3d,
 )
-from dataviz.core.color_scale import _ColorDomainOverride, _color_scale_for
-from dataviz.core.mark import Mark
-from dataviz.core.theme import Theme
-from dataviz.plot import Plot, render, render_svg
 from dataviz.spatial.stem3d import (
     _draw_arrowhead,
     _stem3d_extent,

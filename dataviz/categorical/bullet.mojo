@@ -9,21 +9,18 @@ from dataviz.core.frame_input import _frame_floats, _frame_strings
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _Orientation,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
     _axis_pixel_f,
     _draw_categorical_axis_frame,
     _pull_off_axis_line_f,
-    snap_to_pixel_center,
-    snap_to_pixel_edge,
-    _finished,
-    _require_non_empty,
-    _zero_baseline_y_extent,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from canvas.geometry import snap_to_pixel_center, snap_to_pixel_edge
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.extent import _zero_baseline_y_extent
 from dataviz.core.scale import (
     LinearScale,
     _format_fixed,

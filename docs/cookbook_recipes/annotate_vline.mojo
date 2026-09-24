@@ -3,7 +3,7 @@
 image of a horizontal reference line, for marking a point in time or
 position instead of a target value.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

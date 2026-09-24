@@ -1,8 +1,7 @@
 # title: Print-Safe (Grayscale) Theme
 """Apply `print_safe()` so lightness, line patterns, and a monotonic color
 scale preserve distinctions in grayscale."""
-from dataviz import bar
-from dataviz.plot import save
+from dataviz import save, bar
 from dataviz.core.themes import print_safe
 
 

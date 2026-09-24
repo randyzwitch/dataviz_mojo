@@ -17,7 +17,10 @@ from std.math import nan
 
 from _test_helpers import _attr_values
 
+from dataviz.core.missing import Missing
+from dataviz.core.theme import Theme
 from dataviz import (
+    render_svg,
     arc_diagram,
     area,
     bar,
@@ -44,9 +47,6 @@ from dataviz import (
     tricontourf,
     waterfall,
 )
-from dataviz.core.missing import Missing
-from dataviz.core.theme import Theme
-from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 

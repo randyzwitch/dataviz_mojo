@@ -3,7 +3,7 @@
 `render_layers()` -- the classic bar-plus-line combo chart, sharing
 one categorical x-axis with the bars.
 """
-from dataviz.plot import Plot, save_layers
+from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.core.theme import Theme
 

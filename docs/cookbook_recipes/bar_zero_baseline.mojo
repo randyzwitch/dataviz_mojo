@@ -1,5 +1,5 @@
 """Draw a bar chart's zero line through the bars, not under them."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

@@ -36,17 +36,12 @@ from dataviz.core.frame3d import (
     _point_on_axis,
     _tick_edge,
 )
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _finished,
-    _min_max,
-    _require_non_empty,
-    _xyz_tooltip_label,
-)
-from dataviz.core.scale import LinearScale
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.scale import _min_max, LinearScale
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.tooltip_labels import _xyz_tooltip_label
 from dataviz.core.theme import Theme
 from canvas.text.render import TextAlign
 from dataviz.core.mark import Mark, _require_mark

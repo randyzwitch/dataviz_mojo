@@ -5,23 +5,21 @@ from canvas.vector.draw_target import DrawTarget
 from dataframe import DataFrame
 
 from dataviz.core.frame_input import _frame_floats, _frame_strings
-from dataviz.core.frame import _fitting_ticks
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.plot import (
-    _draw_axis_spines,
-    Plot,
-    _PointChannels,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _axis_pixel,
-    _data_extent,
-    _draw_point_layer,
+from dataviz.core.frame import _draw_axis_spines, _axis_pixel, _fitting_ticks
+from dataviz.plot import Plot, _finished
+from dataviz.core.point_channels import _PointChannels
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.extent import _data_extent
+from dataviz.basic.continuous import _draw_point_layer
+from dataviz.core.legend import (
     _legend_origin_x,
     _legend_origin_y,
     _LegendLayout,
     _legend_reserve_for,
-    _finished,
+)
+from dataviz.core.validate import (
     _require_non_empty,
     _validate_continuous_encoding,
 )

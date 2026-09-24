@@ -1,6 +1,6 @@
 """Map a continuous data column onto point size.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

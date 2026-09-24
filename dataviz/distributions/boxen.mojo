@@ -14,16 +14,15 @@ from dataviz.core.stats import _percentile
 from dataviz.core.color_scale import ColorScale
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _BaselineRectF,
     _Orientation,
-    _RenderResult,
     _axis_pixel_f,
-    _data_extent,
     _draw_categorical_axis_frame,
-    _finished,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark

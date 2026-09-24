@@ -40,7 +40,6 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
 from dataviz.core.tooltips import Tooltips
-from dataviz import LineStyle, StepStyle
 from dataviz.core.color_scale import (
     _ColorDomainOverride,
     _color_scale_for,
@@ -48,7 +47,6 @@ from dataviz.core.color_scale import (
 )
 from dataviz.multivariate.barbs import barbs
 from dataviz.basic.arc import pie
-from dataviz.basic.continuous import line, scatter
 from dataviz.multivariate.contour import contour, contourf
 from dataviz.basic.effect_scatter import effect_scatter
 from dataviz.distributions.ecdf import _ecdf_points, ecdf
@@ -58,8 +56,8 @@ from dataviz.multivariate.tricontour import tricontour, tricontourf
 from dataviz.multivariate.triplot import tripcolor, triplot
 from std.math import cos, sin
 from dataviz.core.colors import CORNFLOWERBLUE, MAGENTA, RED, TOMATO
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz import (
     render,
     render_facets,
     render_facets_svg,
@@ -67,8 +65,10 @@ from dataviz.plot import (
     render_layers_pdf,
     render_layers_svg,
     render_svg,
-    _build_line_path,
+    LineStyle,
+    StepStyle,
 )
+from dataviz.basic.continuous import _build_line_path, line, scatter
 from dataviz.core.theme import Theme
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 

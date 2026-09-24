@@ -16,7 +16,8 @@ from std.testing import assert_equal, assert_raises, assert_true, TestSuite
 from std.python import Python, PythonObject
 
 from dataviz.core.numpy_interop import _materialize_python_floats
-from dataviz.plot import Plot, render_svg
+from dataviz.plot import Plot
+from dataviz import render_svg
 
 
 def _import_or_explain(module: String) raises -> PythonObject:

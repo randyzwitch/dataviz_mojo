@@ -1,7 +1,7 @@
 # title: Log Scale (X-Axis)
 """Scale the x-axis logarithmically (base 10) instead of linearly.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

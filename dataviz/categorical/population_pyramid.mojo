@@ -7,22 +7,14 @@ from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.plot import (
-    Plot,
-    _BaselineRectF,
-    _Orientation,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _axis_pixel_f,
-    snap_to_pixel_edge,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
-    _finished,
-    _require_non_empty,
-    _series_tooltip_label,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import _BaselineRectF, _Orientation, _axis_pixel_f
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from canvas.geometry import snap_to_pixel_edge
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.tooltip_labels import _series_tooltip_label
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark

@@ -1,6 +1,6 @@
 """The padded data extents marks lay out against: linear, log,
 symlog, zero-baseline, and the x position extent a `Plot` resolves.
-Split out of plot.mojo, which imports every name here back."""
+Split out of plot.mojo."""
 
 from std.math import log10
 from dataviz.core.scale import LinearScale, _min_max, _symlog_forward

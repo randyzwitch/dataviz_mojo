@@ -1,6 +1,5 @@
 """Shrink correlation bubbles to prevent crowding in a dense matrix."""
-from dataviz import corrplot
-from dataviz.plot import save
+from dataviz import save, corrplot
 
 
 def main() raises:

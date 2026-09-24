@@ -42,18 +42,19 @@ Covers:
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
-from dataviz import Theme, bar
 from dataviz.core.colors import TOMATO
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz import (
     render,
     render_facets_svg,
     render_layers,
     render_layers_svg,
     render_svg,
     save_layers,
+    Theme,
+    bar,
 )
 from _test_helpers import _attr_values
 

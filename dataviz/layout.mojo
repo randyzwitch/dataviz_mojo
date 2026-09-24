@@ -55,20 +55,22 @@ from dataviz.core.text import (
     _label_text_requests,
     _replay_text_requests,
 )
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot
+from dataviz.rendering import (
     _all_at_dpi,
-    _data_extent,
     _dpi_factor,
     _ink_box,
     _filled_annotations_go_under,
-    _log_data_extent,
     _render_generic,
     _render_into,
     _render_svg_into,
     _resolve_output_format,
     _resolve_supersample,
     _svg_output_string,
+)
+from dataviz.core.extent import (
+    _data_extent,
+    _log_data_extent,
     _zero_baseline_y_extent,
 )
 

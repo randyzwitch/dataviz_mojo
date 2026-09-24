@@ -17,7 +17,15 @@ from std.math import cos, sin
 from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
+from dataviz.core.colors import WHITE
+from dataviz.core.cluster import linkage
+from dataviz.core.mark import Mark
+from dataviz.binned.histogram import bin_edges
+from dataviz.plot import Plot
 from dataviz import (
+    area,
+    line,
+    scatter,
     arc_diagram,
     bar,
     barbs,
@@ -88,17 +96,7 @@ from dataviz import (
     violin,
     waterfall,
 )
-from dataviz.core.colors import WHITE
-from dataviz.core.cluster import linkage
-from dataviz.core.mark import Mark
-from dataviz.binned.histogram import bin_edges
-from dataviz.plot import (
-    Plot,
-    area,
-    line,
-    scatter,
-    _render_generic,
-)
+from dataviz.rendering import _render_generic
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _step_setter_name
 from std.testing import TestSuite, assert_equal, assert_true

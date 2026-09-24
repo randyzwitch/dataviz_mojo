@@ -3,7 +3,7 @@ extending left-to-right instead of the default vertical layout --
 `Plot.mark_bar(horizontal=True)`/`bar(..., horizontal=True)`, handy
 when category names are long or there are many of them.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

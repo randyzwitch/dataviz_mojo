@@ -15,7 +15,8 @@ from std.math import cos, exp, log, log10, pi, sqrt
 from std.testing import TestSuite, assert_raises, assert_true
 
 from dataviz.distributions.kde import _kde_curve, _kde_curve_for_axis, kdeplot
-from dataviz.plot import Plot, render
+from dataviz.plot import Plot
+from dataviz import render
 
 
 def _lognormal(n: Int) -> List[Float64]:

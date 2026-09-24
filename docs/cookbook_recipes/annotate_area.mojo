@@ -4,7 +4,7 @@
 partially overlaps the mark's own y-domain clips to the visible
 portion instead of disappearing entirely.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

@@ -10,15 +10,23 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.render import measure_text
-from dataviz import LegendPosition, Plot, Theme, bar, render_svg, scatter
 from dataviz.core.text import _max_label_width
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
-from dataviz import contourf
 from dataviz.grid.heatmap import heatmap
 from dataviz.grid.image import imshow
-from dataviz.plot import Plot, render
+from dataviz.plot import Plot
+from dataviz import (
+    render,
+    LegendPosition,
+    Plot,
+    Theme,
+    bar,
+    render_svg,
+    scatter,
+    contourf,
+)
 from _test_helpers import _attr_values
 
 

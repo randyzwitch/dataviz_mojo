@@ -1,5 +1,5 @@
 """Narrow error-bar caps for closely spaced points."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

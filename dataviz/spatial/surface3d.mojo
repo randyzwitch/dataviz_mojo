@@ -41,17 +41,11 @@ from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import Frame3D, _Extent3D, _fit_frame3d
-from dataviz.core.scale import MinMax
-from dataviz.core.validate import _check_grid_coordinates
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _finished,
-    _min_max,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.scale import _min_max, MinMax
+from dataviz.core.validate import _require_non_empty, _check_grid_coordinates
 from dataviz.spatial.scatter3d import (
     _draw_box,
     _frame_for,

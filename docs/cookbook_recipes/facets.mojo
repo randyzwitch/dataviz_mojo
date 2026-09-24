@@ -3,7 +3,7 @@ cell is its own Plot, with its own data, theme, and even mark type;
 this is purely a grid-layout primitive, not a "split this data by a
 column" faceting feature.
 """
-from dataviz.plot import Plot, save_facets
+from dataviz import Plot, save_facets
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
 from dataviz.core.theme import Theme
 

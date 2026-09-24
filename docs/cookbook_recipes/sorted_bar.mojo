@@ -2,8 +2,7 @@
 """Sort categories by value before charting them -- encode_categorical()
 draws bars in exactly the order given.
 """
-from dataviz import bar
-from dataviz.plot import save
+from dataviz import save, bar
 from dataviz.core.colors import CORNFLOWERBLUE
 from dataviz.core.theme import Theme
 

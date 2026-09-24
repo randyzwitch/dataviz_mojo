@@ -9,7 +9,9 @@ from dataframe import DataFrame
 
 from dataviz.core.frame_input import _frame_floats
 
-from dataviz.plot import Plot, _RenderResult, _Scaled, _TextRequest, _finished
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
 from dataviz.radial.polar import _polar_point
 from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme

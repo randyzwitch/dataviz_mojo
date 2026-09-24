@@ -12,24 +12,17 @@ from dataviz.core.color_scale import categorical_palette_for
 from dataviz.basic.continuous import _step_points
 from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _axis_pixel_f,
-    _check_line_smoothing,
-    _draw_categorical_axis_frame,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
-    _finished,
-    _zero_baseline_y_extent,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled
+from dataviz.core.frame import _axis_pixel_f, _draw_categorical_axis_frame
+from dataviz.core.validate import _check_line_smoothing, _check_step_smoothing
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
+from dataviz.core.extent import _zero_baseline_y_extent
 from dataviz.core.scale import LinearScale
 from dataviz.core.stack_baseline import StackBaseline
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
-from dataviz.core.validate import _check_step_smoothing
 
 
 def _symmetric_zero_baseline_y_extent(

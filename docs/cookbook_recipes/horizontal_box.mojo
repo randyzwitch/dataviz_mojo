@@ -4,7 +4,7 @@ layout -- `Plot.mark_box(horizontal=True)`/`box(..., horizontal=True)`,
 the same "long or many category names" use case `horizontal_bar`
 covers.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.colors import ROYALBLUE
 from dataviz.core.theme import Theme
 

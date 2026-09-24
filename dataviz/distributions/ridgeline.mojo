@@ -10,14 +10,11 @@ from dataframe import DataFrame
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _axis_pixel_f,
-    _data_extent,
-    _min_max,
-    _finished,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.frame import _axis_pixel_f
+from dataviz.core.extent import _data_extent
+from dataviz.core.scale import _min_max
 from dataviz.core.theme import Theme
 from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 

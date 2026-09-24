@@ -2,7 +2,7 @@
 `Plot.mark_stacked_bar(percent=True)`, so every column reads as a
 composition (relative share) instead of an absolute total.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

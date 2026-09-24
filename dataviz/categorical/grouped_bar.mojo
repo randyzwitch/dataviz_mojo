@@ -11,23 +11,19 @@ from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.mark import Mark
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.frame import (
     _Orientation,
-    _Scaled,
-    _series_tooltip_label,
-    _TextRequest,
     _axis_pixel_f,
     _draw_categorical_axis_frame,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
     _pull_off_axis_line_f,
-    _finished,
-    _require_non_empty,
-    _zero_baseline_y_extent,
 )
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.tooltip_labels import _series_tooltip_label
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.extent import _zero_baseline_y_extent
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.mark import _require_mark

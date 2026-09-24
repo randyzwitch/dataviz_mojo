@@ -19,17 +19,11 @@ from dataviz.core.frame_input import (
     _frame_series,
     _frame_strings,
 )
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
-    _finished,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
+from dataviz.core.validate import _require_non_empty
 from dataviz.radial.polar import _polar_point
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark

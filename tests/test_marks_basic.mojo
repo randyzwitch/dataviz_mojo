@@ -20,28 +20,6 @@ from std.testing import (
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import Path, PathOp
-from dataviz import (
-    StepStyle,
-    Theme,
-    area,
-    bar,
-    barbs,
-    box,
-    bullet,
-    candlestick,
-    contour,
-    contourf,
-    histogram,
-    line,
-    lollipop,
-    scatter,
-    tricontour,
-    tricontourf,
-    tripcolor,
-    triplot,
-    waterfall,
-)
-from dataviz.basic.continuous import _step_points
 from dataviz.binned.histogram import (
     BinRule,
     HistStat,
@@ -67,15 +45,34 @@ from dataviz.multivariate.contour import (
 )
 from dataviz.multivariate.tricontour import _tricontour_segments
 from dataviz.multivariate.triplot import _triangle_means, _triplot_edges
-from dataviz.plot import (
-    Plot,
-    _build_line_path,
+from dataviz.plot import Plot
+from dataviz.basic.continuous import _build_line_path, _step_points
+from dataviz import (
     render,
     render_facets,
     render_facets_svg,
     render_layers,
     render_layers_svg,
     render_svg,
+    StepStyle,
+    Theme,
+    area,
+    bar,
+    barbs,
+    box,
+    bullet,
+    candlestick,
+    contour,
+    contourf,
+    histogram,
+    line,
+    lollipop,
+    scatter,
+    tricontour,
+    tricontourf,
+    tripcolor,
+    triplot,
+    waterfall,
 )
 from _test_helpers import (
     BG,

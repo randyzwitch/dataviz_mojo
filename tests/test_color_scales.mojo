@@ -15,7 +15,6 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
-from dataviz import LegendPosition, contour, contourf
 from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
@@ -40,7 +39,8 @@ from dataviz.core.palettes import (
 from dataviz.core.theme import Theme
 from dataviz.basic.continuous import scatter
 from dataviz.grid.heatmap import heatmap
-from dataviz.plot import Plot, render, render_svg
+from dataviz.plot import Plot
+from dataviz import render, render_svg, LegendPosition, contour, contourf
 from _test_helpers import _attr_values, _count_color, _count_tag
 
 

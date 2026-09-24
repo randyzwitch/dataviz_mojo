@@ -2,8 +2,7 @@
 gray by default) to a tint that matches a report's palette, and
 thicken the measure bar drawn over it for better contrast.
 """
-from dataviz import bullet
-from dataviz.plot import save
+from dataviz import save, bullet
 from dataviz.core.colors import ALICEBLUE, STEELBLUE
 from dataviz.core.theme import Theme
 

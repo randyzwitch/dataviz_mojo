@@ -5,7 +5,7 @@ vertical layout -- `Plot.mark_grouped_bar(horizontal=True)`/
 names" use case `horizontal_bar` covers, with several series per
 category instead of one.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

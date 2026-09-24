@@ -8,6 +8,9 @@ from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
 from dataviz import (
+    render,
+    render_pdf,
+    render_svg,
     GridCell,
     Plot,
     Theme,
@@ -17,7 +20,6 @@ from dataviz import (
     pairplot,
     save,
 )
-from dataviz.plot import render, render_pdf, render_svg
 from _test_helpers import _attr_values, _count_tag
 
 

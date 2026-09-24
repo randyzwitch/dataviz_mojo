@@ -4,7 +4,8 @@ from std.python import Python
 from std.testing import TestSuite, assert_equal, assert_raises
 
 from dataviz.core.numpy_interop import _materialize_python_floats
-from dataviz.plot import Plot, render_svg
+from dataviz.plot import Plot
+from dataviz import render_svg
 
 
 def test_max_tensor_and_buffer_match_list_plot() raises:

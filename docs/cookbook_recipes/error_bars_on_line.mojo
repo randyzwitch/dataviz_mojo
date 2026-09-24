@@ -3,7 +3,7 @@
 measurement, connected by the trend line itself, instead of a bare
 scatter of uncertain points.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 def main() raises:

@@ -2,8 +2,7 @@
 """Write the same Plot to SVG, PNG, and BMP -- save() picks the format
 from each path's own extension.
 """
-from dataviz import scatter
-from dataviz.plot import save
+from dataviz import save, scatter
 
 
 def main() raises:

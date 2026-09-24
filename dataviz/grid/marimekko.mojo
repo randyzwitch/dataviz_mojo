@@ -9,18 +9,12 @@ from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _cell_tooltip_label,
-    _Scaled,
-    _TextRequest,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
-    _finished,
-    _require_non_empty,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _cell_tooltip_label
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
 from dataviz.core.mark import _require_mark
 

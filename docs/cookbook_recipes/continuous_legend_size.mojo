@@ -1,5 +1,5 @@
 """Enlarge a continuous legend's gradient bar."""
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

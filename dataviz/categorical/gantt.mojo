@@ -1,5 +1,4 @@
 from canvas.text.font_cache import FontCache
-from canvas.geometry import round_to_int
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
@@ -14,22 +13,19 @@ from dataviz.core.frame_input import (
 )
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
+from dataviz.core.frame import (
     _draw_axis_spines,
-    Plot,
-    _RenderResult,
-    _span_tooltip_label,
-    _Scaled,
-    _TextRequest,
     _axis_pixel,
     _axis_pixel_f,
-    snap_to_pixel_edge,
-    _data_extent,
-    _max_label_width,
-    _finished,
-    _require_non_empty,
+    _fitting_ticks,
 )
-from dataviz.core.frame import _fitting_ticks
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _span_tooltip_label
+from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
+from canvas.geometry import snap_to_pixel_edge, round_to_int
+from dataviz.core.extent import _data_extent
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark

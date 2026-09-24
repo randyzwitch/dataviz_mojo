@@ -1,7 +1,6 @@
 """Package consumer used by the fontless-container CI job (#767)."""
 
-from dataviz import bar
-from dataviz.plot import save
+from dataviz import save, bar
 
 
 def main() raises:

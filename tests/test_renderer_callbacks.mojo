@@ -22,7 +22,7 @@ from dataviz import (
     render_layers_pdf,
 )
 from dataviz.core.mark import Mark
-from dataviz.plot import render_tight, render_tight_svg, render_tight_pdf
+from dataviz.rendering import render_tight, render_tight_svg, render_tight_pdf
 
 
 def _pdf_bytes(var doc: PdfCanvas) raises -> List[UInt8]:

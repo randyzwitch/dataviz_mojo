@@ -1,4 +1,3 @@
-from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -13,21 +12,22 @@ from dataviz.core.frame_input import (
     _frame_strings,
 )
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _TextRequest,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _TextRequest, _Scaled
+from dataviz.core.frame import (
     _axis_pixel_f,
-    snap_to_pixel_center,
-    snap_to_pixel_edge,
-    _data_extent,
     _draw_categorical_axis_frame,
     _draw_continuous_axis_frame,
-    _LegendLayout,
-    _Scaled,
-    _finished,
-    _require_non_empty,
 )
+from canvas.geometry import (
+    snap_to_pixel_center,
+    snap_to_pixel_edge,
+    round_to_int,
+)
+from dataviz.core.extent import _data_extent
+from dataviz.core.legend import _LegendLayout
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.mark import Mark, _require_mark

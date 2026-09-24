@@ -3,8 +3,7 @@ delta bars -- `Theme.waterfall_total_color` keeps "Start"/"End" totals
 visually distinct from plain increases/decreases, and `waterfall_
 delta_width_fraction` controls how much of each band a delta bar fills.
 """
-from dataviz import waterfall
-from dataviz.plot import save
+from dataviz import save, waterfall
 from dataviz.core.colors import SLATEGRAY
 from dataviz.core.theme import Theme
 

@@ -5,7 +5,7 @@ Both endpoints use data coordinates, so the arrow follows the data when the
 chart is resized.
 """
 from dataviz.core.colors import CORNFLOWERBLUE
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

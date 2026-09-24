@@ -22,7 +22,6 @@ from canvas.text.render import (
     text_run_anchors,
 )
 
-from dataviz import Plot, bar
 from dataviz.core.mathtext import (
     _AXIS,
     _RELATION_SPACE,
@@ -35,14 +34,10 @@ from dataviz.core.mathtext import (
     _needs_math,
     _reserve_height,
 )
-from dataviz.core.text import _TextRequest
 from dataviz.core.theme import Theme
-from dataviz.plot import (
-    _replay_text_requests,
-    render,
-    render_svg,
-    render_tight,
-)
+from dataviz.core.text import _replay_text_requests, _TextRequest
+from dataviz import render, render_svg, Plot, bar
+from dataviz.rendering import render_tight
 from _test_helpers import _attr_values, _count_color
 
 

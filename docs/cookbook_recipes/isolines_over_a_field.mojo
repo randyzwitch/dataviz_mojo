@@ -3,7 +3,7 @@
 and isolines show exact levels."""
 from std.math import cos, sin
 
-from dataviz.plot import Plot, save_layers
+from dataviz import Plot, save_layers
 from dataviz.core.theme import Theme
 from dataviz.core.colormaps import viridis
 

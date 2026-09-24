@@ -12,7 +12,9 @@ by hand.
 
 from dataframe import Column, DataFrame, Series
 
+from dataviz.core.frame_input import _frame_grid
 from dataviz import (
+    render_svg,
     contour,
     contourf,
     imshow,
@@ -21,8 +23,6 @@ from dataviz import (
     surface3d,
     wire3d,
 )
-from dataviz.core.frame_input import _frame_grid
-from dataviz.plot import render_svg
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from std.utils.numerics import isnan
 

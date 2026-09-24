@@ -11,20 +11,13 @@ from dataviz.core.color_scale import categorical_palette_for
 from dataviz.categorical.funnel import _descending_value_order
 from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    _draw_axis_spines,
-    Plot,
-    _RenderResult,
-    _Scaled,
-    _TextRequest,
-    _build_line_path,
-    _check_line_smoothing,
-    _LegendLayout,
-    _draw_legend_at,
-    _legend_layout,
-    _max_label_width,
-    _finished,
-)
+from dataviz.core.frame import _draw_axis_spines
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _Scaled, _TextRequest, _max_label_width
+from dataviz.basic.continuous import _build_line_path
+from dataviz.core.validate import _check_line_smoothing
+from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.core.theme import Theme
 
 

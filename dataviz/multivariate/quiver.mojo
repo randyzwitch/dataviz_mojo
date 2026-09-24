@@ -20,18 +20,15 @@ from dataviz.core.arrow import (
 )
 from dataviz.multivariate.barbs import _validate_vector_field
 from dataviz.core.color_scale import ColorScale, _color_scale_for
+from dataviz.plot import Plot, _finished
 from dataviz.core.legend import (
+    _LegendLayout,
     _continuous_color_legend_layout,
     _draw_continuous_color_legend_at,
 )
-from dataviz.plot import (
-    Plot,
-    _LegendLayout,
-    _RenderResult,
-    _data_extent,
-    _draw_continuous_axis_frame,
-    _finished,
-)
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
+from dataviz.core.frame import _draw_continuous_axis_frame
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme

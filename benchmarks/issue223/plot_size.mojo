@@ -5,7 +5,7 @@ Run against the baseline and the prototype tree."""
 from std.sys import size_of
 from std.time import perf_counter_ns
 
-from dataviz.plot import Plot
+from dataviz.plot import (Plot)
 
 
 def _copies(plot: Plot, n: Int) -> Int:

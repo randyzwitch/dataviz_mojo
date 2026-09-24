@@ -4,7 +4,7 @@ size and label channels, error bars, raw distributions, per-mark style
 settings, domain overrides and the title/axis labels. A struct only one
 mark family reads lives in that family's file instead.
 
-Split out of plot.mojo, which imports every name here back."""
+Split out of plot.mojo."""
 
 from std.collections import Dict
 from std.math import pi

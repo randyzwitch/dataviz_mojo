@@ -12,17 +12,20 @@ from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.distributions.kde import _KDE_SAMPLES, _kde_bandwidth, _kde_density
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _Orientation,
-    _RenderResult,
     _axis_pixel_f,
-    _data_extent,
     _draw_categorical_axis_frame,
-    _min_max,
-    _finished,
 )
-from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.extent import _data_extent
+from dataviz.core.scale import (
+    _min_max,
+    LinearScale,
+    _format_fixed,
+    _label_decimals,
+)
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.mark import Mark, _require_mark

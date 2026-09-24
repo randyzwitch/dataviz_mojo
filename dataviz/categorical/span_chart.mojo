@@ -1,4 +1,3 @@
-from canvas.geometry import round_to_int
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -7,18 +6,14 @@ from dataframe import DataFrame
 
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _TextRequest,
-    _axis_pixel_f,
-    snap_to_pixel_edge,
-    _data_extent,
-    _draw_categorical_axis_frame,
-    _finished,
-    _require_non_empty,
-    _span_tooltip_label,
-)
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.text import _TextRequest
+from dataviz.core.frame import _axis_pixel_f, _draw_categorical_axis_frame
+from canvas.geometry import snap_to_pixel_edge, round_to_int
+from dataviz.core.extent import _data_extent
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.tooltip_labels import _span_tooltip_label
 from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 

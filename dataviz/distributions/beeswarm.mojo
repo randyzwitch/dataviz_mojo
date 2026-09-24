@@ -8,17 +8,16 @@ from dataviz.core.frame_input import _frame_groups
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.ordinal_scale import OrdinalScale
-from dataviz.plot import (
-    Plot,
+from dataviz.plot import Plot, _finished
+from dataviz.core.frame import (
     _Orientation,
-    _RenderResult,
-    _tooltip_label,
-    _Scaled,
     _axis_pixel,
-    _data_extent,
     _draw_categorical_axis_frame,
-    _finished,
 )
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _tooltip_label
+from dataviz.core.text import _Scaled
+from dataviz.core.extent import _data_extent
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 

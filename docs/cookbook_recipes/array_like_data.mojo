@@ -5,7 +5,7 @@ a `List[Float64]` first -- conform a struct to `Float64Sequence`
 `Plot.encode()`'s `x`/`y`.
 """
 from dataviz.core.array_like import Float64Sequence
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 
 
 struct EveryOtherReading(Copyable, Float64Sequence, Movable):

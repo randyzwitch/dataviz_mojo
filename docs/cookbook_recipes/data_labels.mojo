@@ -2,7 +2,7 @@
 `Theme.show_data_labels=True` -- above a positive bar, below a
 negative one, or centered inside a stacked segment.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

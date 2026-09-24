@@ -3,7 +3,7 @@
 since (unlike a bar's own value) a point has no one obvious default
 label; pass `""` for any point that shouldn't get one.
 """
-from dataviz.plot import Plot, save
+from dataviz import Plot, save
 from dataviz.core.theme import Theme
 
 

@@ -13,17 +13,15 @@ from dataviz.core.frame_input import _frame_floats
 from dataviz.core.stats import _pearson_correlation
 from dataviz.grid.heatmap import _draw_grid_axis_frame
 from dataviz.core.mark import Mark
-from dataviz.plot import (
-    Plot,
-    _RenderResult,
-    _cell_tooltip_label,
-    _Scaled,
-    _TextRequest,
+from dataviz.plot import Plot, _finished
+from dataviz.core.render_result import _RenderResult
+from dataviz.core.tooltip_labels import _cell_tooltip_label
+from dataviz.core.text import _Scaled, _TextRequest
+from dataviz.core.legend import (
     _continuous_color_legend_layout,
     _draw_continuous_color_legend_at,
-    _finished,
-    _require_non_empty,
 )
+from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import _format_fixed
 from dataviz.core.theme import Theme
 from dataviz.core.mark import _require_mark
