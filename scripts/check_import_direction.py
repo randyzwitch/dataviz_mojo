@@ -30,7 +30,7 @@ UPWARD = re.compile(r"^\s*(?:from|import)\s+dataviz\.(?!core\b)([\w.]+)")
 DEFINITION = re.compile(r"^(?:def|struct|trait|comptime|alias) (\w+)", re.M)
 # One branch, so a docstring left open cannot make this backtrack.
 DOCSTRING = re.compile(r'"""[^"]*(?:"(?!"")[^"]*)*"""')
-HUB_START = re.compile(r"^from dataviz\.plot import\s*(\(?)(.*)$")
+HUB_START = re.compile(r"^\s*from dataviz\.plot import\s*(\(?)(.*)$")
 SOURCE_DIRS = [
     "dataviz",
     "tests",
@@ -39,6 +39,11 @@ SOURCE_DIRS = [
     "docs/cookbook_recipes",
     "docs/src/examples/quickstart",
 ]
+# Mojo programs embedded in other files: the consumer check in CI is a
+# heredoc, and it was the one importer of `save` through the hub that
+# no .mojo scan could see.
+EMBEDDED = ["*.yml", "*.yaml", "*.md"]
+EMBEDDED_DIRS = [".github/workflows", "docs/cookbook_recipes", "docs/src"]
 
 
 def hub_imports(path: Path, allowed: set) -> list:
@@ -88,13 +93,22 @@ def main() -> int:
     code = DOCSTRING.sub("", PLOT.read_text())
     allowed = set(DEFINITION.findall(code))
     hub = []
-    for directory in SOURCE_DIRS:
-        for path in sorted((ROOT / directory).rglob("*.mojo")):
-            if path == PLOT:
-                continue
-            for number, name in hub_imports(path, allowed):
-                rel = path.relative_to(ROOT)
-                hub.append(f"  {rel}:{number}: {name}")
+    paths = [
+        path
+        for directory in SOURCE_DIRS
+        for path in (ROOT / directory).rglob("*.mojo")
+    ] + [
+        path
+        for directory in EMBEDDED_DIRS
+        for pattern in EMBEDDED
+        for path in (ROOT / directory).rglob(pattern)
+    ]
+    for path in sorted(set(paths)):
+        if path == PLOT:
+            continue
+        for number, name in hub_imports(path, allowed):
+            rel = path.relative_to(ROOT)
+            hub.append(f"  {rel}:{number}: {name}")
     if hub:
         print(
             "check_import_direction: dataviz.plot defines only "
