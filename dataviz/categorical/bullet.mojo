@@ -2,6 +2,11 @@ from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+from std.utils.numerics import isfinite
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
+
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale
 from dataviz.plot import (
@@ -459,4 +464,103 @@ def bullet[
     )
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
+def _require_finite_bullet_frame_column(
+    values: List[Float64], name: String
+) raises:
+    for row in range(len(values)):
+        if not isfinite(values[row]):
+            raise Error(
+                'bullet(): column "'
+                + name
+                + '" has a non-finite value at row '
+                + String(row)
+            )
+
+
+def bullet(
+    df: DataFrame,
+    categories: String,
+    measures: String,
+    targets: String,
+    ranges: List[String],
+    measure_width_fraction: Float64 = 0.35,
+    horizontal: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Draw a bullet chart from named DataFrame columns.
+
+    Each row is one category. `ranges` names numeric threshold columns
+    in increasing order, so every row has its own qualitative bands.
+    Numeric values must be present for each row.
+
+    Args:
+        df: The frame holding one row per category.
+        categories: String column naming each category.
+        measures: Numeric column of observed values.
+        targets: Numeric column of goal values.
+        ranges: Nonempty ordered list of numeric threshold columns.
+        measure_width_fraction: See the list overload.
+        horizontal: See the list overload.
+        theme: See the list overload.
+        width: See the list overload.
+        height: See the list overload.
+        title: See the list overload.
+        subtitle: See the list overload.
+        x_title: See the list overload.
+        y_title: See the list overload.
+
+    Returns:
+        The finished `Plot` -- unrendered.
+
+    Raises:
+        Error: A required column is missing, has the wrong dtype, has
+            missing numeric values, or a range is out of order.
+    """
+    if len(ranges) == 0:
+        raise Error("bullet(): ranges must name at least one column")
+    var category_values = _frame_strings(
+        df,
+        categories,
+        "bullet()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var measure_values = _frame_floats(df, measures, "bullet()")
+    var target_values = _frame_floats(df, targets, "bullet()")
+    _require_finite_bullet_frame_column(measure_values, measures)
+    _require_finite_bullet_frame_column(target_values, targets)
+    var range_columns = List[List[Float64]](capacity=len(ranges))
+    for name in ranges:
+        var thresholds = _frame_floats(df, name, "bullet()")
+        _require_finite_bullet_frame_column(thresholds, name)
+        range_columns.append(thresholds^)
+    var row_ranges = List[List[Float64]](capacity=len(category_values))
+    for row in range(len(category_values)):
+        var thresholds = List[Float64](capacity=len(range_columns))
+        for col in range_columns:
+            thresholds.append(col[row])
+        row_ranges.append(thresholds^)
+    return bullet(
+        categories=category_values,
+        measures=measure_values,
+        targets=target_values,
+        ranges=row_ranges,
+        measure_width_fraction=measure_width_fraction,
+        horizontal=horizontal,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title if x_title.byte_length() > 0 else categories,
+        y_title=y_title if y_title.byte_length() > 0 else measures,
     )

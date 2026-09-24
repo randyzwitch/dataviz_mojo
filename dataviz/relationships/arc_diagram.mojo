@@ -6,6 +6,10 @@ from canvas.path import Path
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
 
+from dataframe import DataFrame
+
+from dataviz.core.frame_input import _frame_floats, _frame_strings
+
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.mark import Mark
 from dataviz.plot import (
@@ -123,6 +127,73 @@ def _render_arc_diagram[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def arc_diagram(
+    df: DataFrame,
+    from_categories: String,
+    to_categories: String,
+    values: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Plot:
+    """Draw an arc diagram from named DataFrame edge columns (#743).
+
+    `from_categories` and `to_categories` name string columns; `values`
+    names a numeric column. Missing values follow `theme.missing`.
+
+    Args:
+        df: The frame containing one row per edge.
+        from_categories: Source node column.
+        to_categories: Destination node column.
+        values: Edge magnitude column.
+        theme: Plot styling and missing-value policy.
+        width: Plot width in pixels.
+        height: Plot height in pixels.
+        title: Chart title.
+        subtitle: Secondary title.
+        x_title: Horizontal axis title.
+        y_title: Vertical axis title.
+
+    Returns:
+        The finished `Plot`.
+
+    Raises:
+        Error: A named column is missing, has the wrong dtype, or has
+            missing values under the default missing-value policy.
+    """
+    var from_values = _frame_strings(
+        df,
+        from_categories,
+        "arc_diagram()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var to_values = _frame_strings(
+        df,
+        to_categories,
+        "arc_diagram()",
+        theme.missing,
+        theme.missing_category_label,
+    )
+    var edge_values = _frame_floats(df, values, "arc_diagram()", theme.missing)
+    return arc_diagram(
+        from_categories=from_values,
+        to_categories=to_values,
+        values=edge_values,
+        theme=theme,
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        x_title=x_title,
+        y_title=y_title,
+    )
 
 
 def arc_diagram(

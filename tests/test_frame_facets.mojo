@@ -11,7 +11,14 @@ drawn on its own is the same chart as the same rows passed as lists.
 
 from dataframe import Column, DataFrame, Series
 
-from dataviz import Plot, facet_by, pooled_extent, scatter
+from dataviz import (
+    Plot,
+    facet_by,
+    pooled_extent,
+    render_facets_svg,
+    scatter,
+    scatter_facets,
+)
 from dataviz.core.missing import Missing
 from dataviz.core.theme import Theme
 from dataviz.plot import render_svg
@@ -176,6 +183,110 @@ def test_panels_given_the_pooled_extent_share_an_axis() raises:
     # means to a reader comparing the panels.
     assert_true(">25<" in first or ">25.0<" in first, "the pooled high")
     assert_true(">25<" in last or ">25.0<" in last, "in both panels")
+
+
+def _grouped_sales() raises -> DataFrame:
+    var region: List[String] = ["north", "south", "north", "south", "south"]
+    var product: List[String] = ["A", "B", "A", "A", "B"]
+    var spend: List[Float64] = [10.0, 20.0, 30.0, 40.0, 50.0]
+    var revenue: List[Float64] = [11.0, 19.0, 31.0, 39.0, 52.0]
+    return DataFrame(
+        [
+            Series("region", Column[String](region.copy())),
+            Series("product", Column[String](product.copy())),
+            Series("spend", Column[Float64](spend.copy())),
+            Series("revenue", Column[Float64](revenue.copy())),
+        ]
+    )
+
+
+def test_explicit_facet_order_survives_row_reordering() raises:
+    var order: List[String] = ["south", "north"]
+    var first = facet_by(_grouped_sales(), "region", order=order)
+    assert_equal(first[0].name, "south")
+    assert_equal(first[1].name, "north")
+    var reversed_rows: List[Int] = [4, 3, 2, 1, 0]
+    var shuffled = _grouped_sales().take(reversed_rows.copy())
+    var again = facet_by(shuffled, "region", order=order)
+    assert_equal(again[0].name, "south")
+    assert_equal(again[1].name, "north")
+    with assert_raises(contains='level "north" is missing from order'):
+        _ = facet_by(_grouped_sales(), "region", order=["south"])
+    with assert_raises(contains='duplicate level "south"'):
+        _ = facet_by(
+            _grouped_sales(), "region", order=["south", "south", "north"]
+        )
+
+
+def test_grouped_scatter_facets_keep_colors_and_infer_labels() raises:
+    var panels = scatter_facets(
+        _grouped_sales(),
+        x="spend",
+        y="revenue",
+        facet="region",
+        color="product",
+        facet_order=["south", "north"],
+        color_order=["B", "A"],
+        width=280,
+        height=220,
+    )
+    assert_equal(len(panels), 2)
+    assert_equal(panels[0]._labels.title, "south")
+    assert_equal(panels[1]._labels.title, "north")
+    assert_equal(panels[0]._labels.x_title, "spend")
+    assert_equal(panels[0]._labels.y_title, "revenue")
+    assert_equal(panels[0]._channels.color_categories[0], "B")
+    assert_equal(panels[1]._channels.color_categories[0], "A")
+    assert_equal(
+        panels[0]._channels.color_map["A"].r,
+        panels[1]._channels.color_map["A"].r,
+    )
+    assert_equal(
+        panels[0]._channels.color_map["B"].r,
+        panels[1]._channels.color_map["B"].r,
+    )
+    assert_true(render_facets_svg(panels, 2).to_string().byte_length() > 0)
+    var reverse_rows: List[Int] = [4, 3, 2, 1, 0]
+    var reordered = scatter_facets(
+        _grouped_sales().take(reverse_rows),
+        x="spend",
+        y="revenue",
+        facet="region",
+        color="product",
+        facet_order=["south", "north"],
+        color_order=["B", "A"],
+        width=280,
+        height=220,
+    )
+    assert_equal(reordered[0]._labels.title, "south")
+    assert_equal(
+        reordered[0]._channels.color_map["A"].r,
+        panels[0]._channels.color_map["A"].r,
+        "explicit color order survives row reordering",
+    )
+
+
+def test_scatter_facets_reports_bad_columns_and_order() raises:
+    var df = _grouped_sales()
+    with assert_raises(contains='no column named "missing"'):
+        _ = scatter_facets(df, x="missing", y="revenue", facet="region")
+    with assert_raises(contains="not a string column"):
+        _ = scatter_facets(
+            df, x="spend", y="revenue", facet="region", color="spend"
+        )
+    with assert_raises(contains='level "B" is missing from order'):
+        _ = scatter_facets(
+            df,
+            x="spend",
+            y="revenue",
+            facet="region",
+            color="product",
+            color_order=["A"],
+        )
+    with assert_raises(contains="color_order requires a color column"):
+        _ = scatter_facets(
+            df, x="spend", y="revenue", facet="region", color_order=["A"]
+        )
 
 
 def main() raises:

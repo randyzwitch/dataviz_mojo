@@ -2616,7 +2616,8 @@ struct Plot(Copyable, Movable):
         labels: List[String] = List[String](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to a numpy `ndarray`, a pandas
-        `Series`, or a plain Python list of numbers (see numpy_interop.mojo).
+        `Series`, a MAX Tensor/Buffer, or a plain Python list of numbers
+        (see numpy_interop.mojo).
         Requires numpy in the caller's environment; raises numpy's own error
         if it's missing or `x`/`y` can't become a 1-D numeric array. `x`/`y`
         need not share a dtype. Materializes both via
@@ -2624,8 +2625,8 @@ struct Plot(Copyable, Movable):
 
         Args:
             x: The continuous x column, one entry per point -- a numpy
-                `ndarray`, a pandas `Series`, or a plain Python list of
-                numbers.
+                `ndarray`, a pandas `Series`, a MAX Tensor/Buffer, or a plain
+                Python list of numbers.
             y: The continuous y column, one entry per point -- same
                 shape as `x`.
             color: See `encode()`'s own docstring -- unchanged here,
@@ -3407,7 +3408,8 @@ struct Plot(Copyable, Movable):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """`encode_categorical()`'s `y` generalized to a numpy `ndarray`/pandas
-        `Series`/plain Python number list, as `encode()`'s `PythonObject`
+        `Series`/MAX Tensor or Buffer/plain Python number list, as
+        `encode()`'s `PythonObject`
         overload is (see numpy_interop.mojo). `x` stays a concrete
         `List[String]`. Materializes `y` via `_materialize_python_floats` and
         delegates to the concrete overload.
@@ -3415,7 +3417,8 @@ struct Plot(Copyable, Movable):
         Args:
             x: One category per entry, in the given order.
             y: Each category's value -- a numpy `ndarray`, a pandas
-                `Series`, or a plain Python list of numbers.
+                `Series`, a MAX Tensor/Buffer, or a plain Python list of
+                numbers.
             y_err: See `encode_categorical()`'s own docstring.
             y_err_lower: See `encode_categorical()`'s own docstring.
             y_err_upper: See `encode_categorical()`'s own docstring.
@@ -3921,10 +3924,10 @@ struct Plot(Copyable, Movable):
         end: List[Float64],
     ) raises -> Self:
         """Map a category column and two value columns (`start`/`end`) onto
-        `Mark.GANTT`/`SPAN_CHART`'s span shape. Plain `Float64`, not a
-        date/time type (this package has none); a schedule's dates are
-        whatever numbers the caller's data uses, which is also why this mark
-        doubles as a generic span chart. Length checking is deferred to
+        `Mark.GANTT`/`SPAN_CHART`'s span shape. This overload takes plain
+        `Float64`; use `encode_gantt_time()` for `Morrow` dates on a dated
+        Gantt axis. Numeric spans also serve generic span charts.
+        Length checking is deferred to
         render() time. `start[i] > end[i]` is allowed: bars draw from `min`
         to `max`.
 
@@ -3949,6 +3952,38 @@ struct Plot(Copyable, Movable):
         self._continuous.y = List[Float64]()
         self._gantt.start = start.copy()
         self._gantt.end = end.copy()
+        self._x_time = False
+        return self^
+
+    def encode_gantt_time(
+        var self,
+        categories: List[String],
+        start: List[Morrow],
+        end: List[Morrow],
+    ) raises -> Self:
+        """Map Gantt task spans to a date-aware continuous x-axis.
+
+        The first start's time zone sets tick labels. Mixed zones still
+        place bars at their absolute instants. Length checks remain at
+        render time, as with `encode_gantt()`.
+        """
+        _require_mark(
+            self._mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT
+        )
+        var start_seconds = List[Float64](capacity=len(start))
+        var end_seconds = List[Float64](capacity=len(end))
+        for value in start:
+            start_seconds.append(value.timestamp())
+        for value in end:
+            end_seconds.append(value.timestamp())
+        self._categorical.x = categories.copy()
+        self._continuous.x = List[Float64]()
+        self._continuous.y = List[Float64]()
+        self._gantt.start = start_seconds^
+        self._gantt.end = end_seconds^
+        self._x_time = True
+        if len(start) > 0:
+            self._x_tz_offset = start[0].tz.offset
         return self^
 
     def encode_grouped_bar(

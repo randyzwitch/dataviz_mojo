@@ -17,6 +17,7 @@ from dataviz import (
     eventplot,
     grouped_bar,
     marimekko,
+    radar,
     ridgeline,
     stacked_area,
     stacked_bar,
@@ -464,6 +465,55 @@ def test_every_multi_series_mark_takes_a_long_frame() raises:
     )
     for svg in svgs:
         assert_true(">widgets<" in svg, "every mark names its series")
+
+
+def _radar_frame() raises -> DataFrame:
+    return DataFrame(
+        [
+            Series(
+                "metric",
+                Column[String](["accuracy", "speed", "accuracy", "speed"]),
+            ),
+            Series("model", Column[String](["A", "A", "B", "B"])),
+            Series("score", Column[Float64]([8.0, 70.0, 9.0, 60.0])),
+            Series("ceiling", Column[Float64]([10.0, 100.0, 10.0, 100.0])),
+        ]
+    )
+
+
+def test_radar_frame_matches_long_form_lists() raises:
+    var by_frame = render_svg(
+        radar(
+            _radar_frame(),
+            indicator="metric",
+            series="model",
+            value="score",
+            max_value="ceiling",
+            width=420,
+            height=320,
+        )
+    ).to_string()
+    var indicators: List[String] = ["accuracy", "speed"]
+    var maxima: List[Float64] = [10.0, 100.0]
+    var names: List[String] = ["A", "B"]
+    var values: List[List[Float64]] = [[8.0, 70.0], [9.0, 60.0]]
+    var by_list = render_svg(
+        radar(indicators, maxima, names, values, width=420, height=320)
+    ).to_string()
+    assert_equal(by_frame, by_list)
+
+
+def test_radar_frame_rejects_inconsistent_maxima() raises:
+    var df = DataFrame(
+        [
+            Series("metric", Column[String](["accuracy", "accuracy"])),
+            Series("model", Column[String](["A", "B"])),
+            Series("score", Column[Float64]([8.0, 9.0])),
+            Series("ceiling", Column[Float64]([10.0, 11.0])),
+        ]
+    )
+    with assert_raises(contains='maximum for indicator "accuracy" differs'):
+        _ = radar(df, "metric", "model", "score", "ceiling")
 
 
 def main() raises:

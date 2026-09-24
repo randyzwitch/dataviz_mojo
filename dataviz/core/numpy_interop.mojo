@@ -1,8 +1,10 @@
-"""Convert numpy, pandas, and Python numeric arrays to Mojo floats.
+"""Convert numpy, pandas, MAX, and Python numeric arrays to Mojo floats.
 
 Array-like detection and numeric conversion are delegated to numpy:
 `np.ascontiguousarray(array, dtype="float64")` accepts an `ndarray` of
 any numeric dtype, a plain Python list, and a pandas `Series` directly.
+Objects with `to_numpy()` (including MAX Tensor and Buffer) first copy
+their data to a host NumPy array.
 `std.python.numpy.from_numpy_array` borrows the contiguous result, which is
 then copied into `List[Float64]`.
 
@@ -19,12 +21,16 @@ from std.python.numpy import from_numpy_array
 
 
 def _materialize_python_floats(array: PythonObject) raises -> List[Float64]:
-    """Copy a numpy `ndarray`/pandas `Series`/plain Python number list into a
-    `List[Float64]`. Raises with numpy's/`from_numpy_array`'s own message
-    on anything that can't become a 1-D numeric array.
+    """Copy a numeric Python array, including MAX Tensor or Buffer, into a
+    `List[Float64]`. Calls `to_numpy()` when available before converting
+    to contiguous float64 storage. Raises with NumPy's own message when
+    the value cannot become a one-dimensional numeric array.
     """
     var np = Python.import_module("numpy")
-    var contig = np.ascontiguousarray(array, dtype="float64")
+    var source = array
+    if Bool(Python.import_module("builtins").hasattr(array, "to_numpy")):
+        source = array.to_numpy()
+    var contig = np.ascontiguousarray(source, dtype="float64")
     var span = from_numpy_array[DType.float64](contig)
     var out = List[Float64](capacity=len(span))
     for v in span:

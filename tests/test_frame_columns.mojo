@@ -18,13 +18,16 @@ from std.math import nan
 from _test_helpers import _attr_values
 
 from dataviz import (
+    arc_diagram,
     area,
     calendar_heatmap,
     candlestick,
     corrplot,
+    dendrogram,
     ecdf,
     funnel,
     gauge,
+    gantt,
     heatmap,
     histogram,
     kdeplot,
@@ -124,6 +127,33 @@ def test_three_columns_two_strings_and_a_number() raises:
         heatmap(xs, ys, vs, width=400, height=300)
     ).to_string()
     assert_equal(by_frame, by_list, "heatmap: same document")
+
+
+def test_arc_diagram_edge_columns() raises:
+    var sources: List[String] = ["alpha", "beta", "alpha"]
+    var destinations: List[String] = ["beta", "gamma", "gamma"]
+    var weights: List[Float64] = [1.0, 2.0, 3.0]
+    var df = DataFrame(
+        [
+            Series("source", Column[String](sources.copy())),
+            Series("destination", Column[String](destinations.copy())),
+            Series("weight", Column[Float64](weights.copy())),
+        ]
+    )
+    var by_frame = render_svg(
+        arc_diagram(
+            df,
+            from_categories="source",
+            to_categories="destination",
+            values="weight",
+            width=400,
+            height=300,
+        )
+    ).to_string()
+    var by_list = render_svg(
+        arc_diagram(sources, destinations, weights, width=400, height=300)
+    ).to_string()
+    assert_equal(by_frame, by_list, "arc_diagram: same document")
 
 
 def test_four_numeric_columns() raises:
@@ -634,6 +664,47 @@ def test_parallel_all_missing_row_has_no_path() raises:
     )
 
 
+def test_gantt_reads_temporal_start_and_end_columns() raises:
+    var tasks: List[String] = ["Build", "Ship"]
+    var start_days: List[Int64] = [19783, 19786]
+    var end_days: List[Int64] = [19786, 19787]
+    var df = DataFrame(
+        [
+            Series("task", Column[String](tasks.copy())),
+            Series("start", Column[Int64](start_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+            Series("end", Column[Int64](end_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+        ]
+    )
+    var expected = render_svg(
+        gantt(
+            tasks,
+            [Morrow.get(2024, 3, 1), Morrow.get(2024, 3, 4)],
+            [Morrow.get(2024, 3, 4), Morrow.get(2024, 3, 5)],
+            x_title="start",
+        )
+    ).to_string()
+    var from_frame = gantt(df, categories="task", start="start", end="end")
+    assert_true(from_frame._x_time, "temporal columns use a time axis")
+    assert_equal(
+        render_svg(from_frame).to_string(), expected, "date columns match lists"
+    )
+    var mismatch = DataFrame(
+        [
+            Series("task", Column[String](tasks.copy())),
+            Series("start", Column[Int64](start_days.copy())).with_dtype(
+                DataType.DATE
+            ),
+            Series("end", Column[Float64]([1.0, 2.0])),
+        ]
+    )
+    with assert_raises(contains="both be temporal or both numeric"):
+        _ = gantt(mismatch, categories="task", start="start", end="end")
+
+
 def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
     var dates: List[Morrow] = [
         Morrow.get(2024, 3, 1),
@@ -716,6 +787,38 @@ def test_gauge_reads_exactly_one_frame_row() raises:
     )
     with assert_raises(contains="reading is missing"):
         _ = gauge(missing, value="reading")
+
+
+def test_dendrogram_clusters_frame_rows_by_named_features() raises:
+    var frame = DataFrame(
+        [
+            Series("name", Column[String](["A", "B", "C"])),
+            Series("f1", Column[Float64]([0.0, 1.0, 10.0])),
+            Series("f2", Column[Float64]([0.0, 1.0, 10.0])),
+        ]
+    )
+    var by_frame = render_svg(
+        dendrogram(
+            frame,
+            features=["f1", "f2"],
+            labels="name",
+            width=360,
+            height=260,
+        )
+    ).to_string()
+    var by_rows = render_svg(
+        dendrogram(
+            [[0.0, 0.0], [1.0, 1.0], [10.0, 10.0]],
+            labels=["A", "B", "C"],
+            width=360,
+            height=260,
+        )
+    ).to_string()
+    assert_equal(by_frame, by_rows, "frame rows match list rows")
+    with assert_raises(contains="at least one column"):
+        _ = dendrogram(frame, features=List[String]())
+    with assert_raises(contains='no column named "absent"'):
+        _ = dendrogram(frame, features=["absent"])
 
 
 def main() raises:
