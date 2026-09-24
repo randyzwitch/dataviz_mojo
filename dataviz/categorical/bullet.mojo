@@ -6,7 +6,6 @@ from dataframe import DataFrame
 from std.utils.numerics import isfinite
 
 from dataviz.core.frame_input import _frame_floats, _frame_strings
-from dataviz.core.missing import Missing
 
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.color_scale import ColorScale
@@ -535,13 +534,13 @@ def bullet(
         theme.missing,
         theme.missing_category_label,
     )
-    var measure_values = _frame_floats(df, measures, "bullet()", Missing.RAISE)
-    var target_values = _frame_floats(df, targets, "bullet()", Missing.RAISE)
+    var measure_values = _frame_floats(df, measures, "bullet()")
+    var target_values = _frame_floats(df, targets, "bullet()")
     _require_finite_bullet_frame_column(measure_values, measures)
     _require_finite_bullet_frame_column(target_values, targets)
     var range_columns = List[List[Float64]](capacity=len(ranges))
     for name in ranges:
-        var thresholds = _frame_floats(df, name, "bullet()", Missing.RAISE)
+        var thresholds = _frame_floats(df, name, "bullet()")
         _require_finite_bullet_frame_column(thresholds, name)
         range_columns.append(thresholds^)
     var row_ranges = List[List[Float64]](capacity=len(category_values))

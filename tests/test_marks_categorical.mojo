@@ -3183,6 +3183,22 @@ def test_bullet_frame_reads_row_specific_range_columns() raises:
             targets="goal",
             ranges=["high"],
         )
+    var null_measure = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([84.0], [False])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([100.0])),
+        ]
+    )
+    with assert_raises(contains='column "actual" has a non-finite value'):
+        _ = bullet(
+            null_measure,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
+        )
     var bad_range = DataFrame(
         [
             Series("region", Column[String](["North"])),
