@@ -19,6 +19,7 @@ from dataviz import (
     area,
     calendar_heatmap,
     candlestick,
+    corrplot,
     ecdf,
     funnel,
     heatmap,
@@ -456,6 +457,38 @@ def test_ecdf_complementary_survives_the_frame_overload() raises:
         ecdf(df, values="latency", complementary=True, width=360, height=300)
     ).to_string()
     assert_true(normal != complementary, "complementary=True changed nothing")
+
+
+def test_corrplot_computes_pearson_matrix_from_frame() raises:
+    var df = DataFrame(
+        [
+            Series("x", Column[Float64]([1.0, 2.0, 3.0])),
+            Series("reverse", Column[Float64]([3.0, 2.0, 1.0])),
+            Series("curve", Column[Float64]([1.0, 0.0, 1.0])),
+            Series("flat", Column[Float64]([4.0, 4.0, 4.0])),
+        ]
+    )
+    var names: List[String] = ["x", "reverse", "curve"]
+    var expected: List[List[Float64]] = [
+        [1.0, -1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]
+    var by_frame = render_svg(
+        corrplot(df, columns=names, width=360, height=300)
+    ).to_string()
+    var by_matrix = render_svg(
+        corrplot(names, expected, width=360, height=300)
+    ).to_string()
+    assert_equal(by_frame, by_matrix, "frame computes the expected matrix")
+    with assert_raises(contains='duplicate column "x"'):
+        _ = corrplot(df, columns=["x", "x"])
+    with assert_raises(contains='no column named "absent"'):
+        _ = corrplot(df, columns=["x", "absent"])
+    with assert_raises(
+        contains='columns "x" and "flat": correlation is undefined'
+    ):
+        _ = corrplot(df, columns=["x", "flat"])
 
 
 def test_tricontour_frame_levels_are_independent_of_rows() raises:
