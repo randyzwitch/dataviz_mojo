@@ -26,6 +26,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BoxenData(Copyable, Movable):
@@ -455,3 +456,44 @@ def boxenplot[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_boxenplot(
+    mut plot: Plot,
+    categories: List[String],
+    values: List[List[Float64]],
+) raises:
+    """`Plot.encode_boxenplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT
+    )
+    if len(categories) != len(values):
+        raise Error(
+            "Plot.encode_boxenplot(): categories and values must have"
+            " the same length (got "
+            + String(len(categories))
+            + " and "
+            + String(len(values))
+            + ")"
+        )
+    var data = _BoxenData()
+    for i in range(len(values)):
+        if len(values[i]) == 0:
+            raise Error(
+                "Plot.encode_boxenplot(): category "
+                + categories[i]
+                + " has no values -- a letter-value plot needs at least"
+                " one observation per category"
+            )
+        var lv = _letter_values(values[i])
+        data.median.append(lv.median)
+        data.lower.append(lv.lower.copy())
+        data.upper.append(lv.upper.copy())
+        for v in lv.outliers:
+            data.outlier_cat.append(i)
+            data.outlier_value.append(v)
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._boxen = data^

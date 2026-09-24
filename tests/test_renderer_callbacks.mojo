@@ -21,7 +21,7 @@ from dataviz import (
     render_layers_svg,
     render_layers_pdf,
 )
-from dataviz.core.mark import Mark
+from dataviz.core.mark import Mark, _MarkFamily
 from dataviz.plot import render_tight, render_tight_svg, render_tight_pdf
 
 
@@ -128,6 +128,20 @@ def test_count_is_one_past_the_last_named_mark() raises:
         not Mark(Mark.COUNT - 1).name().startswith("Mark("),
         "Mark.COUNT is past the last named mark",
     )
+
+
+def test_every_mark_has_a_family() raises:
+    # `Plot._set_mark()` binds render callbacks from `Mark._family()`
+    # alone. A mark with no row there binds nothing, so its plot keeps
+    # the previous mark's renderer -- the continuous path, for a fresh
+    # `Plot()` -- and fails at render time with an error that names
+    # neither the mark nor the table. Name both here instead.
+    for value in range(Mark.COUNT):
+        var mark = Mark(value)
+        assert_true(
+            not (mark._family() == _MarkFamily.UNASSIGNED),
+            mark.name() + " has no row in Mark._family() (core/mark.mojo)",
+        )
 
 
 def test_dendrogram_is_in_the_enumerated_registry() raises:

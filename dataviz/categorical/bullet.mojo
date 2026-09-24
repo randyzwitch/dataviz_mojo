@@ -35,6 +35,7 @@ from dataviz.categorical.gantt import (
 )
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BulletData(Copyable, Movable):
@@ -564,3 +565,21 @@ def bullet(
         x_title=x_title if x_title.byte_length() > 0 else categories,
         y_title=y_title if y_title.byte_length() > 0 else measures,
     )
+
+
+def _encode_bullet(
+    mut plot: Plot,
+    categories: List[String],
+    measures: List[Float64],
+    targets: List[Float64],
+    ranges: List[List[Float64]],
+) raises:
+    """`Plot.encode_bullet()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_bullet", "mark_bullet()", Mark.BULLET)
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._bullet.measure = measures.copy()
+    plot._bullet.target = targets.copy()
+    plot._bullet.ranges = ranges.copy()

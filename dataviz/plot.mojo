@@ -19,8 +19,9 @@ top of every mark and annotation. Raster draws use the anti-aliased
 `Canvas` variants throughout.
 
 This file holds the `Plot` struct -- whose methods must live with its
-definition, so `encode_binned_categories()`/`encode_waterfall()` delegate to
-free functions in their mark's file -- along with the channel and
+definition, so each `encode_*()` method is its signature, its docstring
+and a call to an `_encode_*` function in its mark's file, which holds
+the logic -- along with the channel and
 settings structs every mark shares, and `_finished()`. A data struct
 only one mark family reads lives in that family's file instead
 (`_GanttData` in gantt.mojo, `_BoxData` in box.mojo, ...). Every mark's
@@ -55,13 +56,15 @@ import _Orientation` still resolves, as it did before the split.
 ## Family callback registration
 
 `Plot` stores four noncapturing function pointers, specialized for
-Canvas, SVG, PDF, and BoundsTarget. Each `mark_*()` setter binds all four
-to its own family adapter. `_render_generic` invokes only the callback for its
-concrete backend; it does not probe every family. Default plots and
-continuous marks bind `_callback_continuous` and continue through the
-shared continuous path. Copies and moves carry these pointers with the
-payloads. Mark changes must replace all four pointers, including changes
-back to a continuous mark, so a previous renderer cannot remain attached.
+Canvas, SVG, PDF, and BoundsTarget. Each `mark_*()` setter calls
+`_set_mark()`, which binds all four to the adapters of the family
+`Mark._family()` names, so a mark change always replaces all four --
+including a change back to a continuous mark -- and a previous
+renderer cannot remain attached. `_render_generic` invokes only the
+callback for its concrete backend; it does not probe every family.
+Default plots and continuous marks bind `_callback_continuous` and
+continue through the shared continuous path. Copies and moves carry
+these pointers with the payloads.
 
 Registering a family still references all four target specializations;
 it avoids unused families, not unused backends. The builder still imports
@@ -80,17 +83,18 @@ which is why they are written down rather than left to the compiler:
    `COUNT` left behind silently skips the new mark (#634);
    `test_count_is_one_past_the_last_named_mark` is what fails for it.
 2. **The data.** Its payload struct as a `Plot` field, initialized in
-   `__init__`; the `mark_*()` setter; and an `encode_*()` that calls
-   `_require_mark` with the marks it serves.
+   `__init__`; the `mark_*()` setter; and an `encode_*()` method that
+   forwards every argument to `_encode_*(plot, ...)` in the mark's
+   file, which calls `_require_mark` with the marks it serves and fills
+   the payload. An overload that only converts its input and chains to
+   another `encode_*()` stays on `Plot`.
 3. **The render.** The `_render_*` function, and its arm in the family's
    `_render_<family>_family` in `dataviz/<family>/dispatch.mojo`.
-4. **The registration.** In the `mark_*()` setter, bind all four of the
-   family's adapters: `_callback_<family>[Canvas]`, `[SvgCanvas]`,
-   `[PdfCanvas]` and `[BoundsTarget]`. *Fails late*: a setter that binds
-   nothing compiles, keeps the default `_callback_continuous`, and at
-   render time falls through to the continuous path and raises
-   `Plot.encode(): there is no data to draw` -- naming neither the mark
-   nor the missing registration.
+4. **The registration.** Add the mark to its family's row in
+   `Mark._family()` (`dataviz/core/mark.mojo`), and have the `mark_*()`
+   setter call `self._set_mark(Mark.X)`, which binds that family's four
+   adapters. A mark with no row fails
+   `test_every_mark_has_a_family`, naming it.
 5. **The export.** Add the one-call function to `dataviz/__init__.mojo`.
 6. **The registry.** A representative constructor in
    `tests/_mark_registry.mojo`, then `pixi run digest-update`, and check
@@ -259,7 +263,13 @@ from dataviz.core.step_style import StepStyle
 from morrow import Morrow
 
 from dataviz.core.delaunay import Triangulation, delaunay
-from dataviz.core.mark import Feature, Mark, _require_mark, _supporting_names
+from dataviz.core.mark import (
+    Feature,
+    Mark,
+    _MarkFamily,
+    _require_mark,
+    _supporting_names,
+)
 from dataviz.core.marker import PointShape
 from dataviz.basic.dispatch import _callback_basic
 from dataviz.categorical.dispatch import _callback_categorical
@@ -425,6 +435,53 @@ from dataviz.core.tooltip_labels import (
     _tooltip_label,
     _xyz_tooltip_label,
 )
+
+
+from dataviz.basic.bar import (
+    _encode_binned_categories,
+    _encode_categorical,
+    _encode_time_bars,
+)
+from dataviz.basic.continuous import _encode, _encode_frame, _encode_time
+from dataviz.basic.single_axis import _encode_single_axis
+from dataviz.binned.hexbin import _encode_hexbin
+from dataviz.binned.histogram import _encode_histogram_bins
+from dataviz.categorical.bullet import _encode_bullet
+from dataviz.categorical.gantt import _encode_gantt, _encode_gantt_time
+from dataviz.categorical.grouped_bar import _encode_grouped_bar
+from dataviz.categorical.population_pyramid import _encode_population_pyramid
+from dataviz.categorical.waterfall import _encode_waterfall
+from dataviz.distributions.box import _encode_boxplot
+from dataviz.distributions.boxen import _encode_boxenplot
+from dataviz.distributions.candlestick import (
+    _encode_candlestick,
+    _encode_candlestick_time,
+)
+from dataviz.distributions.eventplot import _encode_eventplot
+from dataviz.distributions.kde import _encode_kde
+from dataviz.distributions.violin import _encode_distribution
+from dataviz.grid.calendar_heatmap import _encode_calendar
+from dataviz.grid.corrplot import _encode_corrplot
+from dataviz.grid.heatmap import _encode_heatmap
+from dataviz.grid.image import _encode_hist2d, _encode_pcolormesh
+from dataviz.grid.marimekko import _encode_marimekko
+from dataviz.grid.punchcard import _encode_punchcard
+from dataviz.hierarchy_marks.dendrogram import _encode_dendrogram
+from dataviz.hierarchy_marks.hierarchy import _encode_hierarchy
+from dataviz.multivariate.barbs import _encode_barbs
+from dataviz.multivariate.contour import _encode_contour
+from dataviz.multivariate.parallel import _encode_parallel
+from dataviz.multivariate.streamplot import _encode_streamplot
+from dataviz.multivariate.tricontour import _encode_tricontour
+from dataviz.multivariate.triplot import _encode_triplot
+from dataviz.radial.gauge import _encode_gauge
+from dataviz.radial.polar import _encode_polar, _encode_polar_series
+from dataviz.radial.radar import _encode_radar
+from dataviz.relationships.edges import _encode_chord
+from dataviz.spatial.bar3d import _encode_bars3d, _encode_voxels
+from dataviz.spatial.scatter3d import _encode_xyz
+from dataviz.spatial.stem3d import _encode_ribbon3d, _encode_vectors3d
+from dataviz.spatial.surface3d import _encode_surface
 
 
 struct _ContinuousData(Copyable, Movable):
@@ -934,6 +991,82 @@ struct Plot(Copyable, Movable):
         self.width = 640
         self.height = 420
 
+    def _set_mark(mut self, mark: Mark):
+        """Make `mark` this plot's mark and bind its family's render
+        callbacks for Canvas, SVG, PDF and BoundsTarget, which family
+        comes from `Mark._family()`. Every `mark_*()` setter goes
+        through here, so the four bindings cannot disagree with each
+        other or with the mark. (`__init__` assigns POINT's directly:
+        a method cannot run on a half-initialized `self`.)
+
+        A mark `_family()` has no row for gets
+        `_MarkFamily.UNASSIGNED` and binds nothing, leaving whatever the
+        previous mark bound; `test_every_mark_has_a_family` fails
+        for it before that can matter.
+        """
+        self._mark = mark
+        var family = mark._family()
+        if family == _MarkFamily.CONTINUOUS:
+            self._render_canvas_family = _callback_continuous[Canvas]
+            self._render_svg_family = _callback_continuous[SvgCanvas]
+            self._render_pdf_family = _callback_continuous[PdfCanvas]
+            self._render_bounds_family = _callback_continuous[BoundsTarget]
+        elif family == _MarkFamily.BASIC:
+            self._render_canvas_family = _callback_basic[Canvas]
+            self._render_svg_family = _callback_basic[SvgCanvas]
+            self._render_pdf_family = _callback_basic[PdfCanvas]
+            self._render_bounds_family = _callback_basic[BoundsTarget]
+        elif family == _MarkFamily.CATEGORICAL:
+            self._render_canvas_family = _callback_categorical[Canvas]
+            self._render_svg_family = _callback_categorical[SvgCanvas]
+            self._render_pdf_family = _callback_categorical[PdfCanvas]
+            self._render_bounds_family = _callback_categorical[BoundsTarget]
+        elif family == _MarkFamily.DISTRIBUTIONS:
+            self._render_canvas_family = _callback_distributions[Canvas]
+            self._render_svg_family = _callback_distributions[SvgCanvas]
+            self._render_pdf_family = _callback_distributions[PdfCanvas]
+            self._render_bounds_family = _callback_distributions[BoundsTarget]
+        elif family == _MarkFamily.BINNED:
+            self._render_canvas_family = _callback_binned[Canvas]
+            self._render_svg_family = _callback_binned[SvgCanvas]
+            self._render_pdf_family = _callback_binned[PdfCanvas]
+            self._render_bounds_family = _callback_binned[BoundsTarget]
+        elif family == _MarkFamily.AGGREGATION:
+            self._render_canvas_family = _callback_aggregation[Canvas]
+            self._render_svg_family = _callback_aggregation[SvgCanvas]
+            self._render_pdf_family = _callback_aggregation[PdfCanvas]
+            self._render_bounds_family = _callback_aggregation[BoundsTarget]
+        elif family == _MarkFamily.RELATIONSHIPS:
+            self._render_canvas_family = _callback_relationships[Canvas]
+            self._render_svg_family = _callback_relationships[SvgCanvas]
+            self._render_pdf_family = _callback_relationships[PdfCanvas]
+            self._render_bounds_family = _callback_relationships[BoundsTarget]
+        elif family == _MarkFamily.RADIAL:
+            self._render_canvas_family = _callback_radial[Canvas]
+            self._render_svg_family = _callback_radial[SvgCanvas]
+            self._render_pdf_family = _callback_radial[PdfCanvas]
+            self._render_bounds_family = _callback_radial[BoundsTarget]
+        elif family == _MarkFamily.MULTIVARIATE:
+            self._render_canvas_family = _callback_multivariate[Canvas]
+            self._render_svg_family = _callback_multivariate[SvgCanvas]
+            self._render_pdf_family = _callback_multivariate[PdfCanvas]
+            self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        elif family == _MarkFamily.SPATIAL:
+            self._render_canvas_family = _callback_spatial[Canvas]
+            self._render_svg_family = _callback_spatial[SvgCanvas]
+            self._render_pdf_family = _callback_spatial[PdfCanvas]
+            self._render_bounds_family = _callback_spatial[BoundsTarget]
+        elif family == _MarkFamily.GRID:
+            self._render_canvas_family = _callback_grid[Canvas]
+            self._render_svg_family = _callback_grid[SvgCanvas]
+            self._render_pdf_family = _callback_grid[PdfCanvas]
+            self._render_bounds_family = _callback_grid[BoundsTarget]
+        elif family == _MarkFamily.HIERARCHY_MARKS:
+            self._render_canvas_family = _callback_hierarchy_marks[Canvas]
+            self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
+            self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
+            self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
+
     def size(var self, width: Int, height: Int) -> Self:
         """Set the dimensions `render()`/`render_svg()`/`save()` construct
         their target at. Defaults to 640x420.
@@ -1035,11 +1168,7 @@ struct Plot(Copyable, Movable):
                 + ", jitter_y="
                 + String(jitter_y)
             )
-        self._mark = Mark.POINT
-        self._render_canvas_family = _callback_continuous[Canvas]
-        self._render_svg_family = _callback_continuous[SvgCanvas]
-        self._render_pdf_family = _callback_continuous[PdfCanvas]
-        self._render_bounds_family = _callback_continuous[BoundsTarget]
+        self._set_mark(Mark.POINT)
         self._mark_style.point_jitter_x = jitter_x
         self._mark_style.point_jitter_y = jitter_y
         return self^
@@ -1068,11 +1197,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.LINE
-        self._render_canvas_family = _callback_continuous[Canvas]
-        self._render_svg_family = _callback_continuous[SvgCanvas]
-        self._render_pdf_family = _callback_continuous[PdfCanvas]
-        self._render_bounds_family = _callback_continuous[BoundsTarget]
+        self._set_mark(Mark.LINE)
         self._mark_style.line_style = style
         self._mark_style.step = step
         return self^
@@ -1085,11 +1210,7 @@ struct Plot(Copyable, Movable):
         , via `_draw_horizontal_categorical_axis_frame` (gantt.mojo);
                 see `_render_horizontal_bar` (bar.mojo).
         """
-        self._mark = Mark.BAR
-        self._render_canvas_family = _callback_basic[Canvas]
-        self._render_svg_family = _callback_basic[SvgCanvas]
-        self._render_pdf_family = _callback_basic[PdfCanvas]
-        self._render_bounds_family = _callback_basic[BoundsTarget]
+        self._set_mark(Mark.BAR)
         self._horizontal = horizontal
         return self^
 
@@ -1112,11 +1233,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.AREA
-        self._render_canvas_family = _callback_continuous[Canvas]
-        self._render_svg_family = _callback_continuous[SvgCanvas]
-        self._render_pdf_family = _callback_continuous[PdfCanvas]
-        self._render_bounds_family = _callback_continuous[BoundsTarget]
+        self._set_mark(Mark.AREA)
         self._mark_style.step = step
         return self^
 
@@ -1142,11 +1259,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.HISTOGRAM
-        self._render_canvas_family = _callback_continuous[Canvas]
-        self._render_svg_family = _callback_continuous[SvgCanvas]
-        self._render_pdf_family = _callback_continuous[PdfCanvas]
-        self._render_bounds_family = _callback_continuous[BoundsTarget]
+        self._set_mark(Mark.HISTOGRAM)
         self._histogram.horizontal = horizontal
         return self^
 
@@ -1156,11 +1269,7 @@ struct Plot(Copyable, Movable):
         non-negative and at least one positive, checked at render() time.
         `inner_radius_fraction > 0.0` (in `[0.0, 1.0)`) makes a donut.
         """
-        self._mark = Mark.ARC
-        self._render_canvas_family = _callback_basic[Canvas]
-        self._render_svg_family = _callback_basic[SvgCanvas]
-        self._render_pdf_family = _callback_basic[PdfCanvas]
-        self._render_bounds_family = _callback_basic[BoundsTarget]
+        self._set_mark(Mark.ARC)
         self._mark_style.donut_inner_radius_fraction = inner_radius_fraction
         return self^
 
@@ -1181,11 +1290,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.NIGHTINGALE
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.NIGHTINGALE)
         self._nightingale.area = area
         return self^
 
@@ -1197,11 +1302,7 @@ struct Plot(Copyable, Movable):
         `value / max(values)`; there is no `area` mode. Every value must be
         non-negative and at least one positive, checked at render() time.
         """
-        self._mark = Mark.POLAR_BAR
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.POLAR_BAR)
         self._mark_style.polar_bar_padding = padding
         return self^
 
@@ -1214,11 +1315,7 @@ struct Plot(Copyable, Movable):
         must be non-negative and at least one positive, checked at render()
         time.
         """
-        self._mark = Mark.RADIALBAR
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.RADIALBAR)
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
@@ -1231,11 +1328,7 @@ struct Plot(Copyable, Movable):
         `encode_polar_series()` (several named series sharing one angle
         domain). See `_render_polar`.
         """
-        self._mark = Mark.POLAR
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.POLAR)
         self._mark_style.polar_grid_rings = grid_rings
         self._mark_style.polar_grid_spokes = grid_spokes
         return self^
@@ -1245,11 +1338,7 @@ struct Plot(Copyable, Movable):
         named series, with `grid_rings` web rings. Encoded via
         `encode_radar()`.
         """
-        self._mark = Mark.RADAR
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.RADAR)
         self._mark_style.radar_grid_rings = grid_rings
         return self^
 
@@ -1266,11 +1355,7 @@ struct Plot(Copyable, Movable):
         are fractions of the dial radius; `start_angle`/`sweep_angle` are
         radians (the defaults give a 270-degree dial opening downward).
         """
-        self._mark = Mark.GAUGE
-        self._render_canvas_family = _callback_radial[Canvas]
-        self._render_svg_family = _callback_radial[SvgCanvas]
-        self._render_pdf_family = _callback_radial[PdfCanvas]
-        self._render_bounds_family = _callback_radial[BoundsTarget]
+        self._set_mark(Mark.GAUGE)
         self._mark_style.gauge_band_inner_fraction = band_inner_fraction
         self._mark_style.gauge_needle_fraction = needle_fraction
         self._mark_style.gauge_start_angle = start_angle
@@ -1282,11 +1367,7 @@ struct Plot(Copyable, Movable):
         evenly spaced, independently scaled vertical axes, one per dimension.
         Encoded via `encode_parallel()`.
         """
-        self._mark = Mark.PARALLEL
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.PARALLEL)
         return self^
 
     def mark_pointplot(var self, horizontal: Bool = False) -> Self:
@@ -1303,12 +1384,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.POINTPLOT
+        self._set_mark(Mark.POINTPLOT)
         self._horizontal = horizontal
-        self._render_canvas_family = _callback_aggregation[Canvas]
-        self._render_svg_family = _callback_aggregation[SvgCanvas]
-        self._render_pdf_family = _callback_aggregation[PdfCanvas]
-        self._render_bounds_family = _callback_aggregation[BoundsTarget]
         return self^
 
     def mark_lollipop(var self, horizontal: Bool = False) -> Self:
@@ -1318,11 +1395,7 @@ struct Plot(Copyable, Movable):
         extending to the right; see `_render_horizontal_lollipop`
         (lollipop.mojo).
         """
-        self._mark = Mark.LOLLIPOP
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.LOLLIPOP)
         self._horizontal = horizontal
         return self^
 
@@ -1337,11 +1410,7 @@ struct Plot(Copyable, Movable):
         `delta_width_fraction` is a delta bar's width as a fraction of the
         band, applied only when `is_total` rows are in use.
         """
-        self._mark = Mark.WATERFALL
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.WATERFALL)
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         self._horizontal = horizontal
         return self^
@@ -1359,11 +1428,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.BOXENPLOT
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.BOXENPLOT)
         self._horizontal = horizontal
         return self^
 
@@ -1374,11 +1439,7 @@ struct Plot(Copyable, Movable):
         (default `False`) draws categories top-to-bottom with each box
         left-to-right; see `_render_horizontal_box` (box.mojo).
         """
-        self._mark = Mark.BOX
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.BOX)
         self._horizontal = horizontal
         return self^
 
@@ -1386,11 +1447,7 @@ struct Plot(Copyable, Movable):
         """A candlestick chart: one open/high/low/close bar per category.
         Encoded via `encode_candlestick()`.
         """
-        self._mark = Mark.CANDLESTICK
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.CANDLESTICK)
         return self^
 
     def mark_bullet(
@@ -1403,11 +1460,7 @@ struct Plot(Copyable, Movable):
         `encode_bullet()`. `measure_width_fraction` is the measure bar's
         width as a fraction of the band.
         """
-        self._mark = Mark.BULLET
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.BULLET)
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         self._horizontal = horizontal
         return self^
@@ -1418,11 +1471,7 @@ struct Plot(Copyable, Movable):
         `encode_gantt()`. See `mark_span_chart()` for the same data drawn
         vertically.
         """
-        self._mark = Mark.GANTT
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.GANTT)
         return self^
 
     def mark_span_chart(var self) -> Self:
@@ -1430,11 +1479,7 @@ struct Plot(Copyable, Movable):
         bar per category from a low value to a high value on the normal
         categorical x-axis. Encoded via `encode_gantt()`.
         """
-        self._mark = Mark.SPAN_CHART
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.SPAN_CHART)
         return self^
 
     def mark_calendar_heatmap(var self) -> Self:
@@ -1442,11 +1487,7 @@ struct Plot(Copyable, Movable):
         grid, colored through a continuous gradient. Encoded via
         `encode_calendar()` (`"YYYY-MM-DD"` dates).
         """
-        self._mark = Mark.CALENDAR_HEATMAP
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.CALENDAR_HEATMAP)
         return self^
 
     def mark_corrplot(
@@ -1475,11 +1516,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.CORRPLOT
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.CORRPLOT)
         self._corrplot.layout = layout
         self._corrplot.diag = diag
         self._corrplot.labels = labels
@@ -1500,11 +1537,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.PUNCHCARD
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.PUNCHCARD)
         self._punchcard.scale = scale
         return self^
 
@@ -1525,11 +1558,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.BARBS
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.BARBS)
         self._barbs.length = length
         self._barbs.flip = flip
         return self^
@@ -1551,11 +1580,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.QUIVER
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.QUIVER)
         self._barbs.scale = scale
         self._barbs.color_by_magnitude = color_by_magnitude
         return self^
@@ -1574,11 +1599,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.CONTOUR
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.CONTOUR)
         self._contour.level_count = levels
         return self^
 
@@ -1597,11 +1618,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.CONTOURF
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.CONTOURF)
         self._contour.level_count = levels
         return self^
 
@@ -1619,11 +1636,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.IMSHOW
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.IMSHOW)
         return self^
 
     def mark_pcolormesh(var self) -> Self:
@@ -1638,11 +1651,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.PCOLORMESH
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.PCOLORMESH)
         return self^
 
     def mark_hist2d(var self) -> Self:
@@ -1654,11 +1663,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.HIST2D
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.HIST2D)
         return self^
 
     def mark_hexbin(var self) -> Self:
@@ -1670,11 +1675,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.HEXBIN
-        self._render_canvas_family = _callback_binned[Canvas]
-        self._render_svg_family = _callback_binned[SvgCanvas]
-        self._render_pdf_family = _callback_binned[PdfCanvas]
-        self._render_bounds_family = _callback_binned[BoundsTarget]
+        self._set_mark(Mark.HEXBIN)
         return self^
 
     def mark_streamplot(
@@ -1699,11 +1700,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.STREAMPLOT
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.STREAMPLOT)
         self._stream.density = density
         self._stream.arrows = arrows
         self._stream.color_by_magnitude = color_by_magnitude
@@ -1723,11 +1720,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.TRICONTOUR
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.TRICONTOUR)
         self._tricontour.level_count = levels
         return self^
 
@@ -1746,11 +1739,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.TRICONTOURF
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.TRICONTOURF)
         self._tricontour.level_count = levels
         return self^
 
@@ -1768,11 +1757,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.DENDROGRAM
-        self._render_canvas_family = _callback_hierarchy_marks[Canvas]
-        self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
-        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
-        self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
+        self._set_mark(Mark.DENDROGRAM)
         self._dendrogram.horizontal = horizontal
         return self^
 
@@ -1805,27 +1790,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining -- `render()` raises later if the
             tree and the labels disagree.
         """
-        var left = List[Int](capacity=len(tree.merges))
-        var right = List[Int](capacity=len(tree.merges))
-        var height = List[Float64](capacity=len(tree.merges))
-        # The tree names leaves by their original row index; the drawing
-        # needs their position along the axis, which is where that row
-        # sits in the leaf order.
-        var position_of = List[Int](capacity=len(tree.leaf_order))
-        for _ in range(len(tree.leaf_order)):
-            position_of.append(0)
-        for i in range(len(tree.leaf_order)):
-            position_of[tree.leaf_order[i]] = i
-        var n = len(tree.leaf_order)
-        for m in tree.merges:
-            left.append(position_of[m.left] if m.left < n else m.left)
-            right.append(position_of[m.right] if m.right < n else m.right)
-            height.append(m.height)
-        self._dendrogram.left = left^
-        self._dendrogram.right = right^
-        self._dendrogram.height = height^
-        self._dendrogram.labels = labels.copy()
-        self._dendrogram.horizontal = horizontal
+        _encode_dendrogram(self, tree, labels, horizontal)
         return self^
 
     def mark_triplot(var self, show_points: Bool = True) -> Self:
@@ -1841,11 +1806,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.TRIPLOT
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.TRIPLOT)
         self._triplot.show_points = show_points
         return self^
 
@@ -1860,11 +1821,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.TRIPCOLOR
-        self._render_canvas_family = _callback_multivariate[Canvas]
-        self._render_svg_family = _callback_multivariate[SvgCanvas]
-        self._render_pdf_family = _callback_multivariate[PdfCanvas]
-        self._render_bounds_family = _callback_multivariate[BoundsTarget]
+        self._set_mark(Mark.TRIPCOLOR)
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -1873,11 +1830,7 @@ struct Plot(Copyable, Movable):
         each column's subcategory composition. Encoded via
         `encode_marimekko()`.
         """
-        self._mark = Mark.MARIMEKKO
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.MARIMEKKO)
         return self^
 
     def mark_sunburst(var self) -> Self:
@@ -1885,33 +1838,21 @@ struct Plot(Copyable, Movable):
         level, each node's angular span proportional to its share of its
         parent's total. Encoded via `encode_hierarchy()`.
         """
-        self._mark = Mark.SUNBURST
-        self._render_canvas_family = _callback_hierarchy_marks[Canvas]
-        self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
-        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
-        self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
+        self._set_mark(Mark.SUNBURST)
         return self^
 
     def mark_tree(var self) -> Self:
         """A tree diagram: a hierarchy as a top-to-bottom node-link diagram.
         Encoded via `encode_hierarchy()`.
         """
-        self._mark = Mark.TREE
-        self._render_canvas_family = _callback_hierarchy_marks[Canvas]
-        self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
-        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
-        self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
+        self._set_mark(Mark.TREE)
         return self^
 
     def mark_treemap(var self) -> Self:
         """A treemap: a hierarchy as nested, area-proportional rectangles via
         slice-and-dice. Encoded via `encode_hierarchy()`.
         """
-        self._mark = Mark.TREEMAP
-        self._render_canvas_family = _callback_hierarchy_marks[Canvas]
-        self._render_svg_family = _callback_hierarchy_marks[SvgCanvas]
-        self._render_pdf_family = _callback_hierarchy_marks[PdfCanvas]
-        self._render_bounds_family = _callback_hierarchy_marks[BoundsTarget]
+        self._set_mark(Mark.TREEMAP)
         return self^
 
     def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
@@ -1921,11 +1862,7 @@ struct Plot(Copyable, Movable):
         equal-height sub-bars; see `_render_horizontal_grouped_bar`
         (grouped_bar.mojo).
         """
-        self._mark = Mark.GROUPED_BAR
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.GROUPED_BAR)
         self._horizontal = horizontal
         return self^
 
@@ -1956,11 +1893,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.STACKED_BAR
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.STACKED_BAR)
         self._grouped_bar.percent = percent
         self._horizontal = horizontal
         return self^
@@ -1971,22 +1904,14 @@ struct Plot(Copyable, Movable):
         horizontal categorical frame. Encoded via
         `encode_population_pyramid()`.
         """
-        self._mark = Mark.POPULATION_PYRAMID
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.POPULATION_PYRAMID)
         return self^
 
     def mark_heatmap(var self) -> Self:
         """A heatmap: one colored grid cell per (x, y) category pair, on two
         categorical axes. Encoded via `encode_heatmap()`.
         """
-        self._mark = Mark.HEATMAP
-        self._render_canvas_family = _callback_grid[Canvas]
-        self._render_svg_family = _callback_grid[SvgCanvas]
-        self._render_pdf_family = _callback_grid[PdfCanvas]
-        self._render_bounds_family = _callback_grid[BoundsTarget]
+        self._set_mark(Mark.HEATMAP)
         return self^
 
     def mark_chord(var self, ring_fraction: Float64 = 0.08) -> Self:
@@ -1995,11 +1920,7 @@ struct Plot(Copyable, Movable):
         value. Encoded via `encode_chord()`. `ring_fraction` is the rim's
         thickness as a fraction of the radius. No axis frame.
         """
-        self._mark = Mark.CHORD
-        self._render_canvas_family = _callback_relationships[Canvas]
-        self._render_svg_family = _callback_relationships[SvgCanvas]
-        self._render_pdf_family = _callback_relationships[PdfCanvas]
-        self._render_bounds_family = _callback_relationships[BoundsTarget]
+        self._set_mark(Mark.CHORD)
         self._mark_style.chord_ring_fraction = ring_fraction
         return self^
 
@@ -2007,11 +1928,7 @@ struct Plot(Copyable, Movable):
         """An arc diagram: `mark_chord()`'s edge list drawn as nodes on one line
         connected by semicircular arcs. Encoded via `encode_chord()`.
         """
-        self._mark = Mark.ARC_DIAGRAM
-        self._render_canvas_family = _callback_relationships[Canvas]
-        self._render_svg_family = _callback_relationships[SvgCanvas]
-        self._render_pdf_family = _callback_relationships[PdfCanvas]
-        self._render_bounds_family = _callback_relationships[BoundsTarget]
+        self._set_mark(Mark.ARC_DIAGRAM)
         return self^
 
     def mark_graph(var self, layout: GraphLayout = GraphLayout.CIRCLE) -> Self:
@@ -2027,12 +1944,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.GRAPH
+        self._set_mark(Mark.GRAPH)
         self._mark_style.graph_layout = layout
-        self._render_canvas_family = _callback_relationships[Canvas]
-        self._render_svg_family = _callback_relationships[SvgCanvas]
-        self._render_pdf_family = _callback_relationships[PdfCanvas]
-        self._render_bounds_family = _callback_relationships[BoundsTarget]
         return self^
 
     def mark_sankey(var self, node_width: Float64 = 12.0) -> Self:
@@ -2041,11 +1954,7 @@ struct Plot(Copyable, Movable):
         `node_width` pixels wide (before `Theme.scale`). Encoded via
         `encode_chord()`; the edges must form a DAG.
         """
-        self._mark = Mark.SANKEY
-        self._render_canvas_family = _callback_relationships[Canvas]
-        self._render_svg_family = _callback_relationships[SvgCanvas]
-        self._render_pdf_family = _callback_relationships[PdfCanvas]
-        self._render_bounds_family = _callback_relationships[BoundsTarget]
+        self._set_mark(Mark.SANKEY)
         self._mark_style.sankey_node_width = node_width
         return self^
 
@@ -2057,11 +1966,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.SINGLE_AXIS
-        self._render_canvas_family = _callback_basic[Canvas]
-        self._render_svg_family = _callback_basic[SvgCanvas]
-        self._render_pdf_family = _callback_basic[PdfCanvas]
-        self._render_bounds_family = _callback_basic[BoundsTarget]
+        self._set_mark(Mark.SINGLE_AXIS)
         return self^
 
     def mark_effect_scatter(var self) -> Self:
@@ -2069,22 +1974,14 @@ struct Plot(Copyable, Movable):
         equivalent of ECharts' effect scatter (see `_draw_point_layer`'s
         `draw_halo`). Encoded like `Mark.POINT`, via `encode()`.
         """
-        self._mark = Mark.EFFECT_SCATTER
-        self._render_canvas_family = _callback_continuous[Canvas]
-        self._render_svg_family = _callback_continuous[SvgCanvas]
-        self._render_pdf_family = _callback_continuous[PdfCanvas]
-        self._render_bounds_family = _callback_continuous[BoundsTarget]
+        self._set_mark(Mark.EFFECT_SCATTER)
         return self^
 
     def mark_funnel(var self) -> Self:
         """A funnel chart: one tapering trapezoid per category, largest value
         first, with no axis frame. Encoded via `encode_categorical()`.
         """
-        self._mark = Mark.FUNNEL
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.FUNNEL)
         return self^
 
     def mark_bump(var self) -> Self:
@@ -2092,11 +1989,7 @@ struct Plot(Copyable, Movable):
         value) among every series at each category. Encoded via
         `encode_grouped_bar()`.
         """
-        self._mark = Mark.BUMP
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.BUMP)
         return self^
 
     def mark_streamgraph(
@@ -2144,11 +2037,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.STREAMGRAPH
-        self._render_canvas_family = _callback_categorical[Canvas]
-        self._render_svg_family = _callback_categorical[SvgCanvas]
-        self._render_pdf_family = _callback_categorical[PdfCanvas]
-        self._render_bounds_family = _callback_categorical[BoundsTarget]
+        self._set_mark(Mark.STREAMGRAPH)
         self._mark_style.streamgraph_baseline = baseline
         self._mark_style.step = step
         return self^
@@ -2160,11 +2049,7 @@ struct Plot(Copyable, Movable):
         each swarm jittered vertically; see
         `_render_horizontal_beeswarm` (beeswarm.mojo).
         """
-        self._mark = Mark.BEESWARM
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.BEESWARM)
         self._horizontal = horizontal
         return self^
 
@@ -2211,11 +2096,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.VIOLIN
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.VIOLIN)
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
@@ -2254,11 +2135,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.KDE
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.KDE)
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_fill = fill
         self._distribution.kde_rug = rug
@@ -2275,11 +2152,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.RUG
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.RUG)
         return self^
 
     def mark_ecdf(var self, complementary: Bool = False) -> Self:
@@ -2308,11 +2181,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.ECDF
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.ECDF)
         self._distribution.ecdf_complementary = complementary
         return self^
 
@@ -2337,11 +2206,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.EVENTPLOT
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.EVENTPLOT)
         self._mark_style.eventplot_line_length = line_length
         return self^
 
@@ -2373,11 +2238,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.RIDGELINE
-        self._render_canvas_family = _callback_distributions[Canvas]
-        self._render_svg_family = _callback_distributions[SvgCanvas]
-        self._render_pdf_family = _callback_distributions[PdfCanvas]
-        self._render_bounds_family = _callback_distributions[BoundsTarget]
+        self._set_mark(Mark.RIDGELINE)
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._mark_style.ridgeline_overlap = overlap
@@ -2469,24 +2330,20 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Error Bars" recipe (docs/src/
         cookbook_recipes/error_bars.mojo) for a full worked example.
         """
-        var _ok_encode = List[Mark]()
-        _ok_encode.append(Mark.POINT)
-        _ok_encode.append(Mark.LINE)
-        _ok_encode.append(Mark.AREA)
-        _ok_encode.append(Mark.EFFECT_SCATTER)
-        _require_mark(self._mark, "encode", "mark_point()", _ok_encode^)
-        self._continuous.x = x.copy()
-        self._continuous.y = y.copy()
-        self._categorical.x = List[String]()
-        self._channels.color = color.copy()
-        self._channels.color_categories = color_categories.copy()
-        self._channels.size = size.copy()
-        self._y_err.symmetric = y_err.copy()
-        self._y_err.lower = y_err_lower.copy()
-        self._y_err.upper = y_err_upper.copy()
-        self._channels.color_map = color_map.copy()
-        self._channels.shape_map = shape_map.copy()
-        self._channels.point_labels = labels.copy()
+        _encode(
+            self,
+            x,
+            y,
+            color,
+            color_categories,
+            size,
+            y_err,
+            y_err_lower,
+            y_err_upper,
+            color_map,
+            shape_map,
+            labels,
+        )
         return self^
 
     def encode[
@@ -2692,11 +2549,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.SCATTER3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.SCATTER3D)
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2720,11 +2573,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.PLOT3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.PLOT3D)
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2746,11 +2595,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.SURFACE3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.SURFACE3D)
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2775,11 +2620,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.WIRE3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.WIRE3D)
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2801,11 +2642,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.TRISURF3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.TRISURF3D)
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2828,11 +2665,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.STEM3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.STEM3D)
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2855,11 +2688,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.QUIVER3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.QUIVER3D)
         self._vectors3d.elev = elev
         self._vectors3d.azim = azim
         return self^
@@ -2882,11 +2711,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.FILL_BETWEEN3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.FILL_BETWEEN3D)
         self._ribbon3d.elev = elev
         self._ribbon3d.azim = azim
         return self^
@@ -2917,11 +2742,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.BAR3D
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.BAR3D)
         self._bars3d.bar_width = bar_width
         self._bars3d.bar_depth = bar_depth
         self._bars3d.elev = elev
@@ -2946,11 +2767,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._mark = Mark.VOXELS
-        self._render_canvas_family = _callback_spatial[Canvas]
-        self._render_svg_family = _callback_spatial[SvgCanvas]
-        self._render_pdf_family = _callback_spatial[PdfCanvas]
-        self._render_bounds_family = _callback_spatial[BoundsTarget]
+        self._set_mark(Mark.VOXELS)
         self._voxels.elev = elev
         self._voxels.azim = azim
         return self^
@@ -2984,20 +2801,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_vectors3d = List[Mark]()
-        _ok_encode_vectors3d.append(Mark.QUIVER3D)
-        _require_mark(
-            self._mark,
-            "encode_vectors3d",
-            "mark_quiver3d()",
-            _ok_encode_vectors3d^,
-        )
-        self._vectors3d.x = x.copy()
-        self._vectors3d.y = y.copy()
-        self._vectors3d.z = z.copy()
-        self._vectors3d.u = u.copy()
-        self._vectors3d.v = v.copy()
-        self._vectors3d.w = w.copy()
+        _encode_vectors3d(self, x, y, z, u, v, w)
         return self^
 
     def encode_ribbon3d(
@@ -3023,20 +2827,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_ribbon3d = List[Mark]()
-        _ok_encode_ribbon3d.append(Mark.FILL_BETWEEN3D)
-        _require_mark(
-            self._mark,
-            "encode_ribbon3d",
-            "mark_fill_between3d()",
-            _ok_encode_ribbon3d^,
-        )
-        self._ribbon3d.x1 = x1.copy()
-        self._ribbon3d.y1 = y1.copy()
-        self._ribbon3d.z1 = z1.copy()
-        self._ribbon3d.x2 = x2.copy()
-        self._ribbon3d.y2 = y2.copy()
-        self._ribbon3d.z2 = z2.copy()
+        _encode_ribbon3d(self, x1, y1, z1, x2, y2, z2)
         return self^
 
     def encode_bars3d(
@@ -3062,14 +2853,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_bars3d = List[Mark]()
-        _ok_encode_bars3d.append(Mark.BAR3D)
-        _require_mark(
-            self._mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^
-        )
-        self._bars3d.x = x.copy()
-        self._bars3d.y = y.copy()
-        self._bars3d.z = z.copy()
+        _encode_bars3d(self, x, y, z)
         return self^
 
     def encode_voxels(var self, filled: List[List[List[Bool]]]) raises -> Self:
@@ -3084,12 +2868,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_voxels = List[Mark]()
-        _ok_encode_voxels.append(Mark.VOXELS)
-        _require_mark(
-            self._mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^
-        )
-        self._voxels.filled = filled.copy()
+        _encode_voxels(self, filled)
         return self^
 
     def encode_surface(
@@ -3118,18 +2897,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_surface = List[Mark]()
-        _ok_encode_surface.append(Mark.SURFACE3D)
-        _ok_encode_surface.append(Mark.WIRE3D)
-        _require_mark(
-            self._mark,
-            "encode_surface",
-            "mark_surface3d()",
-            _ok_encode_surface^,
-        )
-        self._surface.z = z.copy()
-        self._surface.x = x.copy()
-        self._surface.y = y.copy()
+        _encode_surface(self, z, x, y)
         return self^
 
     def encode_xyz(
@@ -3157,17 +2925,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_xyz = List[Mark]()
-        _ok_encode_xyz.append(Mark.SCATTER3D)
-        _ok_encode_xyz.append(Mark.PLOT3D)
-        _ok_encode_xyz.append(Mark.TRISURF3D)
-        _ok_encode_xyz.append(Mark.STEM3D)
-        _require_mark(
-            self._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^
-        )
-        self._xyz.x = x.copy()
-        self._xyz.y = y.copy()
-        self._xyz.z = z.copy()
+        _encode_xyz(self, x, y, z)
         return self^
 
     def encode_frame(
@@ -3212,50 +2970,7 @@ struct Plot(Copyable, Movable):
             Error: A named column is missing, has the wrong dtype for
                 its channel, or has missing values.
         """
-        comptime caller = "Plot.encode_frame()"
-        var policy = self._theme.missing
-        var label = self._theme.missing_category_label
-        var y_values = _frame_floats(df, y, caller, policy)
-        var color_values = List[Float64]()
-        var color_categories = List[String]()
-        if color.byte_length() > 0:
-            if _is_string_column(df, color):
-                color_categories = _frame_strings(
-                    df, color, caller, policy, label
-                )
-            else:
-                color_values = _frame_floats(df, color, caller, policy)
-        var size_values = List[Float64]()
-        if size.byte_length() > 0:
-            size_values = _frame_floats(df, size, caller, policy)
-        var label_values = List[String]()
-        if labels.byte_length() > 0:
-            label_values = _frame_strings(df, labels, caller, policy, label)
-
-        if self._labels.x_title.byte_length() == 0:
-            self._labels.x_title = x
-        if self._labels.y_title.byte_length() == 0:
-            self._labels.y_title = y
-
-        if _is_string_column(df, x):
-            if len(size_values) > 0 or len(label_values) > 0:
-                raise Error(
-                    caller
-                    + ': a categorical x ("'
-                    + x
-                    + '") takes no size= or labels= channel'
-                )
-            return self^.encode_categorical(
-                x=_frame_strings(df, x, caller, policy, label), y=y_values
-            )
-        return self^.encode(
-            x=_frame_floats(df, x, caller, policy),
-            y=y_values,
-            color=color_values,
-            color_categories=color_categories,
-            size=size_values,
-            labels=label_values,
-        )
+        return _encode_frame(self^, df, x, y, color, size, labels)
 
     def encode_categorical(
         var self,
@@ -3299,41 +3014,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_categorical = List[Mark]()
-        _ok_encode_categorical.append(Mark.BAR)
-        _ok_encode_categorical.append(Mark.LOLLIPOP)
-        _ok_encode_categorical.append(Mark.POINTPLOT)
-        _ok_encode_categorical.append(Mark.ARC)
-        _ok_encode_categorical.append(Mark.FUNNEL)
-        _ok_encode_categorical.append(Mark.NIGHTINGALE)
-        _ok_encode_categorical.append(Mark.POLAR_BAR)
-        _ok_encode_categorical.append(Mark.RADIALBAR)
-        _require_mark(
-            self._mark,
-            "encode_categorical",
-            "mark_bar()",
-            _ok_encode_categorical^,
-        )
-        var first_position = Dict[String, Int]()
-        for i in range(len(x)):
-            var category = x[i]
-            if category in first_position:
-                raise Error(
-                    'Plot.encode_categorical(): duplicate category "'
-                    + category
-                    + '" at positions '
-                    + String(first_position[category])
-                    + " and "
-                    + String(i)
-                )
-            first_position[category] = i
-        self._categorical.x = x.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = y.copy()
-        self._y_err.symmetric = y_err.copy()
-        self._y_err.lower = y_err_lower.copy()
-        self._y_err.upper = y_err_upper.copy()
-        self._x_time = False
+        _encode_categorical(self, x, y, y_err, y_err_lower, y_err_upper)
         return self^
 
     def encode_time_bars(
@@ -3351,26 +3032,7 @@ struct Plot(Copyable, Movable):
         their spacing at render time. The three error channels follow
         `encode_categorical()`'s rules. Only vertical bars have a time x-axis.
         """
-        _require_mark(self._mark, "encode_time_bars", "mark_bar()", Mark.BAR)
-        if self._horizontal:
-            raise Error(
-                "Plot.encode_time_bars(): horizontal bars cannot use a time"
-                " x-axis"
-            )
-        var seconds = List[Float64](capacity=len(dates))
-        var labels = List[String](capacity=len(dates))
-        for date in dates:
-            seconds.append(date.timestamp())
-            labels.append(date.format("YYYY-MM-DD HH:mm:ss"))
-        self._categorical.x = labels^
-        self._continuous.x = seconds^
-        self._continuous.y = values.copy()
-        self._y_err.symmetric = y_err.copy()
-        self._y_err.lower = y_err_lower.copy()
-        self._y_err.upper = y_err_upper.copy()
-        self._x_time = True
-        if len(dates) > 0:
-            self._x_tz_offset = dates[0].tz.offset
+        _encode_time_bars(self, dates, values, y_err, y_err_lower, y_err_upper)
         return self^
 
     def encode_categorical[
@@ -3598,13 +3260,7 @@ struct Plot(Copyable, Movable):
             Error: The mark is not `Mark.BAR`, data is empty, bins is not
                 positive, or a value is not finite.
         """
-        _require_mark(
-            self._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
-        )
-        var binned = _bin_histogram(data, bins)
-        self._categorical.x = binned.labels.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = binned.counts.copy()
+        _encode_binned_categories(self, data, bins)
         return self^
 
     def encode_binned_categories(
@@ -3624,13 +3280,7 @@ struct Plot(Copyable, Movable):
             Error: The mark is not `Mark.BAR`, data is empty, or a value
                 is not finite.
         """
-        _require_mark(
-            self._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
-        )
-        var binned = _bin_histogram(data, rule)
-        self._categorical.x = binned.labels.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = binned.counts.copy()
+        _encode_binned_categories(self, data, rule)
         return self^
 
     def encode_waterfall(
@@ -3668,16 +3318,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL
-        )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = deltas.copy()
-        self._waterfall.is_total = is_total.copy()
-        var bars = _waterfall_running_totals(deltas, is_total)
-        self._waterfall.y0 = bars.y0.copy()
-        self._waterfall.y1 = bars.y1.copy()
+        _encode_waterfall(self, categories, deltas, is_total)
         return self^
 
     def encode_boxenplot(
@@ -3702,38 +3343,7 @@ struct Plot(Copyable, Movable):
             Error: `categories` and `values` differ in length, or a
                 group is empty.
         """
-        _require_mark(
-            self._mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT
-        )
-        if len(categories) != len(values):
-            raise Error(
-                "Plot.encode_boxenplot(): categories and values must have"
-                " the same length (got "
-                + String(len(categories))
-                + " and "
-                + String(len(values))
-                + ")"
-            )
-        var data = _BoxenData()
-        for i in range(len(values)):
-            if len(values[i]) == 0:
-                raise Error(
-                    "Plot.encode_boxenplot(): category "
-                    + categories[i]
-                    + " has no values -- a letter-value plot needs at least"
-                    " one observation per category"
-                )
-            var lv = _letter_values(values[i])
-            data.median.append(lv.median)
-            data.lower.append(lv.lower.copy())
-            data.upper.append(lv.upper.copy())
-            for v in lv.outliers:
-                data.outlier_cat.append(i)
-                data.outlier_value.append(v)
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._boxen = data^
+        _encode_boxenplot(self, categories, values)
         return self^
 
     def encode_boxenplot[
@@ -3772,54 +3382,7 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
-        _require_mark(self._mark, "encode_boxplot", "mark_box()", Mark.BOX)
-        if len(categories) != len(values):
-            raise Error(
-                "Plot.encode_boxplot(): categories and values must have"
-                " the same length (got "
-                + String(len(categories))
-                + " and "
-                + String(len(values))
-                + ")"
-            )
-        _require_non_empty(len(categories), "Plot.encode_boxplot()")
-
-        var q1 = List[Float64]()
-        var median = List[Float64]()
-        var q3 = List[Float64]()
-        var low = List[Float64]()
-        var high = List[Float64]()
-        var outlier_cat = List[Int]()
-        var outlier_value = List[Float64]()
-
-        for i in range(len(values)):
-            if len(values[i]) == 0:
-                raise Error(
-                    "Plot.encode_boxplot(): category '"
-                    + categories[i]
-                    + "' has no values -- can't compute a box plot from"
-                    " an empty distribution"
-                )
-            var stats = _box_stats(values[i])
-            q1.append(stats.q1)
-            median.append(stats.median)
-            q3.append(stats.q3)
-            low.append(stats.low)
-            high.append(stats.high)
-            for v in stats.outliers:
-                outlier_cat.append(i)
-                outlier_value.append(v)
-
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._box.q1 = q1^
-        self._box.median = median^
-        self._box.q3 = q3^
-        self._box.low = low^
-        self._box.high = high^
-        self._box.outlier_cat = outlier_cat^
-        self._box.outlier_value = outlier_value^
+        _encode_boxplot(self, categories, values)
         return self^
 
     def encode_boxplot[
@@ -3871,20 +3434,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_candlestick",
-            "mark_candlestick()",
-            Mark.CANDLESTICK,
-        )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._candle.open_price = open.copy()
-        self._candle.high = high.copy()
-        self._candle.low = low.copy()
-        self._candle.close_price = close.copy()
-        self._x_time = False
+        _encode_candlestick(self, categories, open, high, low, close)
         return self^
 
     def encode_candlestick_time(
@@ -3902,27 +3452,7 @@ struct Plot(Copyable, Movable):
         the time tick labels, as with `encode_time()`. Length and spacing
         checks happen when the chart is rendered.
         """
-        _require_mark(
-            self._mark,
-            "encode_candlestick_time",
-            "mark_candlestick()",
-            Mark.CANDLESTICK,
-        )
-        var seconds = List[Float64](capacity=len(dates))
-        var labels = List[String](capacity=len(dates))
-        for i in range(len(dates)):
-            seconds.append(dates[i].timestamp())
-            labels.append(dates[i].format("YYYY-MM-DD HH:mm"))
-        self._continuous.x = seconds^
-        self._categorical.x = labels^
-        self._continuous.y = List[Float64]()
-        self._candle.open_price = open.copy()
-        self._candle.high = high.copy()
-        self._candle.low = low.copy()
-        self._candle.close_price = close.copy()
-        self._x_time = True
-        if len(dates) > 0:
-            self._x_tz_offset = dates[0].tz.offset
+        _encode_candlestick_time(self, dates, open, high, low, close)
         return self^
 
     def encode_bullet(
@@ -3952,13 +3482,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(self._mark, "encode_bullet", "mark_bullet()", Mark.BULLET)
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._bullet.measure = measures.copy()
-        self._bullet.target = targets.copy()
-        self._bullet.ranges = ranges.copy()
+        _encode_bullet(self, categories, measures, targets, ranges)
         return self^
 
     def encode_gantt(
@@ -3985,18 +3509,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_gantt = List[Mark]()
-        _ok_encode_gantt.append(Mark.GANTT)
-        _ok_encode_gantt.append(Mark.SPAN_CHART)
-        _require_mark(
-            self._mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^
-        )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._gantt.start = start.copy()
-        self._gantt.end = end.copy()
-        self._x_time = False
+        _encode_gantt(self, categories, start, end)
         return self^
 
     def encode_gantt_time(
@@ -4011,23 +3524,7 @@ struct Plot(Copyable, Movable):
         place bars at their absolute instants. Length checks remain at
         render time, as with `encode_gantt()`.
         """
-        _require_mark(
-            self._mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT
-        )
-        var start_seconds = List[Float64](capacity=len(start))
-        var end_seconds = List[Float64](capacity=len(end))
-        for value in start:
-            start_seconds.append(value.timestamp())
-        for value in end:
-            end_seconds.append(value.timestamp())
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._gantt.start = start_seconds^
-        self._gantt.end = end_seconds^
-        self._x_time = True
-        if len(start) > 0:
-            self._x_tz_offset = start[0].tz.offset
+        _encode_gantt_time(self, categories, start, end)
         return self^
 
     def encode_grouped_bar(
@@ -4064,23 +3561,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_grouped_bar = List[Mark]()
-        _ok_encode_grouped_bar.append(Mark.GROUPED_BAR)
-        _ok_encode_grouped_bar.append(Mark.STACKED_BAR)
-        _ok_encode_grouped_bar.append(Mark.BUMP)
-        _ok_encode_grouped_bar.append(Mark.STREAMGRAPH)
-        _require_mark(
-            self._mark,
-            "encode_grouped_bar",
-            "mark_grouped_bar()",
-            _ok_encode_grouped_bar^,
-        )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._grouped_bar.series_names = series_names.copy()
-        self._grouped_bar.values = values.copy()
-        self._grouped_bar.errors = errors.copy()
+        _encode_grouped_bar(self, categories, series_names, values, errors)
         return self^
 
     def encode_grouped_bar[
@@ -4180,19 +3661,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_population_pyramid",
-            "mark_population_pyramid()",
-            Mark.POPULATION_PYRAMID,
+        _encode_population_pyramid(
+            self,
+            categories,
+            left_values,
+            right_values,
+            left_name,
+            right_name,
         )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._pyramid.left = left_values.copy()
-        self._pyramid.right = right_values.copy()
-        self._pyramid.left_name = left_name
-        self._pyramid.right_name = right_name
         return self^
 
     def encode_heatmap(
@@ -4214,15 +3690,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._heatmap.x = x.copy()
-        self._heatmap.y = y.copy()
-        self._heatmap.value = value.copy()
+        _encode_heatmap(self, x, y, value)
         return self^
 
     def encode_calendar(
@@ -4245,17 +3713,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_calendar",
-            "mark_calendar_heatmap()",
-            Mark.CALENDAR_HEATMAP,
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._calendar.dates = dates.copy()
-        self._calendar.values = values.copy()
+        _encode_calendar(self, dates, values)
         return self^
 
     def encode_corrplot(
@@ -4275,11 +3733,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT
-        )
-        self._corrplot.variables = variables.copy()
-        self._corrplot.matrix = matrix.copy()
+        _encode_corrplot(self, variables, matrix)
         return self^
 
     def encode_corrplot[
@@ -4322,15 +3776,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._punchcard.x = x.copy()
-        self._punchcard.y = y.copy()
-        self._punchcard.sizes = sizes.copy()
+        _encode_punchcard(self, x, y, sizes)
         return self^
 
     def encode_barbs(
@@ -4356,21 +3802,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        # QUIVER is here because `encode_quiver()` delegates to this;
-        # both marks read `_barbs`, differing only in the glyph drawn.
-        var _ok_encode_barbs = List[Mark]()
-        _ok_encode_barbs.append(Mark.BARBS)
-        _ok_encode_barbs.append(Mark.QUIVER)
-        _require_mark(
-            self._mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._barbs.x = x.copy()
-        self._barbs.y = y.copy()
-        self._barbs.u = u.copy()
-        self._barbs.v = v.copy()
+        _encode_barbs(self, x, y, u, v)
         return self^
 
     def encode_barbs[
@@ -4440,16 +3872,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_contour = List[Mark]()
-        _ok_encode_contour.append(Mark.CONTOUR)
-        _ok_encode_contour.append(Mark.CONTOURF)
-        _require_mark(
-            self._mark, "encode_contour", "mark_contour()", _ok_encode_contour^
-        )
-        self._contour.z = z.copy()
-        self._contour.levels = levels.copy()
-        self._contour.x = x.copy()
-        self._contour.y = y.copy()
+        _encode_contour(self, z, levels, x, y)
         return self^
 
     def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
@@ -4504,18 +3927,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_pcolormesh",
-            "mark_pcolormesh()",
-            Mark.PCOLORMESH,
-        )
-        self._image.z = z.copy()
-        self._image.x_edges = x_edges.copy()
-        self._image.y_edges = y_edges.copy()
-        # The two forms are exclusive; see the curvilinear overload.
-        self._image.x_corners = List[List[Float64]]()
-        self._image.y_corners = List[List[Float64]]()
+        _encode_pcolormesh(self, x_edges, y_edges, z)
         return self^
 
     def encode_pcolormesh(
@@ -4558,19 +3970,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_pcolormesh",
-            "mark_pcolormesh()",
-            Mark.PCOLORMESH,
-        )
-        self._image.z = z.copy()
-        self._image.x_corners = x_corners.copy()
-        self._image.y_corners = y_corners.copy()
-        # Exclusive with the rectilinear form: a plot carrying both would
-        # leave the renderer to guess which the caller meant.
-        self._image.x_edges = List[Float64]()
-        self._image.y_edges = List[Float64]()
+        _encode_pcolormesh(self, x_corners, y_corners, z)
         return self^
 
     def encode_time(var self, x: List[Morrow], y: List[Float64]) raises -> Self:
@@ -4599,23 +3999,7 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `morrow` could not convert a value to a timestamp.
         """
-        var _ok_encode_time = List[Mark]()
-        _ok_encode_time.append(Mark.POINT)
-        _ok_encode_time.append(Mark.LINE)
-        _ok_encode_time.append(Mark.AREA)
-        _ok_encode_time.append(Mark.EFFECT_SCATTER)
-        _require_mark(
-            self._mark, "encode_time", "mark_line()", _ok_encode_time^
-        )
-        var seconds = List[Float64](capacity=len(x))
-        for i in range(len(x)):
-            seconds.append(x[i].timestamp())
-        self._categorical.x = List[String]()
-        self._continuous.x = seconds^
-        self._continuous.y = y.copy()
-        self._x_time = True
-        if len(x) > 0:
-            self._x_tz_offset = x[0].tz.offset
+        _encode_time(self, x, y)
         return self^
 
     def _encode_raw_histogram(
@@ -4661,21 +4045,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_histogram_bins",
-            "mark_histogram()",
-            Mark.HISTOGRAM,
-        )
-        self._categorical.x = List[String]()
-        if self._histogram.horizontal:
-            self._continuous.x = bins.step_y()
-            self._continuous.y = bins.step_x()
-        else:
-            self._continuous.x = bins.step_x()
-            self._continuous.y = bins.step_y()
-        self._histogram.edges = bins.edges.copy()
-        self._histogram.values = bins.values.copy()
+        _encode_histogram_bins(self, bins)
         return self^
 
     def encode_hist2d(
@@ -4708,11 +4078,7 @@ struct Plot(Copyable, Movable):
             Error: `x` and `y` differ in length, or an edge list is
                 shorter than 2.
         """
-        _require_mark(self._mark, "encode_hist2d", "mark_hist2d()", Mark.HIST2D)
-        self._image.z = _hist2d_counts(x, y, x_edges, y_edges)
-        self._image.x_edges = x_edges.copy()
-        self._image.y_edges = y_edges.copy()
-        self._image.blank_zero = True
+        _encode_hist2d(self, x, y, x_edges, y_edges)
         return self^
 
     def encode_streamplot(
@@ -4741,19 +4107,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_streamplot",
-            "mark_streamplot()",
-            Mark.STREAMPLOT,
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._stream.x = x.copy()
-        self._stream.y = y.copy()
-        self._stream.u = u.copy()
-        self._stream.v = v.copy()
+        _encode_streamplot(self, x, y, u, v)
         return self^
 
     def encode_hexbin(
@@ -4771,10 +4125,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(self._mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
-        self._hexbin.x = x.copy()
-        self._hexbin.y = y.copy()
-        self._hexbin.gridsize = gridsize
+        _encode_hexbin(self, x, y, gridsize)
         return self^
 
     def encode_quiver(
@@ -4856,19 +4207,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_tricontour = List[Mark]()
-        _ok_encode_tricontour.append(Mark.TRICONTOUR)
-        _ok_encode_tricontour.append(Mark.TRICONTOURF)
-        _require_mark(
-            self._mark,
-            "encode_tricontour",
-            "mark_tricontour()",
-            _ok_encode_tricontour^,
-        )
-        self._tricontour.x = x.copy()
-        self._tricontour.y = y.copy()
-        self._tricontour.z = z.copy()
-        self._tricontour.levels = levels.copy()
+        _encode_tricontour(self, x, y, z, levels)
         return self^
 
     def encode_triplot(
@@ -4912,34 +4251,7 @@ struct Plot(Copyable, Movable):
             Error: `facecolors` without a `triangulation`, or `gouraud`
                 together with `facecolors`.
         """
-        if gouraud and len(facecolors) > 0:
-            raise Error(
-                "Plot.encode_triplot(): facecolors is one value per triangle,"
-                " so gouraud=True has nothing to interpolate between. Pass"
-                " one or the other"
-            )
-        if len(facecolors) > 0 and triangulation.count() == 0:
-            raise Error(
-                "Plot.encode_triplot(facecolors=...): needs a triangulation"
-                " to index against. Without one this package computes the"
-                " triangles itself, in an order that is an artifact of the"
-                " insertion sequence and not predictable from outside, so"
-                " a per-triangle column would be assigned arbitrarily."
-                " Pass triangulation=delaunay(x, y), or build a"
-                " Triangulation from your own triangle list (#397)"
-            )
-        var _ok_encode_triplot = List[Mark]()
-        _ok_encode_triplot.append(Mark.TRIPLOT)
-        _ok_encode_triplot.append(Mark.TRIPCOLOR)
-        _require_mark(
-            self._mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^
-        )
-        self._triplot.x = x.copy()
-        self._triplot.y = y.copy()
-        self._triplot.z = z.copy()
-        self._triplot.triangulation = triangulation.copy()
-        self._triplot.facecolors = facecolors.copy()
-        self._triplot.gouraud = gouraud
+        _encode_triplot(self, x, y, z, triangulation, facecolors, gouraud)
         return self^
 
     def encode_marimekko(
@@ -4966,12 +4278,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO
-        )
-        self._marimekko.categories = categories.copy()
-        self._marimekko.subcategories = subcategories.copy()
-        self._marimekko.values = values.copy()
+        _encode_marimekko(self, categories, subcategories, values)
         return self^
 
     def encode_marimekko[
@@ -5029,19 +4336,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_hierarchy = List[Mark]()
-        _ok_encode_hierarchy.append(Mark.TREEMAP)
-        _ok_encode_hierarchy.append(Mark.TREE)
-        _ok_encode_hierarchy.append(Mark.SUNBURST)
-        _require_mark(
-            self._mark,
-            "encode_hierarchy",
-            "mark_treemap()",
-            _ok_encode_hierarchy^,
-        )
-        self._hierarchy.ids = ids.copy()
-        self._hierarchy.parent_ids = parent_ids.copy()
-        self._hierarchy.values = values.copy()
+        _encode_hierarchy(self, ids, parent_ids, values)
         return self^
 
     def encode_chord(
@@ -5068,20 +4363,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_chord = List[Mark]()
-        _ok_encode_chord.append(Mark.CHORD)
-        _ok_encode_chord.append(Mark.ARC_DIAGRAM)
-        _ok_encode_chord.append(Mark.GRAPH)
-        _ok_encode_chord.append(Mark.SANKEY)
-        _require_mark(
-            self._mark, "encode_chord", "mark_chord()", _ok_encode_chord^
-        )
-        self._categorical.x = List[String]()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._edges.from_categories = from_categories.copy()
-        self._edges.to_categories = to_categories.copy()
-        self._edges.values = values.copy()
+        _encode_chord(self, from_categories, to_categories, values)
         return self^
 
     def encode_polar(
@@ -5101,11 +4383,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(self._mark, "encode_polar", "mark_polar()", Mark.POLAR)
-        self._polar.angle = angle.copy()
-        self._polar.radius = radius.copy()
-        self._polar.series_names = List[String]()
-        self._polar.series_radius = List[List[Float64]]()
+        _encode_polar(self, angle, radius)
         return self^
 
     def encode_polar_series(
@@ -5132,13 +4410,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark, "encode_polar_series", "mark_polar()", Mark.POLAR
-        )
-        self._polar.angle = angle.copy()
-        self._polar.radius = List[Float64]()
-        self._polar.series_names = series_names.copy()
-        self._polar.series_radius = series_values.copy()
+        _encode_polar_series(self, angle, series_names, series_values)
         return self^
 
     def encode_polar_series[
@@ -5199,39 +4471,7 @@ struct Plot(Copyable, Movable):
             `series_names`/`series_values` lengths don't match, or any
             series' value count doesn't match `indicators`'s count.
         """
-        _require_mark(self._mark, "encode_radar", "mark_radar()", Mark.RADAR)
-        if len(indicators) != len(max_values):
-            raise Error(
-                "Plot.encode_radar(): indicators and max_values must have the"
-                " same length (got "
-                + String(len(indicators))
-                + " and "
-                + String(len(max_values))
-                + ")"
-            )
-        if len(series_names) != len(series_values):
-            raise Error(
-                "Plot.encode_radar(): series_names and series_values must have"
-                " the same length (got "
-                + String(len(series_names))
-                + " and "
-                + String(len(series_values))
-                + ")"
-            )
-        for values in series_values:
-            if len(values) != len(indicators):
-                raise Error(
-                    "Plot.encode_radar(): every series in series_values must"
-                    " have one value per indicator (expected "
-                    + String(len(indicators))
-                    + ", got "
-                    + String(len(values))
-                    + ")"
-                )
-        self._radar.indicators = indicators.copy()
-        self._radar.max_values = max_values.copy()
-        self._radar.series_names = series_names.copy()
-        self._radar.series_values = series_values.copy()
+        _encode_radar(self, indicators, max_values, series_names, series_values)
         return self^
 
     def encode_radar[
@@ -5345,12 +4585,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(self._mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
-        self._gauge.value = value
-        self._gauge.min_value = min_value
-        self._gauge.max_value = max_value
-        self._gauge.breakpoints = breakpoints.copy()
-        self._gauge.band_colors = band_colors.copy()
+        _encode_gauge(
+            self,
+            value,
+            min_value,
+            max_value,
+            breakpoints,
+            band_colors,
+        )
         return self^
 
     def encode_parallel(
@@ -5379,31 +4621,7 @@ struct Plot(Copyable, Movable):
             If `row_names`/`data` lengths don't match, or any row's
             value count doesn't match `dims`'s count.
         """
-        _require_mark(
-            self._mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL
-        )
-        if len(row_names) != len(data):
-            raise Error(
-                "Plot.encode_parallel(): row_names and data must have the same"
-                " length (got "
-                + String(len(row_names))
-                + " and "
-                + String(len(data))
-                + ")"
-            )
-        for row in data:
-            if len(row) != len(dims):
-                raise Error(
-                    "Plot.encode_parallel(): every row in data must have one"
-                    " value per dimension (expected "
-                    + String(len(dims))
-                    + ", got "
-                    + String(len(row))
-                    + ")"
-                )
-        self._parallel.dims = dims.copy()
-        self._parallel.row_names = row_names.copy()
-        self._parallel.data = data.copy()
+        _encode_parallel(self, dims, row_names, data)
         return self^
 
     def encode_parallel[
@@ -5455,21 +4673,7 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `values` is empty.
         """
-        # ECDF is here because `encode_ecdf()` delegates to this, so
-        # the inner encoder must accept every mark its callers do.
-        var _ok_encode_kde = List[Mark]()
-        _ok_encode_kde.append(Mark.KDE)
-        _ok_encode_kde.append(Mark.RUG)
-        _ok_encode_kde.append(Mark.ECDF)
-        _require_mark(self._mark, "encode_kde", "mark_kde()", _ok_encode_kde^)
-        _require_non_empty(len(values), "Plot.encode_kde()")
-        # One ungrouped column, stored in `_DistributionData`'s
-        # list-per-category shape as a single entry -- these marks share
-        # the estimator with VIOLIN/RIDGELINE but not the categorical
-        # axis, so there is no category to name.
-        var one = List[List[Float64]]()
-        one.append(values.copy())
-        self._distribution.values = one^
+        _encode_kde(self, values)
         return self^
 
     def encode_eventplot(
@@ -5514,32 +4718,7 @@ struct Plot(Copyable, Movable):
             Error: `labels` is empty, `labels`/`positions` lengths
                 don't match, or every row is empty.
         """
-        _require_mark(
-            self._mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT
-        )
-        if len(labels) != len(positions):
-            raise Error(
-                "Plot.encode_eventplot(): labels and positions must have"
-                " the same length (got "
-                + String(len(labels))
-                + " and "
-                + String(len(positions))
-                + ")"
-            )
-        _require_non_empty(len(labels), "Plot.encode_eventplot()")
-        var total = 0
-        for row in positions:
-            total += len(row)
-        if total == 0:
-            raise Error(
-                "Plot.encode_eventplot(): every row is empty -- an"
-                " individual row with no events is fine, but with no"
-                " event anywhere there is no x-axis to draw them on"
-            )
-        self._categorical.x = labels.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._distribution.values = positions.copy()
+        _encode_eventplot(self, labels, positions)
         return self^
 
     def encode_eventplot[
@@ -5613,38 +4792,7 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
-        var _ok_encode_distribution = List[Mark]()
-        _ok_encode_distribution.append(Mark.VIOLIN)
-        _ok_encode_distribution.append(Mark.BEESWARM)
-        _ok_encode_distribution.append(Mark.RIDGELINE)
-        _require_mark(
-            self._mark,
-            "encode_distribution",
-            "mark_violin()",
-            _ok_encode_distribution^,
-        )
-        if len(categories) != len(values):
-            raise Error(
-                "Plot.encode_distribution(): categories and values must"
-                " have the same length (got "
-                + String(len(categories))
-                + " and "
-                + String(len(values))
-                + ")"
-            )
-        _require_non_empty(len(categories), "Plot.encode_distribution()")
-        for i in range(len(values)):
-            if len(values[i]) == 0:
-                raise Error(
-                    "Plot.encode_distribution(): category '"
-                    + categories[i]
-                    + "' has no values -- can't draw a distribution for"
-                    " an empty one"
-                )
-        self._categorical.x = categories.copy()
-        self._continuous.x = List[Float64]()
-        self._continuous.y = List[Float64]()
-        self._distribution.values = values.copy()
+        _encode_distribution(self, categories, values)
         return self^
 
     def encode_distribution[
@@ -5701,20 +4849,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(
-            self._mark,
-            "encode_single_axis",
-            "mark_single_axis()",
-            Mark.SINGLE_AXIS,
-        )
-        self._continuous.x = x.copy()
-        self._categorical.x = List[String]()
-        self._continuous.y = List[Float64]()
-        for _ in range(len(x)):
-            self._continuous.y.append(0.0)
-        self._channels.color = color.copy()
-        self._channels.color_categories = color_categories.copy()
-        self._channels.size = size.copy()
+        _encode_single_axis(self, x, color, color_categories, size)
         return self^
 
     def theme(var self, t: Theme) -> Self:

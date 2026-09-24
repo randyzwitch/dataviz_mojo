@@ -22,6 +22,7 @@ from dataviz.plot import (
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BarbsData(Copyable, Movable):
@@ -533,3 +534,27 @@ def barbs[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_barbs(
+    mut plot: Plot,
+    x: List[Float64],
+    y: List[Float64],
+    u: List[Float64],
+    v: List[Float64],
+) raises:
+    """`Plot.encode_barbs()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    # QUIVER is here because `encode_quiver()` delegates to this;
+    # both marks read `_barbs`, differing only in the glyph drawn.
+    var _ok_encode_barbs = List[Mark]()
+    _ok_encode_barbs.append(Mark.BARBS)
+    _ok_encode_barbs.append(Mark.QUIVER)
+    _require_mark(plot._mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^)
+    plot._categorical.x = List[String]()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._barbs.x = x.copy()
+    plot._barbs.y = y.copy()
+    plot._barbs.u = u.copy()
+    plot._barbs.v = v.copy()

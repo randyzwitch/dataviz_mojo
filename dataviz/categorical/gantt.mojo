@@ -32,6 +32,7 @@ from dataviz.plot import (
 from dataviz.core.frame import _fitting_ticks
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _GanttData(Copyable, Movable):
@@ -580,3 +581,48 @@ def gantt(
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_gantt(
+    mut plot: Plot,
+    categories: List[String],
+    start: List[Float64],
+    end: List[Float64],
+) raises:
+    """`Plot.encode_gantt()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_gantt = List[Mark]()
+    _ok_encode_gantt.append(Mark.GANTT)
+    _ok_encode_gantt.append(Mark.SPAN_CHART)
+    _require_mark(plot._mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^)
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._gantt.start = start.copy()
+    plot._gantt.end = end.copy()
+    plot._x_time = False
+
+
+def _encode_gantt_time(
+    mut plot: Plot,
+    categories: List[String],
+    start: List[Morrow],
+    end: List[Morrow],
+) raises:
+    """`Plot.encode_gantt_time()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(plot._mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT)
+    var start_seconds = List[Float64](capacity=len(start))
+    var end_seconds = List[Float64](capacity=len(end))
+    for value in start:
+        start_seconds.append(value.timestamp())
+    for value in end:
+        end_seconds.append(value.timestamp())
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._gantt.start = start_seconds^
+    plot._gantt.end = end_seconds^
+    plot._x_time = True
+    if len(start) > 0:
+        plot._x_tz_offset = start[0].tz.offset

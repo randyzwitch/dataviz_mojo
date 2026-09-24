@@ -30,6 +30,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 struct _CandleData(Copyable, Movable):
@@ -538,3 +539,62 @@ def candlestick[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_candlestick(
+    mut plot: Plot,
+    categories: List[String],
+    open: List[Float64],
+    high: List[Float64],
+    low: List[Float64],
+    close: List[Float64],
+) raises:
+    """`Plot.encode_candlestick()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_candlestick",
+        "mark_candlestick()",
+        Mark.CANDLESTICK,
+    )
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._candle.open_price = open.copy()
+    plot._candle.high = high.copy()
+    plot._candle.low = low.copy()
+    plot._candle.close_price = close.copy()
+    plot._x_time = False
+
+
+def _encode_candlestick_time(
+    mut plot: Plot,
+    dates: List[Morrow],
+    open: List[Float64],
+    high: List[Float64],
+    low: List[Float64],
+    close: List[Float64],
+) raises:
+    """`Plot.encode_candlestick_time()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark,
+        "encode_candlestick_time",
+        "mark_candlestick()",
+        Mark.CANDLESTICK,
+    )
+    var seconds = List[Float64](capacity=len(dates))
+    var labels = List[String](capacity=len(dates))
+    for i in range(len(dates)):
+        seconds.append(dates[i].timestamp())
+        labels.append(dates[i].format("YYYY-MM-DD HH:mm"))
+    plot._continuous.x = seconds^
+    plot._categorical.x = labels^
+    plot._continuous.y = List[Float64]()
+    plot._candle.open_price = open.copy()
+    plot._candle.high = high.copy()
+    plot._candle.low = low.copy()
+    plot._candle.close_price = close.copy()
+    plot._x_time = True
+    if len(dates) > 0:
+        plot._x_tz_offset = dates[0].tz.offset

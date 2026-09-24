@@ -36,6 +36,7 @@ from dataviz.plot import (
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.mark import Mark, _require_mark
 
 
 def _eventplot_tick_label(row: String, v: Float64) -> String:
@@ -343,3 +344,38 @@ def eventplot(
         x_title=x_title if x_title.byte_length() > 0 else position,
         y_title=y_title if y_title.byte_length() > 0 else category,
     )
+
+
+def _encode_eventplot(
+    mut plot: Plot,
+    labels: List[String],
+    positions: List[List[Float64]],
+) raises:
+    """`Plot.encode_eventplot()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    _require_mark(
+        plot._mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT
+    )
+    if len(labels) != len(positions):
+        raise Error(
+            "Plot.encode_eventplot(): labels and positions must have"
+            " the same length (got "
+            + String(len(labels))
+            + " and "
+            + String(len(positions))
+            + ")"
+        )
+    _require_non_empty(len(labels), "Plot.encode_eventplot()")
+    var total = 0
+    for row in positions:
+        total += len(row)
+    if total == 0:
+        raise Error(
+            "Plot.encode_eventplot(): every row is empty -- an"
+            " individual row with no events is fine, but with no"
+            " event anywhere there is no x-axis to draw them on"
+        )
+    plot._categorical.x = labels.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._distribution.values = positions.copy()

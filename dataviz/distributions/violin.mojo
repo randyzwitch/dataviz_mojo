@@ -24,6 +24,8 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
+from dataviz.core.validate import _require_non_empty
+from dataviz.core.mark import Mark, _require_mark
 
 
 def _draw_violin_silhouettes[
@@ -411,3 +413,44 @@ def violin[
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
+
+
+def _encode_distribution(
+    mut plot: Plot,
+    categories: List[String],
+    values: List[List[Float64]],
+) raises:
+    """`Plot.encode_distribution()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    var _ok_encode_distribution = List[Mark]()
+    _ok_encode_distribution.append(Mark.VIOLIN)
+    _ok_encode_distribution.append(Mark.BEESWARM)
+    _ok_encode_distribution.append(Mark.RIDGELINE)
+    _require_mark(
+        plot._mark,
+        "encode_distribution",
+        "mark_violin()",
+        _ok_encode_distribution^,
+    )
+    if len(categories) != len(values):
+        raise Error(
+            "Plot.encode_distribution(): categories and values must"
+            " have the same length (got "
+            + String(len(categories))
+            + " and "
+            + String(len(values))
+            + ")"
+        )
+    _require_non_empty(len(categories), "Plot.encode_distribution()")
+    for i in range(len(values)):
+        if len(values[i]) == 0:
+            raise Error(
+                "Plot.encode_distribution(): category '"
+                + categories[i]
+                + "' has no values -- can't draw a distribution for"
+                " an empty one"
+            )
+    plot._categorical.x = categories.copy()
+    plot._continuous.x = List[Float64]()
+    plot._continuous.y = List[Float64]()
+    plot._distribution.values = values.copy()

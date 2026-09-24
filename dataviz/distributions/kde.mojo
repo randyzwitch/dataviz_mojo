@@ -35,6 +35,7 @@ from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
 from dataframe import DataFrame
 from dataviz.core.frame_input import _frame_floats
+from dataviz.core.mark import Mark, _require_mark
 
 
 comptime _KDE_SAMPLES = 30
@@ -775,3 +776,26 @@ def _draw_rug_ticks[
         color,
         sc.scale,
     )
+
+
+def _encode_kde(
+    mut plot: Plot,
+    values: List[Float64],
+) raises:
+    """`Plot.encode_kde()`'s body, which forwards here with
+    every argument; see that method for the contract."""
+    # ECDF is here because `encode_ecdf()` delegates to this, so
+    # the inner encoder must accept every mark its callers do.
+    var _ok_encode_kde = List[Mark]()
+    _ok_encode_kde.append(Mark.KDE)
+    _ok_encode_kde.append(Mark.RUG)
+    _ok_encode_kde.append(Mark.ECDF)
+    _require_mark(plot._mark, "encode_kde", "mark_kde()", _ok_encode_kde^)
+    _require_non_empty(len(values), "Plot.encode_kde()")
+    # One ungrouped column, stored in `_DistributionData`'s
+    # list-per-category shape as a single entry -- these marks share
+    # the estimator with VIOLIN/RIDGELINE but not the categorical
+    # axis, so there is no category to name.
+    var one = List[List[Float64]]()
+    one.append(values.copy())
+    plot._distribution.values = one^
