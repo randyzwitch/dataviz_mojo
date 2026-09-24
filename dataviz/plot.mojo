@@ -93,7 +93,7 @@ which is why they are written down rather than left to the compiler:
    `_render_<family>_family` in `dataviz/<family>/dispatch.mojo`.
 4. **The registration.** Add the mark to its family's row in
    `Mark._family()` (`dataviz/core/mark.mojo`), and have the `mark_*()`
-   setter call `self._set_mark(Mark.X)`, which binds that family's four
+   setter call `self._set_mark[Mark.X]()`, which binds that family's four
    adapters. A mark with no row fails
    `test_every_mark_has_a_family`, naming it.
 5. **The export.** Add the one-call function to `dataviz/__init__.mojo`.
@@ -711,7 +711,7 @@ struct Plot(Copyable, Movable):
         self.width = 640
         self.height = 420
 
-    def _set_mark(mut self, mark: Mark):
+    def _set_mark[mark: Mark](mut self):
         """Make `mark` this plot's mark and bind its family's render
         callbacks for Canvas, SVG, PDF and BoundsTarget, which family
         comes from `Mark._family()`. Every `mark_*()` setter goes
@@ -719,14 +719,21 @@ struct Plot(Copyable, Movable):
         other or with the mark. (`__init__` assigns POINT's directly:
         a method cannot run on a half-initialized `self`.)
 
-        A mark `_family()` has no row for gets
-        `_MarkFamily.UNASSIGNED` and binds nothing, leaving whatever the
-        previous mark bound; `test_every_mark_has_a_family` fails
-        for it before that can matter.
+        `mark` is a compile-time parameter and the family is chosen with
+        `comptime if`, so a setter references its own family's
+        callbacks and no other. A program therefore compiles only the
+        families whose setters it calls (#607); a runtime choice here
+        compiled every family into every program and more than doubled
+        the compile of a one-mark program. `scripts/
+        check_family_isolation.sh` fails if that comes back. A mark with
+        no row in `_family()` does not compile.
         """
+        comptime family = mark._family()
+        comptime assert not (
+            family == _MarkFamily.UNASSIGNED
+        ), "this mark has no row in Mark._family() (core/mark.mojo)"
         self._mark = mark
-        var family = mark._family()
-        if family == _MarkFamily.CONTINUOUS:
+        comptime if family == _MarkFamily.CONTINUOUS:
             self._render_canvas_family = _callback_continuous[Canvas]
             self._render_svg_family = _callback_continuous[SvgCanvas]
             self._render_pdf_family = _callback_continuous[PdfCanvas]
@@ -888,7 +895,7 @@ struct Plot(Copyable, Movable):
                 + ", jitter_y="
                 + String(jitter_y)
             )
-        self._set_mark(Mark.POINT)
+        self._set_mark[Mark.POINT]()
         self._mark_style.point_jitter_x = jitter_x
         self._mark_style.point_jitter_y = jitter_y
         return self^
@@ -917,7 +924,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.LINE)
+        self._set_mark[Mark.LINE]()
         self._mark_style.line_style = style
         self._mark_style.step = step
         return self^
@@ -930,7 +937,7 @@ struct Plot(Copyable, Movable):
         , via `_draw_horizontal_categorical_axis_frame` (gantt.mojo);
                 see `_render_horizontal_bar` (bar.mojo).
         """
-        self._set_mark(Mark.BAR)
+        self._set_mark[Mark.BAR]()
         self._horizontal = horizontal
         return self^
 
@@ -953,7 +960,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.AREA)
+        self._set_mark[Mark.AREA]()
         self._mark_style.step = step
         return self^
 
@@ -979,7 +986,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.HISTOGRAM)
+        self._set_mark[Mark.HISTOGRAM]()
         self._histogram.horizontal = horizontal
         return self^
 
@@ -989,7 +996,7 @@ struct Plot(Copyable, Movable):
         non-negative and at least one positive, checked at render() time.
         `inner_radius_fraction > 0.0` (in `[0.0, 1.0)`) makes a donut.
         """
-        self._set_mark(Mark.ARC)
+        self._set_mark[Mark.ARC]()
         self._mark_style.donut_inner_radius_fraction = inner_radius_fraction
         return self^
 
@@ -1010,7 +1017,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.NIGHTINGALE)
+        self._set_mark[Mark.NIGHTINGALE]()
         self._nightingale.area = area
         return self^
 
@@ -1022,7 +1029,7 @@ struct Plot(Copyable, Movable):
         `value / max(values)`; there is no `area` mode. Every value must be
         non-negative and at least one positive, checked at render() time.
         """
-        self._set_mark(Mark.POLAR_BAR)
+        self._set_mark[Mark.POLAR_BAR]()
         self._mark_style.polar_bar_padding = padding
         return self^
 
@@ -1035,7 +1042,7 @@ struct Plot(Copyable, Movable):
         must be non-negative and at least one positive, checked at render()
         time.
         """
-        self._set_mark(Mark.RADIALBAR)
+        self._set_mark[Mark.RADIALBAR]()
         self._mark_style.radialbar_ring_gap_fraction = ring_gap_fraction
         return self^
 
@@ -1048,7 +1055,7 @@ struct Plot(Copyable, Movable):
         `encode_polar_series()` (several named series sharing one angle
         domain). See `_render_polar`.
         """
-        self._set_mark(Mark.POLAR)
+        self._set_mark[Mark.POLAR]()
         self._mark_style.polar_grid_rings = grid_rings
         self._mark_style.polar_grid_spokes = grid_spokes
         return self^
@@ -1058,7 +1065,7 @@ struct Plot(Copyable, Movable):
         named series, with `grid_rings` web rings. Encoded via
         `encode_radar()`.
         """
-        self._set_mark(Mark.RADAR)
+        self._set_mark[Mark.RADAR]()
         self._mark_style.radar_grid_rings = grid_rings
         return self^
 
@@ -1075,7 +1082,7 @@ struct Plot(Copyable, Movable):
         are fractions of the dial radius; `start_angle`/`sweep_angle` are
         radians (the defaults give a 270-degree dial opening downward).
         """
-        self._set_mark(Mark.GAUGE)
+        self._set_mark[Mark.GAUGE]()
         self._mark_style.gauge_band_inner_fraction = band_inner_fraction
         self._mark_style.gauge_needle_fraction = needle_fraction
         self._mark_style.gauge_start_angle = start_angle
@@ -1087,7 +1094,7 @@ struct Plot(Copyable, Movable):
         evenly spaced, independently scaled vertical axes, one per dimension.
         Encoded via `encode_parallel()`.
         """
-        self._set_mark(Mark.PARALLEL)
+        self._set_mark[Mark.PARALLEL]()
         return self^
 
     def mark_pointplot(var self, horizontal: Bool = False) -> Self:
@@ -1104,7 +1111,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.POINTPLOT)
+        self._set_mark[Mark.POINTPLOT]()
         self._horizontal = horizontal
         return self^
 
@@ -1115,7 +1122,7 @@ struct Plot(Copyable, Movable):
         extending to the right; see `_render_horizontal_lollipop`
         (lollipop.mojo).
         """
-        self._set_mark(Mark.LOLLIPOP)
+        self._set_mark[Mark.LOLLIPOP]()
         self._horizontal = horizontal
         return self^
 
@@ -1130,7 +1137,7 @@ struct Plot(Copyable, Movable):
         `delta_width_fraction` is a delta bar's width as a fraction of the
         band, applied only when `is_total` rows are in use.
         """
-        self._set_mark(Mark.WATERFALL)
+        self._set_mark[Mark.WATERFALL]()
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
         self._horizontal = horizontal
         return self^
@@ -1148,7 +1155,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.BOXENPLOT)
+        self._set_mark[Mark.BOXENPLOT]()
         self._horizontal = horizontal
         return self^
 
@@ -1159,7 +1166,7 @@ struct Plot(Copyable, Movable):
         (default `False`) draws categories top-to-bottom with each box
         left-to-right; see `_render_horizontal_box` (box.mojo).
         """
-        self._set_mark(Mark.BOX)
+        self._set_mark[Mark.BOX]()
         self._horizontal = horizontal
         return self^
 
@@ -1167,7 +1174,7 @@ struct Plot(Copyable, Movable):
         """A candlestick chart: one open/high/low/close bar per category.
         Encoded via `encode_candlestick()`.
         """
-        self._set_mark(Mark.CANDLESTICK)
+        self._set_mark[Mark.CANDLESTICK]()
         return self^
 
     def mark_bullet(
@@ -1180,7 +1187,7 @@ struct Plot(Copyable, Movable):
         `encode_bullet()`. `measure_width_fraction` is the measure bar's
         width as a fraction of the band.
         """
-        self._set_mark(Mark.BULLET)
+        self._set_mark[Mark.BULLET]()
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
         self._horizontal = horizontal
         return self^
@@ -1191,7 +1198,7 @@ struct Plot(Copyable, Movable):
         `encode_gantt()`. See `mark_span_chart()` for the same data drawn
         vertically.
         """
-        self._set_mark(Mark.GANTT)
+        self._set_mark[Mark.GANTT]()
         return self^
 
     def mark_span_chart(var self) -> Self:
@@ -1199,7 +1206,7 @@ struct Plot(Copyable, Movable):
         bar per category from a low value to a high value on the normal
         categorical x-axis. Encoded via `encode_gantt()`.
         """
-        self._set_mark(Mark.SPAN_CHART)
+        self._set_mark[Mark.SPAN_CHART]()
         return self^
 
     def mark_calendar_heatmap(var self) -> Self:
@@ -1207,7 +1214,7 @@ struct Plot(Copyable, Movable):
         grid, colored through a continuous gradient. Encoded via
         `encode_calendar()` (`"YYYY-MM-DD"` dates).
         """
-        self._set_mark(Mark.CALENDAR_HEATMAP)
+        self._set_mark[Mark.CALENDAR_HEATMAP]()
         return self^
 
     def mark_corrplot(
@@ -1236,7 +1243,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.CORRPLOT)
+        self._set_mark[Mark.CORRPLOT]()
         self._corrplot.layout = layout
         self._corrplot.diag = diag
         self._corrplot.labels = labels
@@ -1257,7 +1264,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.PUNCHCARD)
+        self._set_mark[Mark.PUNCHCARD]()
         self._punchcard.scale = scale
         return self^
 
@@ -1278,7 +1285,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.BARBS)
+        self._set_mark[Mark.BARBS]()
         self._barbs.length = length
         self._barbs.flip = flip
         return self^
@@ -1300,7 +1307,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.QUIVER)
+        self._set_mark[Mark.QUIVER]()
         self._barbs.scale = scale
         self._barbs.color_by_magnitude = color_by_magnitude
         return self^
@@ -1319,7 +1326,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.CONTOUR)
+        self._set_mark[Mark.CONTOUR]()
         self._contour.level_count = levels
         return self^
 
@@ -1338,7 +1345,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.CONTOURF)
+        self._set_mark[Mark.CONTOURF]()
         self._contour.level_count = levels
         return self^
 
@@ -1356,7 +1363,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.IMSHOW)
+        self._set_mark[Mark.IMSHOW]()
         return self^
 
     def mark_pcolormesh(var self) -> Self:
@@ -1371,7 +1378,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.PCOLORMESH)
+        self._set_mark[Mark.PCOLORMESH]()
         return self^
 
     def mark_hist2d(var self) -> Self:
@@ -1383,7 +1390,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.HIST2D)
+        self._set_mark[Mark.HIST2D]()
         return self^
 
     def mark_hexbin(var self) -> Self:
@@ -1395,7 +1402,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.HEXBIN)
+        self._set_mark[Mark.HEXBIN]()
         return self^
 
     def mark_streamplot(
@@ -1420,7 +1427,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.STREAMPLOT)
+        self._set_mark[Mark.STREAMPLOT]()
         self._stream.density = density
         self._stream.arrows = arrows
         self._stream.color_by_magnitude = color_by_magnitude
@@ -1440,7 +1447,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.TRICONTOUR)
+        self._set_mark[Mark.TRICONTOUR]()
         self._tricontour.level_count = levels
         return self^
 
@@ -1459,7 +1466,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.TRICONTOURF)
+        self._set_mark[Mark.TRICONTOURF]()
         self._tricontour.level_count = levels
         return self^
 
@@ -1477,7 +1484,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.DENDROGRAM)
+        self._set_mark[Mark.DENDROGRAM]()
         self._dendrogram.horizontal = horizontal
         return self^
 
@@ -1526,7 +1533,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.TRIPLOT)
+        self._set_mark[Mark.TRIPLOT]()
         self._triplot.show_points = show_points
         return self^
 
@@ -1541,7 +1548,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.TRIPCOLOR)
+        self._set_mark[Mark.TRIPCOLOR]()
         return self^
 
     def mark_marimekko(var self) -> Self:
@@ -1550,7 +1557,7 @@ struct Plot(Copyable, Movable):
         each column's subcategory composition. Encoded via
         `encode_marimekko()`.
         """
-        self._set_mark(Mark.MARIMEKKO)
+        self._set_mark[Mark.MARIMEKKO]()
         return self^
 
     def mark_sunburst(var self) -> Self:
@@ -1558,21 +1565,21 @@ struct Plot(Copyable, Movable):
         level, each node's angular span proportional to its share of its
         parent's total. Encoded via `encode_hierarchy()`.
         """
-        self._set_mark(Mark.SUNBURST)
+        self._set_mark[Mark.SUNBURST]()
         return self^
 
     def mark_tree(var self) -> Self:
         """A tree diagram: a hierarchy as a top-to-bottom node-link diagram.
         Encoded via `encode_hierarchy()`.
         """
-        self._set_mark(Mark.TREE)
+        self._set_mark[Mark.TREE]()
         return self^
 
     def mark_treemap(var self) -> Self:
         """A treemap: a hierarchy as nested, area-proportional rectangles via
         slice-and-dice. Encoded via `encode_hierarchy()`.
         """
-        self._set_mark(Mark.TREEMAP)
+        self._set_mark[Mark.TREEMAP]()
         return self^
 
     def mark_grouped_bar(var self, horizontal: Bool = False) -> Self:
@@ -1582,7 +1589,7 @@ struct Plot(Copyable, Movable):
         equal-height sub-bars; see `_render_horizontal_grouped_bar`
         (grouped_bar.mojo).
         """
-        self._set_mark(Mark.GROUPED_BAR)
+        self._set_mark[Mark.GROUPED_BAR]()
         self._horizontal = horizontal
         return self^
 
@@ -1613,7 +1620,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.STACKED_BAR)
+        self._set_mark[Mark.STACKED_BAR]()
         self._grouped_bar.percent = percent
         self._horizontal = horizontal
         return self^
@@ -1624,14 +1631,14 @@ struct Plot(Copyable, Movable):
         horizontal categorical frame. Encoded via
         `encode_population_pyramid()`.
         """
-        self._set_mark(Mark.POPULATION_PYRAMID)
+        self._set_mark[Mark.POPULATION_PYRAMID]()
         return self^
 
     def mark_heatmap(var self) -> Self:
         """A heatmap: one colored grid cell per (x, y) category pair, on two
         categorical axes. Encoded via `encode_heatmap()`.
         """
-        self._set_mark(Mark.HEATMAP)
+        self._set_mark[Mark.HEATMAP]()
         return self^
 
     def mark_chord(var self, ring_fraction: Float64 = 0.08) -> Self:
@@ -1640,7 +1647,7 @@ struct Plot(Copyable, Movable):
         value. Encoded via `encode_chord()`. `ring_fraction` is the rim's
         thickness as a fraction of the radius. No axis frame.
         """
-        self._set_mark(Mark.CHORD)
+        self._set_mark[Mark.CHORD]()
         self._mark_style.chord_ring_fraction = ring_fraction
         return self^
 
@@ -1648,7 +1655,7 @@ struct Plot(Copyable, Movable):
         """An arc diagram: `mark_chord()`'s edge list drawn as nodes on one line
         connected by semicircular arcs. Encoded via `encode_chord()`.
         """
-        self._set_mark(Mark.ARC_DIAGRAM)
+        self._set_mark[Mark.ARC_DIAGRAM]()
         return self^
 
     def mark_graph(var self, layout: GraphLayout = GraphLayout.CIRCLE) -> Self:
@@ -1664,7 +1671,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.GRAPH)
+        self._set_mark[Mark.GRAPH]()
         self._mark_style.graph_layout = layout
         return self^
 
@@ -1674,7 +1681,7 @@ struct Plot(Copyable, Movable):
         `node_width` pixels wide (before `Theme.scale`). Encoded via
         `encode_chord()`; the edges must form a DAG.
         """
-        self._set_mark(Mark.SANKEY)
+        self._set_mark[Mark.SANKEY]()
         self._mark_style.sankey_node_width = node_width
         return self^
 
@@ -1686,7 +1693,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.SINGLE_AXIS)
+        self._set_mark[Mark.SINGLE_AXIS]()
         return self^
 
     def mark_effect_scatter(var self) -> Self:
@@ -1694,14 +1701,14 @@ struct Plot(Copyable, Movable):
         equivalent of ECharts' effect scatter (see `_draw_point_layer`'s
         `draw_halo`). Encoded like `Mark.POINT`, via `encode()`.
         """
-        self._set_mark(Mark.EFFECT_SCATTER)
+        self._set_mark[Mark.EFFECT_SCATTER]()
         return self^
 
     def mark_funnel(var self) -> Self:
         """A funnel chart: one tapering trapezoid per category, largest value
         first, with no axis frame. Encoded via `encode_categorical()`.
         """
-        self._set_mark(Mark.FUNNEL)
+        self._set_mark[Mark.FUNNEL]()
         return self^
 
     def mark_bump(var self) -> Self:
@@ -1709,7 +1716,7 @@ struct Plot(Copyable, Movable):
         value) among every series at each category. Encoded via
         `encode_grouped_bar()`.
         """
-        self._set_mark(Mark.BUMP)
+        self._set_mark[Mark.BUMP]()
         return self^
 
     def mark_streamgraph(
@@ -1757,7 +1764,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.STREAMGRAPH)
+        self._set_mark[Mark.STREAMGRAPH]()
         self._mark_style.streamgraph_baseline = baseline
         self._mark_style.step = step
         return self^
@@ -1769,7 +1776,7 @@ struct Plot(Copyable, Movable):
         each swarm jittered vertically; see
         `_render_horizontal_beeswarm` (beeswarm.mojo).
         """
-        self._set_mark(Mark.BEESWARM)
+        self._set_mark[Mark.BEESWARM]()
         self._horizontal = horizontal
         return self^
 
@@ -1816,7 +1823,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.VIOLIN)
+        self._set_mark[Mark.VIOLIN]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._horizontal = horizontal
@@ -1855,7 +1862,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.KDE)
+        self._set_mark[Mark.KDE]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_fill = fill
         self._distribution.kde_rug = rug
@@ -1872,7 +1879,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.RUG)
+        self._set_mark[Mark.RUG]()
         return self^
 
     def mark_ecdf(var self, complementary: Bool = False) -> Self:
@@ -1901,7 +1908,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.ECDF)
+        self._set_mark[Mark.ECDF]()
         self._distribution.ecdf_complementary = complementary
         return self^
 
@@ -1926,7 +1933,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.EVENTPLOT)
+        self._set_mark[Mark.EVENTPLOT]()
         self._mark_style.eventplot_line_length = line_length
         return self^
 
@@ -1958,7 +1965,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.RIDGELINE)
+        self._set_mark[Mark.RIDGELINE]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
         self._mark_style.ridgeline_overlap = overlap
@@ -2269,7 +2276,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.SCATTER3D)
+        self._set_mark[Mark.SCATTER3D]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2293,7 +2300,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.PLOT3D)
+        self._set_mark[Mark.PLOT3D]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2315,7 +2322,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.SURFACE3D)
+        self._set_mark[Mark.SURFACE3D]()
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2340,7 +2347,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.WIRE3D)
+        self._set_mark[Mark.WIRE3D]()
         self._surface.elev = elev
         self._surface.azim = azim
         return self^
@@ -2362,7 +2369,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.TRISURF3D)
+        self._set_mark[Mark.TRISURF3D]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2385,7 +2392,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.STEM3D)
+        self._set_mark[Mark.STEM3D]()
         self._xyz.elev = elev
         self._xyz.azim = azim
         return self^
@@ -2408,7 +2415,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.QUIVER3D)
+        self._set_mark[Mark.QUIVER3D]()
         self._vectors3d.elev = elev
         self._vectors3d.azim = azim
         return self^
@@ -2431,7 +2438,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.FILL_BETWEEN3D)
+        self._set_mark[Mark.FILL_BETWEEN3D]()
         self._ribbon3d.elev = elev
         self._ribbon3d.azim = azim
         return self^
@@ -2462,7 +2469,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.BAR3D)
+        self._set_mark[Mark.BAR3D]()
         self._bars3d.bar_width = bar_width
         self._bars3d.bar_depth = bar_depth
         self._bars3d.elev = elev
@@ -2487,7 +2494,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._set_mark(Mark.VOXELS)
+        self._set_mark[Mark.VOXELS]()
         self._voxels.elev = elev
         self._voxels.azim = azim
         return self^

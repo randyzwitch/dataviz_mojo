@@ -173,6 +173,13 @@ jobs:
           head -c 64 out.svg; echo
           ls -l out.svg out.png
 
+      # A runtime family choice in Plot._set_mark() compiled every mark
+      # family into every program and doubled compile time with every
+      # test green (#817). Linux x86 only: one platform shows it.
+      - name: Check a one-mark program compiles no other mark family
+        if: matrix.os == 'ubuntu-latest'
+        run: pixi run check-family-isolation
+
       - name: Report the consumer's dynamic dependencies
         working-directory: ${{ runner.temp }}/consumer
         run: |
