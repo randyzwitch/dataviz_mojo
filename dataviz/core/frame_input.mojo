@@ -599,13 +599,16 @@ def _index_of(keys: List[Float64], key: Float64) -> Int:
     return 0
 
 
-def _is_string_column(df: DataFrame, name: String) raises -> Bool:
+def _is_string_column(
+    df: DataFrame, name: String, caller: String = "Plot.encode_frame()"
+) raises -> Bool:
     """Whether `name` is a string column, which is what decides between
     a categorical and a continuous x channel.
 
     Args:
         df: The frame to read.
         name: The column's name.
+        caller: Public operation named in a missing-column error.
 
     Returns:
         True for a string column.
@@ -613,6 +616,4 @@ def _is_string_column(df: DataFrame, name: String) raises -> Bool:
     Raises:
         Error: No column of that name.
     """
-    return _frame_column(df, name, "Plot.encode_frame()").dtype() == (
-        DataType.STRING
-    )
+    return _frame_column(df, name, caller).dtype() == DataType.STRING

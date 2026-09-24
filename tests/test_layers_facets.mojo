@@ -447,36 +447,139 @@ def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
         _ = render_layers(plots)
 
 
-def test_render_layers_raises_when_a_grouped_bar_plot_is_included() raises:
-    # The same allow-list checked for Mark.GROUPED_BAR.
-    var line_x: List[Float64] = [0.0, 10.0]
-    var line_y: List[Float64] = [0.0, 10.0]
-    var cats: List[String] = ["a", "b"]
+def test_grouped_bar_layers_align_a_line_to_category_centers() raises:
+    var cats: List[String] = ["A", "B"]
+    var names: List[String] = ["North", "South"]
+    var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 7.0]]
+    var xs: List[Float64] = [0.0, 1.0]
+    var ys: List[Float64] = [12.0, 18.0]
+    var grouped = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var trend = (
+        Plot()
+        .mark_line()
+        .encode(x=xs, y=ys)
+        .theme(Theme(mark_color=TOMATO))
+        .series_name("Trend")
+        .size(400, 300)
+    )
+    var svg = render_layers_svg([grouped^, trend^]).to_string()
+    assert_true(
+        ">North<" in svg and ">South<" in svg, "both grouped series in legend"
+    )
+    assert_true(">Trend<" in svg, "overlay line in legend")
+    assert_true('stroke="#ff6347"' in svg, "line uses its own color")
+    var shifted_x: List[Float64] = [100.0, 200.0]
+    var same_grouped = (
+        Plot()
+        .mark_grouped_bar()
+        .encode_grouped_bar(cats, names, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var same_trend = (
+        Plot()
+        .mark_line()
+        .encode(x=shifted_x, y=ys)
+        .theme(Theme(mark_color=TOMATO))
+        .series_name("Trend")
+        .size(400, 300)
+    )
+    assert_equal(
+        render_layers_svg([same_grouped^, same_trend^]).to_string(),
+        svg,
+        "line positions follow category centers, independent of numeric x",
+    )
+
+
+def test_stacked_bar_layers_keep_totals_and_series_legend() raises:
+    var cats: List[String] = ["A", "B"]
+    var names: List[String] = ["North", "South"]
+    var values: List[List[Float64]] = [[10.0, 20.0], [5.0, 7.0]]
+    var xs: List[Float64] = [0.0, 1.0]
+    var ys: List[Float64] = [12.0, 18.0]
+    var stacked = (
+        Plot()
+        .mark_stacked_bar()
+        .encode_grouped_bar(cats, names, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var trend = (
+        Plot()
+        .mark_line()
+        .encode(x=xs, y=ys)
+        .theme(Theme(mark_color=TOMATO))
+        .size(400, 300)
+    )
+    var svg = render_layers_svg([stacked^, trend^]).to_string()
+    assert_true(
+        ">North<" in svg and ">South<" in svg, "stacked series in legend"
+    )
+    var shifted_x: List[Float64] = [100.0, 200.0]
+    var same_stacked = (
+        Plot()
+        .mark_stacked_bar()
+        .encode_grouped_bar(cats, names, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var same_trend = (
+        Plot()
+        .mark_line()
+        .encode(x=shifted_x, y=ys)
+        .theme(Theme(mark_color=TOMATO))
+        .size(400, 300)
+    )
+    assert_equal(
+        render_layers_svg([same_stacked^, same_trend^]).to_string(),
+        svg,
+        "line positions follow category centers, independent of numeric x",
+    )
+
+
+def test_percent_stacked_layer_preserves_normalization_and_validation() raises:
+    var cats: List[String] = ["A", "B"]
+    var names: List[String] = ["North", "South"]
+    var values: List[List[Float64]] = [[10.0, 20.0], [10.0, 5.0]]
+    var xs: List[Float64] = [0.0, 1.0]
+    var ys: List[Float64] = [50.0, 80.0]
+    var stacked = (
+        Plot()
+        .mark_stacked_bar(percent=True)
+        .encode_grouped_bar(cats, names, values)
+        .theme(Theme(show_gridlines=False))
+        .size(400, 300)
+    )
+    var trend = Plot().mark_line().encode(x=xs, y=ys).size(400, 300)
+    var svg = render_layers_svg([stacked^, trend^]).to_string()
+    assert_true(">100<" in svg, "percent stack keeps a 100% axis tick")
+    var negative: List[List[Float64]] = [[10.0, 20.0], [-1.0, 5.0]]
+    var invalid = (
+        Plot()
+        .mark_stacked_bar(percent=True)
+        .encode_grouped_bar(cats, names, negative)
+    )
+    var line = Plot().mark_line().encode(x=xs, y=ys)
+    with assert_raises(contains="negative share has no meaning"):
+        _ = render_layers([invalid^, line^])
+
+
+def test_subdivided_bar_layers_reject_a_second_categorical_bar() raises:
+    var cats: List[String] = ["A", "B"]
     var names: List[String] = ["North"]
-    var values: List[List[Float64]] = [[1.0, 2.0]]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(
+    var values: List[List[Float64]] = [[10.0, 20.0]]
+    var grouped = (
         Plot().mark_grouped_bar().encode_grouped_bar(cats, names, values)
     )
-    with assert_raises():
-        _ = render_layers(plots)
-
-
-def test_render_layers_raises_when_a_stacked_bar_plot_is_included() raises:
-    # The same allow-list checked for Mark.STACKED_BAR.
-    var line_x: List[Float64] = [0.0, 10.0]
-    var line_y: List[Float64] = [0.0, 10.0]
-    var cats: List[String] = ["a", "b"]
-    var names: List[String] = ["North"]
-    var values: List[List[Float64]] = [[1.0, 2.0]]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(
-        Plot().mark_stacked_bar().encode_grouped_bar(cats, names, values)
-    )
-    with assert_raises():
-        _ = render_layers(plots)
+    var plain = Plot().mark_bar().encode_categorical(x=cats, y=[5.0, 6.0])
+    with assert_raises(contains="only categorical bar layer"):
+        _ = render_layers([grouped^, plain^])
 
 
 def test_render_layers_line_honors_theme_line_smoothing() raises:

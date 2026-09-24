@@ -41,6 +41,17 @@ pandas = ">=2.0,<3"
 # One DejaVu Sans face at $CONDA_PREFIX/fonts for fontless exports (#767).
 font-ttf-dejavu-sans-mono = "=2.37"
 
+# The MAX Python adapter is tested in a separate environment so MAX's
+# compiler pin does not constrain the normal workspace environment.
+[feature.max_adapter.dependencies]
+max = ">=26.6.0,<26.7"
+
+[feature.max_adapter.tasks]
+test-max-adapter = "mojo run -I . tests/max_adapter.mojo"
+
+[environments]
+max-adapter = ["max_adapter"]
+
 [activation.env]
 # mblack caches its parsed grammar under a directory keyed only by its
 # own version string and the Python version, which every environment on
