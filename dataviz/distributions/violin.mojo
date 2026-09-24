@@ -58,7 +58,7 @@ def _draw_violin_silhouettes[
     `_KDE_SAMPLES` times; a zero `max_density` collapses `scale` to `0.0`
     rather than producing NaN.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var max_n = 0
     for series in plot._distribution.values:
         if len(series) > max_n:
@@ -67,7 +67,7 @@ def _draw_violin_silhouettes[
         band_scale.bandwidth() * plot._mark_style.violin_width_fraction
     )
 
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var center = band_scale.center(i)
@@ -158,7 +158,7 @@ def _render_violin[
     value across every category, the same domain choice `Mark.BOX`/
     `BEESWARM` make.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
@@ -212,7 +212,7 @@ def _render_horizontal_violin[
     rather than an orientation flag, for the reasons in
     `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
@@ -473,7 +473,7 @@ def _render_violin_oriented[
 ) raises -> _RenderResult:
     """`Mark.VIOLIN`'s renderer, the one its setter binds: `_render_horizontal_violin`
     when the plot is horizontal, `_render_violin` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_violin(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

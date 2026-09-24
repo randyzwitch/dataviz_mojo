@@ -106,12 +106,14 @@ def _draw_stacked_segments[
     `Theme.show_data_labels` centers each segment's value inside it,
     since a stacked segment has neighbors on both sides.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
     var band_size = band_scale.bandwidth()
 
-    var tooltips_on = plot._tooltips_on(n_series * len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(
+        n_series * len(plot._categorical.x)
+    )
     for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         # percent=True rescales each category against its own total. An
@@ -205,7 +207,7 @@ def _render_stacked_bar[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var n_series = len(plot._grouped_bar.series_names)
     _validate_stacked_bar_percent(plot, n_series)
     var y_scale = _stacked_bar_domain(plot, n_series)
@@ -280,7 +282,7 @@ def _render_horizontal_stacked_bar[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var n_series = len(plot._grouped_bar.series_names)
     _validate_stacked_bar_percent(plot, n_series)
     var x_scale = _stacked_bar_domain(plot, n_series)
@@ -507,7 +509,7 @@ def _render_stacked_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.STACKED_BAR`'s renderer, the one its setter binds: `_render_horizontal_stacked_bar`
     when the plot is horizontal, `_render_stacked_bar` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_stacked_bar(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

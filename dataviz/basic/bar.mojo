@@ -82,12 +82,12 @@ def _draw_bar_rects_at_positions[
     This keeps colors, error bars, tooltips, and data labels identical
     for categorical bands and timestamp intervals.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var baseline = _axis_pixel_f(value_scale, 0.0)
     var has_y_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     var cap_half = sc.error_bar_cap_width
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_pos = band_starts[i]
         var band_size = band_widths[i]
@@ -249,13 +249,13 @@ def _render_time_bar[
     ]
     var x_scale = _data_extent(bounds)
     x_scale.is_time = True
-    x_scale.tz_offset = plot._x_tz_offset
+    x_scale.tz_offset = plot._settings.x_tz_offset
     var y_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,
         y_scale,
-        plot._theme,
+        plot._settings.theme,
         _LegendLayout(),
         ox0,
         oy0,
@@ -319,13 +319,13 @@ def _render_bar[
     for a negative value). No x-gridlines: the bars already separate
     categories.
     """
-    if plot._x_time:
+    if plot._settings.x_time:
         return _render_time_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
     _validate_categorical_encoding(
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     # y-domain computed before the frame's dynamic left margin is
     # finalized; see _draw_categorical_axis_frame for why it takes y_scale
     # as an input.
@@ -388,7 +388,7 @@ def _render_horizontal_bar[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var x_scale = _zero_baseline_y_extent(_bar_y_domain_data(plot))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -674,7 +674,7 @@ def _encode_categorical(
     plot._y_err.symmetric = y_err.copy()
     plot._y_err.lower = y_err_lower.copy()
     plot._y_err.upper = y_err_upper.copy()
-    plot._x_time = False
+    plot._settings.x_time = False
 
 
 def _encode_time_bars(
@@ -688,7 +688,7 @@ def _encode_time_bars(
     """`Plot.encode_time_bars()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(plot._mark, "encode_time_bars", "mark_bar()", Mark.BAR)
-    if plot._horizontal:
+    if plot._settings.horizontal:
         raise Error(
             "Plot.encode_time_bars(): horizontal bars cannot use a time x-axis"
         )
@@ -703,9 +703,9 @@ def _encode_time_bars(
     plot._y_err.symmetric = y_err.copy()
     plot._y_err.lower = y_err_lower.copy()
     plot._y_err.upper = y_err_upper.copy()
-    plot._x_time = True
+    plot._settings.x_time = True
     if len(dates) > 0:
-        plot._x_tz_offset = dates[0].tz.offset
+        plot._settings.x_tz_offset = dates[0].tz.offset
 
 
 def _encode_binned_categories(
@@ -754,7 +754,7 @@ def _render_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.BAR`'s renderer, the one its setter binds: `_render_horizontal_bar`
     when the plot is horizontal, `_render_bar` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_bar(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

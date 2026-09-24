@@ -55,13 +55,13 @@ def _draw_lollipop_stems[
     `_pull_off_axis_line`'s bare stem extent) so the label clears the
     dot regardless of which end is the "far" one for a negative value.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var baseline = value_scale.to_pixel(0.0)
     var baseline_on_axis_line = abs(baseline - Float64(baseline_edge)) < 0.5
     var band_size = band_scale.bandwidth()
 
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_pos = band_scale.band_start(i)
         var center = band_scale.center(i)
@@ -152,7 +152,7 @@ def _render_lollipop[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var y_scale = _zero_baseline_y_extent(plot._continuous.y)
     var frame = _draw_categorical_axis_frame(
         target,
@@ -206,7 +206,7 @@ def _render_horizontal_lollipop[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var x_scale = _zero_baseline_y_extent(plot._continuous.y)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -392,7 +392,7 @@ def _render_lollipop_oriented[
 ) raises -> _RenderResult:
     """`Mark.LOLLIPOP`'s renderer, the one its setter binds: `_render_horizontal_lollipop`
     when the plot is horizontal, `_render_lollipop` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_lollipop(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

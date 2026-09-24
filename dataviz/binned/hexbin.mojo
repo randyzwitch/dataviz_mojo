@@ -455,25 +455,25 @@ def _render_hexbin[
     # hexagon is regular on screen rather than stretched across decades
     # (#718). The bins, their centers and their reach are all in that
     # space from here on; only the axis and the drawing need to know.
-    if plot._x_symlog or plot._y_symlog:
+    if plot._settings.x_symlog or plot._settings.y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): Mark.HEXBIN takes"
             " scale_x_log() only. The lattice is laid out in one space, and"
             " symlog is two spaces joined at a threshold"
         )
-    var x_log = plot._x_log
+    var x_log = plot._settings.x_log
     var bins = _hexbin_bins(
         _log10_all(plot._hexbin.x, "x") if x_log else plot._hexbin.x.copy(),
         plot._hexbin.y,
         plot._hexbin.gridsize,
     )
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var top = 0
     for c in bins.count:
         top = max(top, c)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, 0.0, Float64(top)
+        theme, plot._settings.color_domain, 0.0, Float64(top)
     )
 
     var legend = _continuous_color_legend_layout(
@@ -512,7 +512,7 @@ def _render_hexbin[
         draw_x,
         frame.y_scale,
         sc,
-        plot._tooltips_on(_distinct_count(bins.count)),
+        plot._settings.tooltips_on(_distinct_count(bins.count)),
     )
     _draw_continuous_color_legend_at(
         target,

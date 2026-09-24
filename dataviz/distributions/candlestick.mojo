@@ -100,8 +100,8 @@ def _draw_candles[
     mut text_requests: List[_TextRequest],
 ) raises:
     """Wicks and bodies, shared by categorical and time x axes."""
-    var theme = plot._theme
-    var tooltips_on = plot._tooltips_on(len(centers))
+    var theme = plot._settings.theme
+    var tooltips_on = plot._settings.tooltips_on(len(centers))
     for i in range(len(centers)):
         var center_px = snap_to_pixel_center(centers[i])
         var high_py = _axis_pixel_f(y_scale, plot._candle.high[i])
@@ -222,13 +222,13 @@ def _render_candlestick[
             + ")"
         )
     _require_non_empty(n, "Plot.encode_candlestick()")
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var y_scale = _candle_y_domain(plot)
     var centers = List[Float64](capacity=n)
     var starts = List[Float64](capacity=n)
     var ends = List[Float64](capacity=n)
 
-    if plot._x_time:
+    if plot._settings.x_time:
         if len(plot._continuous.x) != n:
             raise Error(
                 "Plot.encode_candlestick_time(): dates and open/high/low/close"
@@ -244,7 +244,7 @@ def _render_candlestick[
             earliest - width_seconds, latest + width_seconds, 0.0, 1.0
         )
         x_scale.is_time = True
-        x_scale.tz_offset = plot._x_tz_offset
+        x_scale.tz_offset = plot._settings.x_tz_offset
         var time_frame = _draw_continuous_axis_frame(
             target,
             x_scale,
@@ -564,7 +564,7 @@ def _encode_candlestick(
     plot._candle.high = high.copy()
     plot._candle.low = low.copy()
     plot._candle.close_price = close.copy()
-    plot._x_time = False
+    plot._settings.x_time = False
 
 
 def _encode_candlestick_time(
@@ -595,6 +595,6 @@ def _encode_candlestick_time(
     plot._candle.high = high.copy()
     plot._candle.low = low.copy()
     plot._candle.close_price = close.copy()
-    plot._x_time = True
+    plot._settings.x_time = True
     if len(dates) > 0:
-        plot._x_tz_offset = dates[0].tz.offset
+        plot._settings.x_tz_offset = dates[0].tz.offset

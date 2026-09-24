@@ -84,7 +84,7 @@ def _render_funnel[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_negative(plot._continuous.y, "Mark.FUNNEL")
 
     var order = _descending_value_order(plot._continuous.y)
@@ -123,7 +123,7 @@ def _render_funnel[
         top_width.append((plot._continuous.y[order[i]] / largest) * max_width)
 
     var text_requests = List[_TextRequest]()
-    var tooltips_on = plot._tooltips_on(n)
+    var tooltips_on = plot._settings.tooltips_on(n)
     for i in range(n):
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
         var y0 = plot_y0 + Int(Float64(i) * row_height)

@@ -177,7 +177,7 @@ def _render_ecdf[
     var values = plot._distribution.values[0].copy()
     _require_non_empty(len(values), "Plot.encode_ecdf()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var complementary = plot._distribution.ecdf_complementary
     var curve = _ecdf_points(values, complementary)
 
@@ -186,10 +186,10 @@ def _render_ecdf[
         _position_x_extent(
             values,
             mark=plot._mark,
-            x_log=plot._x_log,
-            x_symlog=plot._x_symlog,
-            x_symlog_linthresh=plot._x_symlog_linthresh,
-            y_symlog=plot._y_symlog,
+            x_log=plot._settings.x_log,
+            x_symlog=plot._settings.x_symlog,
+            x_symlog_linthresh=plot._settings.x_symlog_linthresh,
+            y_symlog=plot._settings.y_symlog,
         ),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,
@@ -236,7 +236,7 @@ def _draw_ecdf_layer[
         y_scale: The frame's y-scale, already ranged to pixels.
         sc: The frame's `_Scaled` theme quantities (line width).
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var px = List[Float64](capacity=len(curve_x))
     var py = List[Float64](capacity=len(curve_x))
     for i in range(len(curve_x)):

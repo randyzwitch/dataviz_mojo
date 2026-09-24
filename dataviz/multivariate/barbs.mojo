@@ -222,7 +222,7 @@ def _render_barbs[
     """
     _validate_barbs(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._barbs.x),
@@ -313,7 +313,7 @@ def _draw_barbs_layer[
         sc: This layer's scaled theme metrics.
     """
     var n = len(plot._barbs.x)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var length = plot._barbs.length * sc.scale
     var stroke_width = sc.scale
     var empty_radius = _EMPTY_RADIUS * length

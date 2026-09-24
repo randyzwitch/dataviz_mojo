@@ -78,7 +78,9 @@ def save_facets(
             "save_facets(): cols must be positive (got " + String(cols) + ")"
         )
     _require_uniform_size(plots, "save_facets")
-    var format = _resolve_output_format(plots[0]._theme.output_format, path)
+    var format = _resolve_output_format(
+        plots[0]._settings.theme.output_format, path
+    )
     if format == OutputFormat.SVG:
         var f = open(path, "w")
         if tight:
@@ -86,12 +88,12 @@ def save_facets(
             var svg = SvgCanvas(box[2], box[3])
             svg.translate(-Float64(box[0]), -Float64(box[1]))
             _draw_facets_figure(svg, plots, cols, shared_y_scale, "", True)
-            f.write(_svg_output_string(svg^, plots[0]._labels))
+            f.write(_svg_output_string(svg^, plots[0]._settings.labels))
         else:
             f.write(
                 _svg_output_string(
                     render_facets_svg(plots, cols, shared_y_scale),
-                    plots[0]._labels,
+                    plots[0]._settings.labels,
                 )
             )
         f.close()
@@ -150,7 +152,8 @@ def _facets_size(
     var rows = (len(plots) + cols - 1) // cols
     return (
         cols * plots[0].width,
-        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+        rows * plots[0].height
+        + _figure_title_band(plots[0]._settings.theme, title),
     )
 
 
@@ -182,7 +185,9 @@ def _draw_facets_figure[
     """
     var size = _facets_size(plots, cols, title)
     if fill_background:
-        target.fill_rect(0, 0, size[0], size[1], plots[0]._theme.background)
+        target.fill_rect(
+            0, 0, size[0], size[1], plots[0]._settings.theme.background
+        )
     var cache = FontCache()
     var text_requests = _render_facets_generic(
         target,
@@ -221,8 +226,8 @@ def _render_facets_tight(
         var f = _resolve_supersample(plots[i], "save_facets")
         if f > factor:
             factor = f
-    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
-    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
+    canvas.begin_supersampled(factor, plots[0]._settings.theme.background)
     canvas.translate(-Float64(box[0]), -Float64(box[1]))
     _draw_facets_figure(canvas, plots, cols, shared_y_scale, "", True)
     canvas.end_supersampled()
@@ -266,7 +271,7 @@ def render_facets(
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
     from the plots (`_require_uniform_size`), plus the band a `title`
     reserves above them so the cells keep their own size, supersampled by
-    `plots[0]._theme.raster_supersample` like `render()` (`plots` is a
+    `plots[0]._settings.theme.raster_supersample` like `render()` (`plots` is a
     plain borrow -- a copy is what actually gets the scale bump,
     so a temporary list literal binds fine). See `_render_facets_generic`
     for the cell-layout contract. `cols` is checked before anything
@@ -288,7 +293,7 @@ def render_facets(
         if f > factor:
             factor = f
     var figure_height = rows * plots[0].height + _figure_title_band(
-        plots[0]._theme, title
+        plots[0]._settings.theme, title
     )
     var canvas = Canvas(cols * plots[0].width, figure_height)
     # `begin_supersampled` owns the half-pixel shift box downsampling
@@ -307,7 +312,7 @@ def render_facets(
         0,
         cols * plots[0].width,
         figure_height,
-        plots[0]._theme.background,
+        plots[0]._settings.theme.background,
     )
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
@@ -347,10 +352,13 @@ def render_facets_svg(
     var rows = (len(plots) + cols - 1) // cols
     var svg = SvgCanvas(
         cols * plots[0].width,
-        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+        rows * plots[0].height
+        + _figure_title_band(plots[0]._settings.theme, title),
     )
     # See render_facets(): a partial last row is a hole without this.
-    svg.fill_rect(0, 0, svg.width, svg.height, plots[0]._theme.background)
+    svg.fill_rect(
+        0, 0, svg.width, svg.height, plots[0]._settings.theme.background
+    )
     # One lazily built FontCache for the whole figure; see _render_into.
     var cache = FontCache()
     var text_requests = _render_facets_generic(
@@ -400,9 +408,12 @@ def render_facets_pdf(
     var rows = (len(plots) + cols - 1) // cols
     var pdf = PdfCanvas(
         cols * plots[0].width,
-        rows * plots[0].height + _figure_title_band(plots[0]._theme, title),
+        rows * plots[0].height
+        + _figure_title_band(plots[0]._settings.theme, title),
     )
-    pdf.fill_rect(0, 0, pdf.width, pdf.height, plots[0]._theme.background)
+    pdf.fill_rect(
+        0, 0, pdf.width, pdf.height, plots[0]._settings.theme.background
+    )
     var cache = FontCache()
     var text_requests = _render_facets_generic(
         pdf,

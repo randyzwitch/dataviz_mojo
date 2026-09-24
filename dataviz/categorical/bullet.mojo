@@ -139,7 +139,7 @@ def _render_bullet[
     3. The target tick (`theme.axis_color`, full band width), drawn last.
     """
     _validate_bullet_encoding(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var domain_data = List[Float64]()
     for i in range(len(plot._categorical.x)):
         domain_data.append(0.0)
@@ -207,7 +207,7 @@ def _draw_bullet_rows[
     Raises:
         Error: Whatever the target's draw calls raise.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var range_color_scale = ColorScale(0.0, 1.0)
     range_color_scale.add_stop(0.0, theme.bullet_range_color_light)
     range_color_scale.add_stop(1.0, theme.bullet_range_color_dark)
@@ -224,7 +224,7 @@ def _draw_bullet_rows[
     var baseline_py = _axis_pixel_f(value_scale, 0.0)
     var sc = _Scaled(theme)
 
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_x = band_scale.band_start(i)
         var band_x1 = band_x + bandwidth
@@ -324,7 +324,7 @@ def _render_horizontal_bullet[
     categorical axis crowds.
     """
     _validate_bullet_encoding(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var domain_data = List[Float64]()
     for i in range(len(plot._categorical.x)):
         domain_data.append(0.0)
@@ -596,7 +596,7 @@ def _render_bullet_oriented[
 ) raises -> _RenderResult:
     """`Mark.BULLET`'s renderer, the one its setter binds: `_render_horizontal_bullet`
     when the plot is horizontal, `_render_bullet` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_bullet(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

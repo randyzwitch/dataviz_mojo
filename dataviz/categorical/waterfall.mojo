@@ -105,7 +105,7 @@ def _render_waterfall[
     covers all running-total bounds and includes zero.
     """
     _validate_waterfall_encoding(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var combined = List[Float64]()
     for v in plot._waterfall.y0:
         combined.append(v)
@@ -202,7 +202,7 @@ def _draw_waterfall_bars[
     Raises:
         Error: Whatever the target's draw calls raise.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var using_totals = len(plot._waterfall.is_total) > 0
 
@@ -213,7 +213,7 @@ def _draw_waterfall_bars[
     var bar_x_list = List[Float64]()
     var bar_x1_list = List[Float64]()
     var bandwidth = band_scale.bandwidth()
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_start = band_scale.band_start(i)
         var row_is_total = (
@@ -335,7 +335,7 @@ def _render_horizontal_waterfall[
     their scales under different names and types.
     """
     _validate_waterfall_encoding(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var combined = List[Float64]()
     for v in plot._waterfall.y0:
         combined.append(v)
@@ -565,7 +565,7 @@ def _render_waterfall_oriented[
 ) raises -> _RenderResult:
     """`Mark.WATERFALL`'s renderer, the one its setter binds: `_render_horizontal_waterfall`
     when the plot is horizontal, `_render_waterfall` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_waterfall(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

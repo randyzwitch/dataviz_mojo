@@ -67,7 +67,7 @@ def _render_gauge[
     The range must increase. Band endpoints and colors must have equal length,
     and endpoints must increase within `(0, 1]`.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     if plot._gauge.min_value >= plot._gauge.max_value:
         raise Error(
             "Plot.encode_gauge(): min_value must be less than max_value (got "
@@ -150,7 +150,7 @@ def _render_gauge[
         needle_angle,
         max_radius * plot._mark_style.gauge_needle_fraction,
     )
-    var tooltips_on = plot._tooltips_on(1)
+    var tooltips_on = plot._settings.tooltips_on(1)
     if tooltips_on:
         target.begin_annotated_group(
             _format_fixed(value, _label_decimals(value))

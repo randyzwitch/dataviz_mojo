@@ -201,7 +201,7 @@ def _render_sunburst[
             + " values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_negative(plot._hierarchy.values, "Mark.SUNBURST")
 
     var idx = _build_hierarchy_index(
@@ -258,7 +258,7 @@ def _render_sunburst[
             theme.background,
             theme.background,
             sc.scale,
-            plot._tooltips_on(len(plot._hierarchy.ids) - 1),
+            plot._settings.tooltips_on(len(plot._hierarchy.ids) - 1),
         )
         start = end
 

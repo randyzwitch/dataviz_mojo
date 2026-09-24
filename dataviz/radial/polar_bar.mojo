@@ -45,7 +45,7 @@ def _render_polar_bar[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
 
     _require_non_negative(plot._continuous.y, "Mark.POLAR_BAR")
@@ -77,7 +77,7 @@ def _render_polar_bar[
     var slot = 2.0 * pi / Float64(n)
     var gap = slot * plot._mark_style.polar_bar_padding
     var slot_start = -pi / 2.0
-    var tooltips_on = plot._tooltips_on(n)
+    var tooltips_on = plot._settings.tooltips_on(n)
     for i in range(n):
         var start = slot_start + gap / 2.0
         var end = slot_start + slot - gap / 2.0

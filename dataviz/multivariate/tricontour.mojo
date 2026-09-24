@@ -333,7 +333,7 @@ def _render_tricontour[
     """
     _validate_tricontour(plot, "Plot.mark_tricontour()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._tricontour.x),
@@ -418,7 +418,7 @@ def _draw_tricontour_layer[
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var levels = plot._tricontour.levels.copy() if len(
         plot._tricontour.levels
     ) > 0 else _auto_levels_from(
@@ -438,7 +438,9 @@ def _draw_tricontour_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
+    var color_scale = _color_scale_for(
+        theme, plot._settings.color_domain, lo, hi
+    )
 
     for li in range(len(levels)):
         var level = levels[li]
@@ -509,7 +511,7 @@ def _render_tricontourf[
     """
     _validate_tricontour(plot, "Plot.mark_tricontourf()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._tricontour.x),
@@ -544,7 +546,7 @@ def _draw_tricontourf_layer[
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var levels = plot._tricontour.levels.copy() if len(
         plot._tricontour.levels
     ) > 0 else _auto_levels_from(
@@ -564,7 +566,9 @@ def _draw_tricontourf_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
+    var color_scale = _color_scale_for(
+        theme, plot._settings.color_domain, lo, hi
+    )
 
     # Ascending, so each level's region paints over the one below it.
     var sorted_levels = levels.copy()

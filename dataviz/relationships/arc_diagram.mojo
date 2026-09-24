@@ -43,7 +43,7 @@ def _render_arc_diagram[
     """
     _validate_edge_encoding(plot, "Mark.ARC_DIAGRAM")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var edges = _edge_node_index(
         plot._edges.from_categories, plot._edges.to_categories
     )
@@ -68,7 +68,9 @@ def _render_arc_diagram[
 
     var text_requests = List[_TextRequest]()
 
-    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
+    var tooltips_on = plot._settings.tooltips_on(
+        len(plot._edges.from_categories)
+    )
     for row in range(len(plot._edges.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]

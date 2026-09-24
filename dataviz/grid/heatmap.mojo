@@ -255,7 +255,7 @@ def _render_heatmap[
             + " values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._heatmap.x), "Plot.encode_heatmap()")
     var x_idx = _categorical_indices(plot._heatmap.x)
     var y_idx = _categorical_indices(plot._heatmap.y)
@@ -263,7 +263,7 @@ def _render_heatmap[
     var sc = _Scaled(theme)
     var value_mm = _min_max(plot._heatmap.value)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, value_mm.min, value_mm.max
+        theme, plot._settings.color_domain, value_mm.min, value_mm.max
     )
 
     # The render's shared cache serves both measurements: the legend's labels
@@ -311,7 +311,7 @@ def _render_heatmap[
     # and a column's geometry starts half a pixel before its index, so
     # the grid's outer edge lines up with the plot rect instead of
     # sitting a pixel inside it.
-    var tooltips_on = plot._tooltips_on(len(plot._heatmap.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._heatmap.x))
     for i in range(len(plot._heatmap.x)):
         var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5

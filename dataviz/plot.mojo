@@ -53,6 +53,8 @@ imported back here:
 - `extent.mojo` -- the padded data extents marks lay out against
 - `tooltip_labels.mojo` -- the hover text of each kind of datum
 - `plot_fields.mojo` -- the channel and settings structs `Plot` holds
+- `chart_settings.mojo` -- `_ChartSettings`, the settings every mark
+  reads and none owns, held as `Plot._settings`
 
 This module exports only what it defines, `Plot` and `_finished`
 (#825). Every other name is imported from the module that defines it,
@@ -156,7 +158,7 @@ from dataviz.core.array_like import (
 )
 from dataviz.core.numpy_interop import _materialize_python_floats
 from std.python import PythonObject
-from dataviz.core.color_scale import _ColorDomainOverride
+from dataviz.core.chart_settings import _ChartSettings
 
 from dataviz.basic.continuous import area
 from dataviz.core.validate import _require_non_empty
@@ -382,9 +384,11 @@ struct Plot(Copyable, Movable):
     own columns. The channels many marks share are grouped by what they
     encode rather than by mark: `_continuous` (x/y), `_categorical`
     (the categorical x), `_channels` (color, size, point labels) and
-    `_y_err`. What is left ungrouped is the settings every mark shares
-    (`_mark`/`_theme`/`_secondary_axis`/`_horizontal`, ...). A setting
-    only one mark reads belongs in that mark's struct, not here (#522).
+    `_y_err`. The settings every mark shares (theme, titles, axis
+    transforms, `horizontal`, ...) are one `_ChartSettings` in
+    `_settings`; the mark itself and `width`/`height` stay ungrouped. A
+    setting only one mark reads belongs in that mark's struct, not here
+    (#522).
 
     **Call `mark_*()` before `encode_*()`.** Each encoder writes the
     columns for a particular set of marks and raises if the plot is not
@@ -461,54 +465,13 @@ struct Plot(Copyable, Movable):
     var _dendrogram: _DendrogramData
     var _marimekko: _MarimekkoData
     var _hierarchy: _HierarchyData
-    var _labels: _LabelData
     var _annotations: _AnnotationData
     var _mark_style: _MarkStyle
-    # Set via .secondary_axis(); render_layers()/render_layers_svg() only.
-    # This layer's y values scale against a second, independent y-domain
-    # drawn on the right edge. render() raises if it's set on a standalone
-    # plot.
-    var _secondary_axis: Bool
-    # Set via .scale_y_log()/.scale_x_log().
-    var _y_log: Bool
-    var _x_log: Bool
-    # Set via .scale_y_symlog()/.scale_x_symlog(). The threshold is only
-    # meaningful when the flag is set; both are carried onto the frame's
-    # `LinearScale.is_symlog`/`symlog_linthresh` (#368).
-    var _y_symlog: Bool
-    var _x_symlog: Bool
-    var _y_symlog_linthresh: Float64
-    var _x_symlog_linthresh: Float64
-    var _x_time: Bool
-    """Whether `_continuous.x` holds POSIX seconds that the axis should label as
-    dates and times. Set by `encode_time()`; carried onto the frame's
-    `LinearScale.is_time`, which is the only thing that reads it."""
-    var _x_tz_offset: Int
-    """The offset from UTC, in seconds, of the timestamps in `_continuous.x`, so
-    ticks land on local boundaries and read in the caller's zone."""
-    # Set via .scale_x_domain()/.scale_y_domain().
-    var _x_domain: _DomainOverride
-    var _y_domain: _DomainOverride
-    # Set via .scale_x_ticks()/.scale_y_ticks()/.scale_x_reverse()/
-    # .scale_y_reverse()/.equal_aspect() (#368). All five reach the
-    # continuous frame together as one `_AxisControls`; nothing else
-    # reads them.
-    var _x_tick_override: _TickOverride
-    var _y_tick_override: _TickOverride
-    var _x_reversed: Bool
-    var _y_reversed: Bool
-    var _equal_aspect: Bool
-    # Set via .scale_color_domain()/.scale_color_center(); read by every
-    # continuous-color mark through `_color_scale_for()`.
-    var _color_domain: _ColorDomainOverride
-    # Set only via a mark_*(horizontal=True) parameter; there is no
-    # `.horizontal()` builder method, so this is only ever `True` alongside
-    # a `_mark` whose `mark_*()` reads it.
-    var _horizontal: Bool
-    var _tooltips: Optional[Tooltips]
-    """Set via `tooltips()`; `None` leaves `Theme.tooltips` in charge."""
+    var _settings: _ChartSettings
+    """The theme, titles, tooltip policy, axis transforms and overrides,
+    color domain and layering flags: what every mark reads and none
+    owns. See `_ChartSettings`."""
     var _mark: Mark
-    var _theme: Theme
     var width: Int
     """Pixel width `render()`/`render_svg()`/`save()` construct their target
     at; set via `.size()`, default 640.
@@ -557,34 +520,14 @@ struct Plot(Copyable, Movable):
         self._dendrogram = _DendrogramData()
         self._marimekko = _MarimekkoData()
         self._hierarchy = _HierarchyData()
-        self._labels = _LabelData()
         self._annotations = _AnnotationData()
         self._mark_style = _MarkStyle()
-        self._secondary_axis = False
-        self._y_log = False
-        self._x_log = False
-        self._y_symlog = False
-        self._x_symlog = False
-        self._y_symlog_linthresh = 1.0
-        self._x_symlog_linthresh = 1.0
-        self._x_time = False
-        self._x_tz_offset = 0
-        self._x_domain = _DomainOverride()
-        self._y_domain = _DomainOverride()
-        self._x_tick_override = _TickOverride()
-        self._y_tick_override = _TickOverride()
-        self._x_reversed = False
-        self._y_reversed = False
-        self._equal_aspect = False
-        self._color_domain = _ColorDomainOverride()
-        self._horizontal = False
-        self._tooltips = None
         self._mark = Mark.POINT
         self._render_canvas = _callback_continuous[Canvas]
         self._render_svg = _callback_continuous[SvgCanvas]
         self._render_pdf = _callback_continuous[PdfCanvas]
         self._render_bounds = _callback_continuous[BoundsTarget]
-        self._theme = Theme.default()
+        self._settings = _ChartSettings()
         self.width = 640
         self.height = 420
 
@@ -760,7 +703,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.BAR
         self._bind[_render_bar_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_area(var self, step: StepStyle = StepStyle.NONE) -> Self:
@@ -945,7 +888,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.POINTPLOT
         self._bind[_render_pointplot_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_lollipop(var self, horizontal: Bool = False) -> Self:
@@ -957,7 +900,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.LOLLIPOP
         self._bind[_render_lollipop_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_waterfall(
@@ -974,7 +917,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.WATERFALL
         self._bind[_render_waterfall_oriented]()
         self._mark_style.waterfall_delta_width_fraction = delta_width_fraction
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_boxenplot(var self, horizontal: Bool = False) -> Self:
@@ -992,7 +935,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.BOXENPLOT
         self._bind[_render_boxenplot_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_box(var self, horizontal: Bool = False) -> Self:
@@ -1004,7 +947,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.BOX
         self._bind[_render_box_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_candlestick(var self) -> Self:
@@ -1028,7 +971,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.BULLET
         self._bind[_render_bullet_oriented]()
         self._mark_style.bullet_measure_width_fraction = measure_width_fraction
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_gantt(var self) -> Self:
@@ -1453,7 +1396,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.GROUPED_BAR
         self._bind[_render_grouped_bar_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_stacked_bar(
@@ -1486,7 +1429,7 @@ struct Plot(Copyable, Movable):
         self._mark = Mark.STACKED_BAR
         self._bind[_render_stacked_bar_oriented]()
         self._grouped_bar.percent = percent
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_population_pyramid(var self) -> Self:
@@ -1653,7 +1596,7 @@ struct Plot(Copyable, Movable):
         """
         self._mark = Mark.BEESWARM
         self._bind[_render_beeswarm_oriented]()
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         return self^
 
     def mark_violin(
@@ -1703,7 +1646,7 @@ struct Plot(Copyable, Movable):
         self._bind[_render_violin_oriented]()
         self._distribution.kde_bandwidth_override = bandwidth
         self._distribution.kde_scale_by_count = scale_by_count
-        self._horizontal = horizontal
+        self._settings.horizontal = horizontal
         self._mark_style.violin_width_fraction = width_fraction
         return self^
 
@@ -3639,10 +3582,10 @@ struct Plot(Copyable, Movable):
         var hi = binned.edges[len(binned.edges) - 1]
         var plot = self^.encode_histogram_bins(binned^)
         if plot._histogram.horizontal:
-            if plot._y_domain.has:
+            if plot._settings.y_domain.has:
                 return plot^
             return plot^.scale_y_domain(lo, hi)
-        if plot._x_domain.has:
+        if plot._settings.x_domain.has:
             return plot^
         return plot^.scale_x_domain(lo, hi)
 
@@ -4483,7 +4426,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._theme = t
+        self._settings.theme = t
         return self^
 
     def tooltips(var self, policy: Tooltips) -> Self:
@@ -4503,31 +4446,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._tooltips = policy
+        self._settings.tooltips = policy
         return self^
-
-    def _tooltip_policy(self) -> Tooltips:
-        """The policy in force: `tooltips()`'s if it was called, else
-        the theme's."""
-        if self._tooltips:
-            return self._tooltips.value()
-        return self._theme.tooltips
-
-    def _tooltips_on(self, count: Int) -> Bool:
-        """Whether this plot draws its tooltips, given that it would draw
-        `count` of them. Every mark's renderer asks this once, with the
-        number of data it titles, so `Tooltips.AUTO` means the same
-        thing on every mark.
-
-        Args:
-            count: How many tooltips this plot would draw.
-
-        Returns:
-            True to draw them.
-        """
-        return self._tooltip_policy().draws(
-            count, self._theme.auto_tooltip_limit
-        )
 
     def labels(
         var self,
@@ -4589,11 +4509,11 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._labels.title = title
-        self._labels.subtitle = subtitle
-        self._labels.x_title = x_title
-        self._labels.y_title = y_title
-        self._labels.description = description
+        self._settings.labels.title = title
+        self._settings.labels.subtitle = subtitle
+        self._settings.labels.x_title = x_title
+        self._settings.labels.y_title = y_title
+        self._settings.labels.description = description
         return self^
 
     def series_name(var self, name: String) -> Self:
@@ -4622,7 +4542,7 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Layer Legend" recipe (docs/src/
         cookbook_recipes/layer_legend.mojo) for a full worked example.
         """
-        self._labels.series_name = name
+        self._settings.labels.series_name = name
         return self^
 
     def annotate_line(var self, value: Float64, label: String = "") -> Self:
@@ -4988,7 +4908,7 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Log Scale (Y-Axis)" recipe (docs/src/
         cookbook_recipes/log_scale_y.mojo) for a full worked example.
         """
-        self._y_log = True
+        self._settings.y_log = True
         return self^
 
     def scale_x_log(var self) -> Self:
@@ -5002,7 +4922,7 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Log Scale (X-Axis)" recipe (docs/src/
         cookbook_recipes/log_scale_x.mojo) for a full worked example.
         """
-        self._x_log = True
+        self._settings.x_log = True
         return self^
 
     def scale_y_symlog(var self, linthresh: Float64 = 1.0) -> Self:
@@ -5038,8 +4958,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._y_symlog = True
-        self._y_symlog_linthresh = linthresh
+        self._settings.y_symlog = True
+        self._settings.y_symlog_linthresh = linthresh
         return self^
 
     def scale_x_symlog(var self, linthresh: Float64 = 1.0) -> Self:
@@ -5053,8 +4973,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._x_symlog = True
-        self._x_symlog_linthresh = linthresh
+        self._settings.x_symlog = True
+        self._settings.x_symlog_linthresh = linthresh
         return self^
 
     def scale_x_domain(var self, min: Float64, max: Float64) -> Self:
@@ -5093,7 +5013,7 @@ struct Plot(Copyable, Movable):
             raise later if `min >= max`, the mark doesn't support this,
             or (with `scale_x_log()`) `min <= 0`.
         """
-        self._x_domain = _DomainOverride(min, max)
+        self._settings.x_domain = _DomainOverride(min, max)
         return self^
 
     def scale_y_domain(var self, min: Float64, max: Float64) -> Self:
@@ -5112,7 +5032,7 @@ struct Plot(Copyable, Movable):
             raise later if `min >= max`, the mark doesn't support this,
             or (with `scale_y_log()`) `min <= 0`.
         """
-        self._y_domain = _DomainOverride(min, max)
+        self._settings.y_domain = _DomainOverride(min, max)
         return self^
 
     def scale_x_ticks(
@@ -5154,7 +5074,9 @@ struct Plot(Copyable, Movable):
             match, a position is not finite, a position is not positive
             on a log axis, or the mark does not support this.
         """
-        self._x_tick_override = _TickOverride(values.copy(), labels.copy())
+        self._settings.x_tick_override = _TickOverride(
+            values.copy(), labels.copy()
+        )
         return self^
 
     def scale_y_ticks(
@@ -5177,7 +5099,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining -- see `scale_x_ticks()`.
         """
-        self._y_tick_override = _TickOverride(values.copy(), labels.copy())
+        self._settings.y_tick_override = _TickOverride(
+            values.copy(), labels.copy()
+        )
         return self^
 
     def scale_x_reverse(var self) -> Self:
@@ -5194,7 +5118,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining -- `render()`/`render_svg()`
             raise later if the mark does not support this.
         """
-        self._x_reversed = True
+        self._settings.x_reversed = True
         return self^
 
     def scale_y_reverse(var self) -> Self:
@@ -5208,7 +5132,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining -- see `scale_x_reverse()`.
         """
-        self._y_reversed = True
+        self._settings.y_reversed = True
         return self^
 
     def equal_aspect(var self) -> Self:
@@ -5236,7 +5160,7 @@ struct Plot(Copyable, Movable):
             raise later on a log or time axis, or if the mark does not
             support this.
         """
-        self._equal_aspect = True
+        self._settings.equal_aspect = True
         return self^
 
     def scale_color_domain(var self, min: Float64, max: Float64) -> Self:
@@ -5284,9 +5208,9 @@ struct Plot(Copyable, Movable):
             Self, for further chaining -- the render raises later if
             `min >= max` or the mark has no continuous color channel.
         """
-        self._color_domain.has = True
-        self._color_domain.min = min
-        self._color_domain.max = max
+        self._settings.color_domain.has = True
+        self._settings.color_domain.min = min
+        self._settings.color_domain.max = max
         return self^
 
     def scale_color_thresholds(
@@ -5325,7 +5249,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._color_domain.thresholds = boundaries.copy()
+        self._settings.color_domain.thresholds = boundaries.copy()
         return self^
 
     def scale_color_under(var self, color: Color) -> Self:
@@ -5356,8 +5280,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._color_domain.has_under = True
-        self._color_domain.under = color
+        self._settings.color_domain.has_under = True
+        self._settings.color_domain.under = color
         return self^
 
     def scale_color_over(var self, color: Color) -> Self:
@@ -5375,8 +5299,8 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._color_domain.has_over = True
-        self._color_domain.over = color
+        self._settings.color_domain.has_over = True
+        self._settings.color_domain.over = color
         return self^
 
     def scale_color_log(var self) raises -> Self:
@@ -5399,7 +5323,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        self._color_domain.log = True
+        self._settings.color_domain.log = True
         return self^
 
     def scale_color_center(var self, center: Float64) -> Self:
@@ -5453,8 +5377,8 @@ struct Plot(Copyable, Movable):
             `center` is not strictly inside the domain, or the mark has
             no continuous color channel.
         """
-        self._color_domain.has_center = True
-        self._color_domain.center = center
+        self._settings.color_domain.has_center = True
+        self._settings.color_domain.center = center
         return self^
 
     def secondary_axis(var self) -> Self:
@@ -5477,7 +5401,7 @@ struct Plot(Copyable, Movable):
         See the Cookbook's own "Dual Y-Axis" recipe (docs/src/
         cookbook_recipes/dual_axis.mojo) for a full worked example.
         """
-        self._secondary_axis = True
+        self._settings.secondary_axis = True
         return self^
 
 

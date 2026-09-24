@@ -636,7 +636,7 @@ def _draw_histogram_layer[
     since an empty bin's riser is already a boundary. A transparent
     edge color turns it off.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var n = len(plot._histogram.values)
     if n == 0:
@@ -691,7 +691,7 @@ def _draw_histogram_layer[
     for i in range(n):
         if min(ep[i], ep[i + 1]) < max(ep[i], ep[i + 1]) and ext[i] > 0.0:
             drawn += 1
-    var tooltips_on = plot._tooltips_on(drawn)
+    var tooltips_on = plot._settings.tooltips_on(drawn)
     for i in range(n):
         var lo = min(ep[i], ep[i + 1])
         var hi = max(ep[i], ep[i + 1])

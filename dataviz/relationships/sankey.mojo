@@ -43,7 +43,7 @@ def _render_sankey[
     """
     _validate_edge_encoding(plot, "Mark.SANKEY")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var edges = _edge_node_index(
         plot._edges.from_categories, plot._edges.to_categories
     )
@@ -205,7 +205,7 @@ def _render_sankey[
     var palette = categorical_palette_for(theme)
     var out_cursor = node_y0.copy()
     var in_cursor = node_y0.copy()
-    var tooltips_on = plot._tooltips_on(len(final_from))
+    var tooltips_on = plot._settings.tooltips_on(len(final_from))
     for e in range(len(final_from)):
         var fi = final_from[e]
         var ti = final_to[e]

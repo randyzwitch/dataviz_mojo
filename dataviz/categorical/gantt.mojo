@@ -283,7 +283,7 @@ def _render_gantt[
             + " end values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
     for v in plot._gantt.start:
@@ -291,9 +291,9 @@ def _render_gantt[
     for v in plot._gantt.end:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
-    if plot._x_time:
+    if plot._settings.x_time:
         x_scale.is_time = True
-        x_scale.tz_offset = plot._x_tz_offset
+        x_scale.tz_offset = plot._settings.x_tz_offset
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -308,7 +308,7 @@ def _render_gantt[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
         var start_px = _axis_pixel_f(frame.x_scale, plot._gantt.start[i])
@@ -329,8 +329,8 @@ def _render_gantt[
                 plot._gantt.start[i],
                 plot._gantt.end[i],
             )
-            if plot._x_time:
-                var zone = TimeZone(plot._x_tz_offset)
+            if plot._settings.x_time:
+                var zone = TimeZone(plot._settings.x_tz_offset)
                 tooltip = (
                     plot._categorical.x[i]
                     + ": "
@@ -349,7 +349,7 @@ def _render_gantt[
         if theme.show_data_labels:
             var span = abs(plot._gantt.end[i] - plot._gantt.start[i])
             var span_label = _format_fixed(span, _label_decimals(span))
-            if plot._x_time:
+            if plot._settings.x_time:
                 var divisor = 1.0
                 var unit = String(" s")
                 if span >= 86400.0:
@@ -596,7 +596,7 @@ def _encode_gantt(
     plot._continuous.y = List[Float64]()
     plot._gantt.start = start.copy()
     plot._gantt.end = end.copy()
-    plot._x_time = False
+    plot._settings.x_time = False
 
 
 def _encode_gantt_time(
@@ -619,6 +619,6 @@ def _encode_gantt_time(
     plot._continuous.y = List[Float64]()
     plot._gantt.start = start_seconds^
     plot._gantt.end = end_seconds^
-    plot._x_time = True
+    plot._settings.x_time = True
     if len(start) > 0:
-        plot._x_tz_offset = start[0].tz.offset
+        plot._settings.x_tz_offset = start[0].tz.offset

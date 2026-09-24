@@ -171,7 +171,7 @@ def _render_treemap[
             + " values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_negative(plot._hierarchy.values, "Mark.TREEMAP")
 
     var idx = _build_hierarchy_index(
@@ -228,7 +228,7 @@ def _render_treemap[
         branch,
         palette,
         theme,
-        plot._tooltips_on(leaves),
+        plot._settings.tooltips_on(leaves),
         sc,
         text_requests,
     )

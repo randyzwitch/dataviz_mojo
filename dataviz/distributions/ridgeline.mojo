@@ -37,7 +37,7 @@ def _render_ridgeline[
     scaling multiplies height by `sqrt(n / max_n)`; a positive bandwidth
     override applies to every category.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     if plot._distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_ridgeline(): bandwidth must be positive (got "
@@ -70,7 +70,7 @@ def _render_ridgeline[
     var row_height = frame.y_scale.bandwidth()
     var max_rise = row_height * plot._mark_style.ridgeline_overlap
 
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var values = plot._distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height

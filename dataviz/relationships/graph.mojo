@@ -115,7 +115,7 @@ def _render_graph[
     """
     _validate_edge_encoding(plot, "Mark.GRAPH")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var edges = _edge_node_index(
         plot._edges.from_categories, plot._edges.to_categories
     )
@@ -173,7 +173,9 @@ def _render_graph[
     var value_mm = _min_max(plot._edges.values)
     var max_value = value_mm.max
 
-    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
+    var tooltips_on = plot._settings.tooltips_on(
+        len(plot._edges.from_categories)
+    )
     for row in range(len(plot._edges.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]

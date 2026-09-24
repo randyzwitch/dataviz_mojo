@@ -189,12 +189,14 @@ def _render_single_axis[
     )
     _require_non_empty(len(plot._continuous.x), "Plot.encode_single_axis()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
 
     var sc = _Scaled(theme)
-    var ch = _PointChannels(plot._channels, plot._theme, plot._color_domain, sc)
+    var ch = _PointChannels(
+        plot._channels, plot._settings.theme, plot._settings.color_domain, sc
+    )
     var legend_reserve = _legend_reserve_for(
-        plot._mark, plot._theme, ch, sc, cache=cache
+        plot._mark, plot._settings.theme, ch, sc, cache=cache
     )
 
     var x_scale = _data_extent(plot._continuous.x)

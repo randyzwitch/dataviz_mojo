@@ -106,7 +106,7 @@ def _render_radar[
     """
     _require_non_empty(len(plot._radar.indicators), "Plot.encode_radar()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
 
     var sc = _Scaled(theme)
@@ -143,7 +143,7 @@ def _render_radar[
         )
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._tooltips_on(len(plot._radar.series_values))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._radar.series_values))
     for s in range(len(plot._radar.series_values)):
         var values = plot._radar.series_values[s].copy()
         var color = palette[s % len(palette)]

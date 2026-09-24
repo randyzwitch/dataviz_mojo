@@ -323,7 +323,7 @@ struct _ColorDomainOverride(Copyable, Movable):
     its own data. `_DomainOverride` (plot_fields.mojo) is the same idea for a
     spatial axis; this one is separate because a color domain has a
     third thing to say (`center`) and applies to a different, much
-    larger set of marks. Stored on `Plot._color_domain`.
+    larger set of marks. Stored on `Plot._settings.color_domain`.
 
     Not `ImplicitlyCopyable`: `thresholds` is a `List`, which is not,
     and an explicit `.copy()` at the two places this is read is a
@@ -386,7 +386,7 @@ def _color_scale_for(
 
     Args:
         theme: Supplies the ramp's stops.
-        domain: The chart's override, usually `Plot._color_domain`.
+        domain: The chart's override, usually `Plot._settings.color_domain`.
         data_min: The low limit this mark's own data implies.
         data_max: The high limit this mark's own data implies.
 
@@ -424,14 +424,14 @@ def _color_scale_ramp(
     meaning different things.
 
     Routing every mark through one function is deliberate. The
-    alternative -- each mark reading `plot._color_domain` and branching
+    alternative -- each mark reading `plot._settings.color_domain` and branching
     for itself -- is how the limits got out of step in the first place,
     and it would put the center check in fifteen places or, more likely,
     in none of them.
 
     Args:
         theme: Supplies the ramp's stops.
-        domain: The chart's override, usually `Plot._color_domain`.
+        domain: The chart's override, usually `Plot._settings.color_domain`.
         data_min: The low limit this mark's own data implies.
         data_max: The high limit this mark's own data implies.
 

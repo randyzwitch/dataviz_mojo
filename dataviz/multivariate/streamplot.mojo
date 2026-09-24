@@ -576,12 +576,12 @@ def _render_streamplot[
     """
     ref data = plot._stream
     var lines = _streamlines(data)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var nx = len(data.x)
     var ny = len(data.y)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, 0.0, _max_magnitude(data)
+        theme, plot._settings.color_domain, 0.0, _max_magnitude(data)
     )
 
     var legend = _LegendLayout()

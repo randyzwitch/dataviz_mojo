@@ -86,7 +86,7 @@ def _draw_quiver_layer[
     pixel direction is `(u, -v)`.
     """
     var n = len(plot._barbs.x)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var head_len = _ARROW_HEAD_LENGTH * sc.scale
     var head_half = _ARROW_HEAD_HALF_WIDTH * sc.scale
     var width = sc.line_width
@@ -168,14 +168,16 @@ def _render_quiver[
             + String(plot._barbs.scale)
             + ")"
         )
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var top = 0.0
     for i in range(len(plot._barbs.u)):
         var u = plot._barbs.u[i]
         var v = plot._barbs.v[i]
         top = max(top, sqrt(u * u + v * v))
-    var color_scale = _color_scale_for(theme, plot._color_domain, 0.0, top)
+    var color_scale = _color_scale_for(
+        theme, plot._settings.color_domain, 0.0, top
+    )
 
     var legend = _LegendLayout()
     if plot._barbs.color_by_magnitude:

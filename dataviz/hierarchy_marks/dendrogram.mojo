@@ -142,7 +142,7 @@ def _render_dendrogram[
     """
     ref data = plot._dendrogram
     _validate_dendrogram(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var tallest = 0.0
     for h in data.height:
         if h > tallest:
@@ -154,7 +154,7 @@ def _render_dendrogram[
     var pos = List[Float64]()
     var hgt = List[Float64]()
     _node_positions(data, pos, hgt)
-    var tooltips_on = plot._tooltips_on(len(data.height))
+    var tooltips_on = plot._settings.tooltips_on(len(data.height))
     if data.horizontal:
         # Leaves down the y-axis, heights running right: the form that
         # sits beside a matrix's rows. Same tree, same brackets, the two

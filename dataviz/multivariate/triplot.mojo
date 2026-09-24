@@ -218,7 +218,7 @@ def _render_triplot[
     """
     _validate_triplot(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._triplot.x),
@@ -286,7 +286,7 @@ def _draw_triplot_layer[
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     # A caller's own triangulation wins (#397). Besides saving the
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
@@ -387,7 +387,7 @@ def _render_tripcolor[
     """
     _validate_tripcolor(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
         _data_extent(plot._triplot.x),
@@ -463,7 +463,7 @@ def _draw_tripcolor_layer[
         Error: A `facecolors` length that does not match the
             triangulation, or whatever `fill_mesh()` raises.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     # A caller's own triangulation wins (#397). Besides saving the
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
@@ -500,7 +500,7 @@ def _draw_tripcolor_layer[
             if v > hi_v:
                 hi_v = v
         var vertex_scale = _color_scale_for(
-            theme, plot._color_domain, lo_v, hi_v
+            theme, plot._settings.color_domain, lo_v, hi_v
         )
         var vpoints = List[FPoint](capacity=len(tri.x))
         var vcolors = List[Color](capacity=len(tri.x))
@@ -533,7 +533,9 @@ def _draw_tripcolor_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(theme, plot._color_domain, lo, hi)
+    var color_scale = _color_scale_for(
+        theme, plot._settings.color_domain, lo, hi
+    )
 
     # Every vertex once, so two faces meeting at a corner index the same
     # point and there is no interior edge for the page to show through.

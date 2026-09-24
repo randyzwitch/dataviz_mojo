@@ -72,7 +72,7 @@ def _render_marimekko[
                 + ")"
             )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(
         len(plot._marimekko.categories), "Plot.encode_marimekko()"
     )
@@ -133,7 +133,7 @@ def _render_marimekko[
     # hairline gap or overlap. Same pattern as `_render_stacked_bar`'s
     # `_axis_pixel` on each running total.
     var x_cum = 0.0
-    var tooltips_on = plot._tooltips_on(n_subs * n_cats)
+    var tooltips_on = plot._settings.tooltips_on(n_subs * n_cats)
     for j in range(n_cats):
         var col_x0 = round_to_int(Float64(plot_x0) + x_cum)
         x_cum += plot_width * (col_totals[j] / grand_total)

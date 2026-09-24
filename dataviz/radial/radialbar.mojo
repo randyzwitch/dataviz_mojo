@@ -46,7 +46,7 @@ def _render_radialbar[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
 
     _require_non_negative(plot._continuous.y, "Mark.RADIALBAR")
@@ -78,7 +78,7 @@ def _render_radialbar[
     var ring_slot = max_radius / Float64(n)
     var gap = ring_slot * plot._mark_style.radialbar_ring_gap_fraction
     var start_angle = -pi / 2.0
-    var tooltips_on = plot._tooltips_on(n)
+    var tooltips_on = plot._settings.tooltips_on(n)
     for i in range(n):
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0

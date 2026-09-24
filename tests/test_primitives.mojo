@@ -859,7 +859,7 @@ def test_a_single_stop_color_ramp_is_a_flat_color() raises:
 
 def test_a_color_ramp_survives_a_theme_copy() raises:
     # Theme is ImplicitlyCopyable and is copied all over the package
-    # (`var theme = plot._theme`). ColorRamp packs its stops into a SIMD
+    # (`var theme = plot._settings.theme`). ColorRamp packs its stops into a SIMD
     # vector precisely so that copy keeps working; this pins it.
     var original = Theme(color_ramp=magma())
     var copied = original

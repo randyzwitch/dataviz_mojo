@@ -249,7 +249,7 @@ def _render_scatter3d[
     depth, so ordering by that depth is the whole of the occlusion.
     """
     _validate_xyz(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -262,7 +262,7 @@ def _render_scatter3d[
 
     var order = _depth_order(plot, frame)
     var radius = sc.point_radius
-    var tooltips = plot._tooltips_on(len(order))
+    var tooltips = plot._settings.tooltips_on(len(order))
     for k in range(len(order)):
         var i = order[k]
         var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
@@ -302,7 +302,7 @@ def _render_plot3d[
     they cross in projection -- needs geometry canvas does not have.
     """
     _validate_xyz(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top

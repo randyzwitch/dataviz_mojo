@@ -62,7 +62,7 @@ def _render_nightingale[
         plot._categorical, plot._continuous, plot._y_err, plot._mark
     )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
 
     _require_non_negative(plot._continuous.y, "Mark.NIGHTINGALE")
@@ -93,7 +93,7 @@ def _render_nightingale[
     var n = len(plot._categorical.x)
     var span = 2.0 * pi / Float64(n)
     var start = -pi / 2.0
-    var tooltips_on = plot._tooltips_on(n)
+    var tooltips_on = plot._settings.tooltips_on(n)
     for i in range(n):
         var end = start + span
         var frac = plot._continuous.y[i] / max_v

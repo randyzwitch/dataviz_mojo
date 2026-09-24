@@ -168,7 +168,9 @@ def save_layers(
     if len(plots) == 0:
         raise Error("save_layers(): plots must not be empty")
     _require_uniform_size(plots, "save_layers")
-    var format = _resolve_output_format(plots[0]._theme.output_format, path)
+    var format = _resolve_output_format(
+        plots[0]._settings.theme.output_format, path
+    )
     if format == OutputFormat.SVG:
         var f = open(path, "w")
         if tight:
@@ -177,10 +179,12 @@ def save_layers(
             svg.translate(-Float64(box[0]), -Float64(box[1]))
             var cache = FontCache()
             _draw_layers_figure(svg, plots, True, cache)
-            f.write(_svg_output_string(svg^, plots[0]._labels))
+            f.write(_svg_output_string(svg^, plots[0]._settings.labels))
         else:
             f.write(
-                _svg_output_string(render_layers_svg(plots), plots[0]._labels)
+                _svg_output_string(
+                    render_layers_svg(plots), plots[0]._settings.labels
+                )
             )
         f.close()
     elif format == OutputFormat.PDF:
@@ -213,10 +217,10 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     """
     for i in range(len(plots)):
         if (
-            plots[i]._secondary_axis
-            and plots[i]._labels.y_title.byte_length() > 0
+            plots[i]._settings.secondary_axis
+            and plots[i]._settings.labels.y_title.byte_length() > 0
         ):
-            return plots[i]._labels.y_title
+            return plots[i]._settings.labels.y_title
     return ""
 
 
@@ -252,13 +256,13 @@ def _draw_layers_figure[
     var cx1 = plots[0].width
     var cy1 = plots[0].height
     if fill_background:
-        target.fill_rect(0, 0, cx1, cy1, plots[0]._theme.background)
-    var sc = _Scaled(plots[0]._theme)
+        target.fill_rect(0, 0, cx1, cy1, plots[0]._settings.theme.background)
+    var sc = _Scaled(plots[0]._settings.theme)
     var y2_title = _secondary_axis_y_title(plots)
     var frame = _apply_labels(
-        plots[0]._labels,
+        plots[0]._settings.labels,
         plots[0]._mark,
-        plots[0]._theme,
+        plots[0]._settings.theme,
         0,
         0,
         cx1,
@@ -280,8 +284,8 @@ def _draw_layers_figure[
         cache=cache,
     )
     var label_requests = _label_text_requests(
-        plots[0]._labels,
-        plots[0]._theme,
+        plots[0]._settings.labels,
+        plots[0]._settings.theme,
         0,
         0,
         cx1,
@@ -301,10 +305,10 @@ def _draw_layers_figure[
                 cx1 - Int(sc.axis_title_font_size * 0.8),
                 (result.py0 + result.py1) // 2,
                 y2_title,
-                plots[0]._theme.text_color,
+                plots[0]._settings.theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
-                plots[0]._theme.font_family,
+                plots[0]._settings.theme.font_family,
                 rotation=pi / 2.0,
             )
         )
@@ -341,8 +345,8 @@ def _render_layers_tight(plots: List[Plot]) raises -> Canvas:
     _require_uniform_size(plots, "save_layers")
     var box = _layers_tight_box(plots)
     var factor = _layers_supersample(plots, "save_layers")
-    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
-    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
+    canvas.begin_supersampled(factor, plots[0]._settings.theme.background)
     canvas.translate(-Float64(box[0]), -Float64(box[1]))
     var cache = FontCache()
     _draw_layers_figure(canvas, plots, True, cache)
@@ -408,7 +412,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        axis.
 
        Every `Plot` must share the same `.size()`; an empty list raises.
-       Supersampled by `plots[0]._theme.raster_supersample` like `render()`,
+       Supersampled by `plots[0]._settings.theme.raster_supersample` like `render()`,
        bumping every layer's scale together on a copy (`plots` is a plain
        borrow).
     """
@@ -545,21 +549,21 @@ def _render_bar_combo_layers[
         )
 
     for i in range(len(plots)):
-        if plots[i]._secondary_axis:
+        if plots[i]._settings.secondary_axis:
             raise Error(
                 "render_layers(): Plot.secondary_axis() isn't supported yet on"
                 " a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
-        if plots[i]._y_log or plots[i]._x_log:
+        if plots[i]._settings.y_log or plots[i]._settings.x_log:
             raise Error(
                 "render_layers(): Plot.scale_y_log()/scale_x_log() aren't"
                 " supported yet on a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
-        if plots[i]._horizontal:
+        if plots[i]._settings.horizontal:
             raise Error(
                 "render_layers(): Plot.mark_bar(horizontal=True) isn't"
                 " supported yet on a Mark.BAR combo chart (layer "
@@ -664,7 +668,7 @@ def _render_bar_combo_layers[
                 combined_y.append(v)
     var y_scale = _zero_baseline_y_extent(combined_y)
 
-    var theme = plots[0]._theme
+    var theme = plots[0]._settings.theme
     var sc = _Scaled(theme)
 
     # One legend row per named layer, including each bar layer, in list order.
@@ -674,14 +678,14 @@ def _render_bar_combo_layers[
         if (
             plots[i]._mark == Mark.GROUPED_BAR
             or plots[i]._mark == Mark.STACKED_BAR
-        ) and plots[i]._theme.show_legend:
-            var palette = categorical_palette_for(plots[i]._theme)
+        ) and plots[i]._settings.theme.show_legend:
+            var palette = categorical_palette_for(plots[i]._settings.theme)
             for j in range(len(plots[i]._grouped_bar.series_names)):
                 series_names.append(plots[i]._grouped_bar.series_names[j])
                 series_colors.append(palette[j % len(palette)])
-        if plots[i]._labels.series_name.byte_length() > 0:
-            series_names.append(plots[i]._labels.series_name)
-            series_colors.append(plots[i]._theme.mark_color)
+        if plots[i]._settings.labels.series_name.byte_length() > 0:
+            series_names.append(plots[i]._settings.labels.series_name)
+            series_colors.append(plots[i]._settings.theme.mark_color)
     var legend_reserve = (
         _dynamic_legend_width(
             series_names,
@@ -726,7 +730,7 @@ def _render_bar_combo_layers[
                 frame.y_scale,
                 frame.py1,
                 _Orientation(False),
-                categorical_palette_for(plots[i]._theme),
+                categorical_palette_for(plots[i]._settings.theme),
                 frame.text_requests,
             )
             continue
@@ -738,7 +742,7 @@ def _render_bar_combo_layers[
                 frame.y_scale,
                 frame.py1,
                 _Orientation(False),
-                categorical_palette_for(plots[i]._theme),
+                categorical_palette_for(plots[i]._settings.theme),
                 frame.text_requests,
             )
             continue
@@ -764,7 +768,7 @@ def _render_bar_combo_layers[
             or plots[i]._mark == Mark.STACKED_BAR
         ):
             continue
-        var layer_theme = plots[i]._theme
+        var layer_theme = plots[i]._settings.theme
         _check_line_smoothing(layer_theme)
         var layer_sc = _Scaled(layer_theme)
         # Precomputed band centers instead of a continuous x_scale --
@@ -797,8 +801,8 @@ def _render_bar_combo_layers[
             var unused_x = LinearScale(0.0, 1.0, 0.0, 1.0)
             var ch = _PointChannels(
                 plots[i]._channels,
-                plots[i]._theme,
-                plots[i]._color_domain,
+                plots[i]._settings.theme,
+                plots[i]._settings.color_domain,
                 layer_sc,
             )
             var unused_legend = List[_TextRequest]()
@@ -1170,7 +1174,11 @@ def _render_arc_layers[
                 " their own ring radii, so pass pie() with its default"
                 " inner_radius_fraction=0"
             )
-        if plots[i]._secondary_axis or plots[i]._x_log or plots[i]._y_log:
+        if (
+            plots[i]._settings.secondary_axis
+            or plots[i]._settings.x_log
+            or plots[i]._settings.y_log
+        ):
             raise Error(
                 "render_layers(): ARC layers have no x/y axis or"
                 " secondary axis (layer "
@@ -1178,15 +1186,15 @@ def _render_arc_layers[
                 + ")"
             )
         totals.append(_arc_total(plots[i]))
-        if plots[i]._theme.show_legend:
-            var palette = categorical_palette_for(plots[i]._theme)
+        if plots[i]._settings.theme.show_legend:
+            var palette = categorical_palette_for(plots[i]._settings.theme)
             for j in range(len(plots[i]._categorical.x)):
                 legend_labels.append(
                     "Ring " + String(i + 1) + ": " + plots[i]._categorical.x[j]
                 )
                 legend_colors.append(palette[j % len(palette)])
 
-    var theme = plots[0]._theme
+    var theme = plots[0]._settings.theme
     var sc = _Scaled(theme)
     var legend = (
         _legend_layout(
@@ -1327,7 +1335,7 @@ def _render_layers_generic[
     # Time bars need a continuous date axis; mixed time-bar layers need a
     # separate layout. Categorical bars share adjacent subbands.
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR and plots[i]._x_time:
+        if plots[i]._mark == Mark.BAR and plots[i]._settings.x_time:
             if len(plots) == 1:
                 return _render_bar(
                     target, plots[i], ox0, oy0, ox1, oy1, cache=cache
@@ -1402,7 +1410,7 @@ def _render_layers_generic[
                 " real y-axis. Use render_facets(), which has no allow-list"
                 " and takes any mark."
             )
-        if (plots[i]._x_log or plots[i]._y_log) and not (
+        if (plots[i]._settings.x_log or plots[i]._settings.y_log) and not (
             plots[i]._mark == Mark.POINT
             or plots[i]._mark == Mark.LINE
             or plots[i]._mark == Mark.AREA
@@ -1426,7 +1434,7 @@ def _render_layers_generic[
                 + plots[i]._mark.name()
                 + ", whose domain is only ever taken linearly"
             )
-        if plots[i]._secondary_axis and plots[i]._mark == Mark.RUG:
+        if plots[i]._settings.secondary_axis and plots[i]._mark == Mark.RUG:
             raise Error(
                 "render_layers(): Plot.secondary_axis() has nothing to do on a"
                 " Mark.RUG layer (layer "
@@ -1444,32 +1452,42 @@ def _render_layers_generic[
         # own mark with its own colors, and only one layer in an overlay
         # normally carries a continuous color channel at all.
         _validate_color_domain(
-            plots[i]._color_domain, plots[i]._mark, plots[i]._channels
+            plots[i]._settings.color_domain, plots[i]._mark, plots[i]._channels
         )
-        if plots[i]._x_domain.has:
+        if plots[i]._settings.x_domain.has:
             _validate_domain_override(
-                plots[i]._x_domain, plots[i]._x_log, "Plot.scale_x_domain"
+                plots[i]._settings.x_domain,
+                plots[i]._settings.x_log,
+                "Plot.scale_x_domain",
             )
             _merge_override(
-                x_override, plots[i]._x_domain, i, "Plot.scale_x_domain"
+                x_override,
+                plots[i]._settings.x_domain,
+                i,
+                "Plot.scale_x_domain",
             )
-        if plots[i]._y_domain.has:
-            if plots[i]._secondary_axis:
+        if plots[i]._settings.y_domain.has:
+            if plots[i]._settings.secondary_axis:
                 raise Error(
                     "render_layers(): Plot.scale_y_domain() on a"
                     " .secondary_axis() layer isn't supported yet -- layer "
                     + String(i)
                 )
             _validate_domain_override(
-                plots[i]._y_domain, plots[i]._y_log, "Plot.scale_y_domain"
+                plots[i]._settings.y_domain,
+                plots[i]._settings.y_log,
+                "Plot.scale_y_domain",
             )
             _merge_override(
-                y_override, plots[i]._y_domain, i, "Plot.scale_y_domain"
+                y_override,
+                plots[i]._settings.y_domain,
+                i,
+                "Plot.scale_y_domain",
             )
         if not x_log_seen:
             x_log_seen = True
-            x_log_value = plots[i]._x_log
-        elif plots[i]._x_log != x_log_value:
+            x_log_value = plots[i]._settings.x_log
+        elif plots[i]._settings.x_log != x_log_value:
             raise Error(
                 "render_layers(): every layer must agree on"
                 " Plot.scale_x_log() -- got a mix of log and linear x-axes"
@@ -1477,11 +1495,11 @@ def _render_layers_generic[
                 + String(i)
                 + ")"
             )
-        if plots[i]._secondary_axis:
+        if plots[i]._settings.secondary_axis:
             if not y2_log_seen:
                 y2_log_seen = True
-                y2_log_value = plots[i]._y_log
-            elif plots[i]._y_log != y2_log_value:
+                y2_log_value = plots[i]._settings.y_log
+            elif plots[i]._settings.y_log != y2_log_value:
                 raise Error(
                     "render_layers(): every Plot.secondary_axis() layer must"
                     " agree on Plot.scale_y_log() -- got a mix of log and"
@@ -1492,8 +1510,8 @@ def _render_layers_generic[
         else:
             if not y_log_seen:
                 y_log_seen = True
-                y_log_value = plots[i]._y_log
-            elif plots[i]._y_log != y_log_value:
+                y_log_value = plots[i]._settings.y_log
+            elif plots[i]._settings.y_log != y_log_value:
                 raise Error(
                     "render_layers(): every primary-axis layer must agree on"
                     " Plot.scale_y_log() -- got a mix of log and linear"
@@ -1501,7 +1519,7 @@ def _render_layers_generic[
                     + String(i)
                     + ")"
                 )
-        if plots[i]._y_log and (
+        if plots[i]._settings.y_log and (
             plots[i]._mark == Mark.AREA or plots[i]._mark == Mark.HISTOGRAM
         ):
             raise Error(
@@ -1520,7 +1538,9 @@ def _render_layers_generic[
             "render_layers(): layer " + String(i),
         )
         _validate_log_scale_annotations(
-            plots[i]._annotations, plots[i]._x_log, plots[i]._y_log
+            plots[i]._annotations,
+            plots[i]._settings.x_log,
+            plots[i]._settings.y_log,
         )
         # Last in the loop so the layering-specific rejections above are
         # what a caller meets first; this is where a layer's own
@@ -1530,7 +1550,7 @@ def _render_layers_generic[
     var has_secondary = False
     var has_primary = False
     for i in range(len(plots)):
-        if plots[i]._secondary_axis:
+        if plots[i]._settings.secondary_axis:
             has_secondary = True
         else:
             has_primary = True
@@ -1541,7 +1561,7 @@ def _render_layers_generic[
             ' "secondary" to mean relative to)'
         )
 
-    var theme = plots[0]._theme
+    var theme = plots[0]._settings.theme
 
     # Every layer's columns, already read out of whichever field its mark
     # keeps them in and already widened for y_err (see `_LayerDomain`).
@@ -1561,7 +1581,7 @@ def _render_layers_generic[
             unpadded_layers += 1
         for v in domains[i].xs:
             combined_x.append(v)
-        if plots[i]._secondary_axis:
+        if plots[i]._settings.secondary_axis:
             for v in domains[i].ys:
                 combined_y2.append(v)
             if domains[i].zero_baseline:
@@ -1651,9 +1671,9 @@ def _render_layers_generic[
     # legitimate (the instants are absolute), and the axis then reads in
     # the first layer's zone, the same rule a standalone plot follows.
     for i in range(len(plots)):
-        if plots[i]._x_time:
+        if plots[i]._settings.x_time:
             x_scale.is_time = True
-            x_scale.tz_offset = plots[i]._x_tz_offset
+            x_scale.tz_offset = plots[i]._settings.x_tz_offset
             break
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
@@ -1700,12 +1720,12 @@ def _render_layers_generic[
     var series_names = List[String]()
     var series_colors = List[Color]()
     for j in range(len(plots)):
-        if plots[j]._labels.series_name.byte_length() > 0:
-            var name = plots[j]._labels.series_name
-            if plots[j]._secondary_axis:
+        if plots[j]._settings.labels.series_name.byte_length() > 0:
+            var name = plots[j]._settings.labels.series_name
+            if plots[j]._settings.secondary_axis:
                 name += " (right axis)"
             series_names.append(name)
-            series_colors.append(plots[j]._theme.mark_color)
+            series_colors.append(plots[j]._settings.theme.mark_color)
 
     # legend_reserve is the widest legend section across every
     # encoding-using Mark.POINT layer, each measured with that layer's own
@@ -1713,12 +1733,15 @@ def _render_layers_generic[
     # not a sum.
     var legend_width = 0
     for j in range(len(plots)):
-        var p_sc_j = _Scaled(plots[j]._theme)
+        var p_sc_j = _Scaled(plots[j]._settings.theme)
         var ch_j = _PointChannels(
-            plots[j]._channels, plots[j]._theme, plots[j]._color_domain, p_sc_j
+            plots[j]._channels,
+            plots[j]._settings.theme,
+            plots[j]._settings.color_domain,
+            p_sc_j,
         )
         var layer_legend = _legend_reserve_for(
-            plots[j]._mark, plots[j]._theme, ch_j, p_sc_j, cache=cache
+            plots[j]._mark, plots[j]._settings.theme, ch_j, p_sc_j, cache=cache
         )
         legend_width = max(legend_width, layer_legend.left + layer_legend.right)
     if len(series_names) > 0:
@@ -1846,10 +1869,10 @@ def _render_layers_generic[
     for j in range(len(plots)):
         var under_y_scale = out_y_scale2 if plots[
             j
-        ]._secondary_axis else frame.y_scale
+        ]._settings.secondary_axis else frame.y_scale
         var under_has_y = has_secondary_data if plots[
             j
-        ]._secondary_axis else frame.has_y_scale
+        ]._settings.secondary_axis else frame.has_y_scale
         var under_result = _RenderResult(
             List[_TextRequest](),
             frame.px0,
@@ -1865,7 +1888,7 @@ def _render_layers_generic[
             target,
             plots[j]._annotations,
             under_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         for k in range(len(under_areas)):
@@ -1874,7 +1897,7 @@ def _render_layers_generic[
             target,
             plots[j]._annotations,
             under_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         for k in range(len(under_bands)):
@@ -1882,18 +1905,18 @@ def _render_layers_generic[
 
     for j in range(len(plots)):
         var mark = plots[j]._mark
-        var layer_theme = plots[j]._theme
+        var layer_theme = plots[j]._settings.theme
         var layer_sc = _Scaled(layer_theme)
         var layer_y_scale = out_y_scale2 if plots[
             j
-        ]._secondary_axis else frame.y_scale
+        ]._settings.secondary_axis else frame.y_scale
         if mark == Mark.POINT or mark == Mark.EFFECT_SCATTER:
             if len(plots[j]._continuous.x) == 0:
                 continue
             var ch_j = _PointChannels(
                 plots[j]._channels,
-                plots[j]._theme,
-                plots[j]._color_domain,
+                plots[j]._settings.theme,
+                plots[j]._settings.color_domain,
                 layer_sc,
             )
             legend_y = _draw_point_layer(
@@ -2000,7 +2023,7 @@ def _render_layers_generic[
     for j in range(len(plots)):
         var layer_y_scale = out_y_scale2 if plots[
             j
-        ]._secondary_axis else frame.y_scale
+        ]._settings.secondary_axis else frame.y_scale
         # Whether that y-scale measures anything. A secondary-axis
         # layer's does when some layer contributed to the secondary
         # domain; a primary one's follows the frame, which is false only
@@ -2011,7 +2034,7 @@ def _render_layers_generic[
         # drawing against a placeholder domain.
         var layer_has_y_scale = has_secondary_data if plots[
             j
-        ]._secondary_axis else frame.has_y_scale
+        ]._settings.secondary_axis else frame.has_y_scale
         var layer_result = _RenderResult(
             List[_TextRequest](),
             frame.px0,
@@ -2030,21 +2053,21 @@ def _render_layers_generic[
             target,
             plots[j]._annotations,
             layer_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         var layer_line_requests = _draw_annotation_lines(
             target,
             plots[j]._annotations,
             layer_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         var layer_point_requests = _draw_annotation_points(
             target,
             plots[j]._annotations,
             layer_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         _draw_annotation_smooth(
@@ -2053,7 +2076,7 @@ def _render_layers_generic[
             plots[j]._continuous.x,
             plots[j]._continuous.y,
             layer_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
         )
         var layer_best_fit_requests = _draw_annotation_best_fit(
             target,
@@ -2061,7 +2084,7 @@ def _render_layers_generic[
             plots[j]._continuous.x,
             plots[j]._continuous.y,
             layer_result,
-            plots[j]._theme,
+            plots[j]._settings.theme,
             cache=cache,
         )
         _extend_text_requests(text_requests, layer_area_requests)

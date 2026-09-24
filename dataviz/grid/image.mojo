@@ -828,10 +828,10 @@ def _render_image[
             y_values.append(Float64(r) - 0.5)
 
     var extent = _grid_min_max(plot._image.z)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, extent[0], extent[1]
+        theme, plot._settings.color_domain, extent[0], extent[1]
     )
 
     # Measured against the render's shared font cache before the plot
@@ -844,9 +844,9 @@ def _render_image[
     if mark == Mark.HIST2D:
         for axis in range(2):
             var is_x = axis == 0
-            if (plot._x_log and plot._image.linear_auto_x) if is_x else (
-                plot._y_log and plot._image.linear_auto_y
-            ):
+            if (
+                plot._settings.x_log and plot._image.linear_auto_x
+            ) if is_x else (plot._settings.y_log and plot._image.linear_auto_y):
                 var name = "x" if is_x else "y"
                 raise Error(
                     "scale_"
@@ -859,7 +859,7 @@ def _render_image[
                     + "=True to hist2d() to bin in log space instead, or give"
                     " encode_hist2d() log_bin_edges()"
                 )
-    if plot._x_symlog or plot._y_symlog:
+    if plot._settings.x_symlog or plot._settings.y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): "
             + mark.name()
@@ -869,11 +869,11 @@ def _render_image[
         )
     var frame = _draw_continuous_axis_frame(
         target,
-        _edge_scale(x_values[0], x_values[cols], plot._x_log, "x"),
+        _edge_scale(x_values[0], x_values[cols], plot._settings.x_log, "x"),
         _edge_scale(
             min(y_values[0], y_values[rows]),
             max(y_values[0], y_values[rows]),
-            plot._y_log,
+            plot._settings.y_log,
             "y",
         ),
         theme,
