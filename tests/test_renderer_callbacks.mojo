@@ -132,10 +132,9 @@ def test_count_is_one_past_the_last_named_mark() raises:
 
 def test_every_mark_has_a_family() raises:
     # `Plot._set_mark()` binds render callbacks from `Mark._family()`
-    # alone. A mark with no row there binds nothing, so its plot keeps
-    # the previous mark's renderer -- the continuous path, for a fresh
-    # `Plot()` -- and fails at render time with an error that names
-    # neither the mark nor the table. Name both here instead.
+    # alone, and a setter whose mark has no row there fails to compile.
+    # That only fires for a setter a program actually calls, so sweep
+    # every mark here, where the failure names the mark and the table.
     for value in range(Mark.COUNT):
         var mark = Mark(value)
         assert_true(

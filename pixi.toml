@@ -94,6 +94,9 @@ docs-serve = { cmd = "hugo server -s docs/site", depends-on = ["docs-build"] }
 
 # Check version fields, optionally against a supplied git ref or tag.
 check-version = "bash scripts/check_version.sh"
+# A one-mark program must compile no other mark family (#607); see the
+# script for why the suite cannot see this.
+check-family-isolation = "bash scripts/check_family_isolation.sh"
 # Bump version fields, commit, and tag without pushing.
 release = "bash scripts/release.sh"
 
