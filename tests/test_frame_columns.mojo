@@ -20,6 +20,7 @@ from dataviz import (
     area,
     calendar_heatmap,
     candlestick,
+    corrplot,
     ecdf,
     funnel,
     gantt,
@@ -460,6 +461,38 @@ def test_ecdf_complementary_survives_the_frame_overload() raises:
     assert_true(normal != complementary, "complementary=True changed nothing")
 
 
+def test_corrplot_computes_pearson_matrix_from_frame() raises:
+    var df = DataFrame(
+        [
+            Series("x", Column[Float64]([1.0, 2.0, 3.0])),
+            Series("reverse", Column[Float64]([3.0, 2.0, 1.0])),
+            Series("curve", Column[Float64]([1.0, 0.0, 1.0])),
+            Series("flat", Column[Float64]([4.0, 4.0, 4.0])),
+        ]
+    )
+    var names: List[String] = ["x", "reverse", "curve"]
+    var expected: List[List[Float64]] = [
+        [1.0, -1.0, 0.0],
+        [-1.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]
+    var by_frame = render_svg(
+        corrplot(df, columns=names, width=360, height=300)
+    ).to_string()
+    var by_matrix = render_svg(
+        corrplot(names, expected, width=360, height=300)
+    ).to_string()
+    assert_equal(by_frame, by_matrix, "frame computes the expected matrix")
+    with assert_raises(contains='duplicate column "x"'):
+        _ = corrplot(df, columns=["x", "x"])
+    with assert_raises(contains='no column named "absent"'):
+        _ = corrplot(df, columns=["x", "absent"])
+    with assert_raises(
+        contains='columns "x" and "flat": correlation is undefined'
+    ):
+        _ = corrplot(df, columns=["x", "flat"])
+
+
 def test_tricontour_frame_levels_are_independent_of_rows() raises:
     var xs: List[Float64] = [0.0, 1.0, 2.0, 0.5, 1.5, 1.0]
     var ys: List[Float64] = [0.0, 0.0, 0.0, 1.0, 1.0, 2.0]
@@ -639,6 +672,68 @@ def test_gantt_reads_temporal_start_and_end_columns() raises:
     )
     with assert_raises(contains="both be temporal or both numeric"):
         _ = gantt(mismatch, categories="task", start="start", end="end")
+
+
+def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var days: List[Int64] = [19783, 19786, 19787]
+    var o: List[Float64] = [10.0, 11.0, 12.0]
+    var h: List[Float64] = [12.0, 13.0, 14.0]
+    var l: List[Float64] = [9.0, 10.0, 11.0]
+    var c: List[Float64] = [11.0, 12.0, 13.0]
+    var df = DataFrame(
+        [
+            Series("day", Column[Int64](days.copy())).with_dtype(DataType.DATE),
+            Series("open", Column[Float64](o.copy())),
+            Series("high", Column[Float64](h.copy())),
+            Series("low", Column[Float64](l.copy())),
+            Series("close", Column[Float64](c.copy())),
+        ]
+    )
+    var expected = render_svg(
+        candlestick(dates, o, h, l, c, x_title="day")
+    ).to_string()
+    var from_frame = candlestick(
+        df, categories="day", open="open", high="high", low="low", close="close"
+    )
+    assert_true(from_frame._x_time, "date column uses a time axis")
+    assert_equal(
+        render_svg(from_frame).to_string(), expected, "date column matches list"
+    )
+    var micros: List[Int64] = [
+        1709251200000000,
+        1709510400000000,
+        1709596800000000,
+    ]
+    var stamps = DataFrame(
+        [
+            Series("day", Column[Int64](micros.copy())).with_dtype(
+                DataType.datetime("us")
+            ),
+            Series("open", Column[Float64](o.copy())),
+            Series("high", Column[Float64](h.copy())),
+            Series("low", Column[Float64](l.copy())),
+            Series("close", Column[Float64](c.copy())),
+        ]
+    )
+    assert_equal(
+        render_svg(
+            candlestick(
+                stamps,
+                categories="day",
+                open="open",
+                high="high",
+                low="low",
+                close="close",
+            )
+        ).to_string(),
+        expected,
+        "datetime column matches list",
+    )
 
 
 def main() raises:

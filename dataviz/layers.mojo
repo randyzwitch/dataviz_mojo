@@ -35,6 +35,7 @@ from dataviz.core.annotations import (
     _draw_annotation_vlines,
     _validate_log_scale_annotations,
 )
+from dataviz.basic.arc import _arc_total, _draw_arc_wedges, _render_arc
 from dataviz.basic.bar import _bar_y_domain_data, _draw_bar_rects, _render_bar
 from dataviz.multivariate.barbs import _draw_barbs_layer, _validate_barbs
 from dataviz.binned.histogram import _draw_histogram_layer
@@ -66,10 +67,13 @@ from dataviz.distributions.kde import (
 )
 from dataviz.core.legend import (
     _LegendLayout,
+    _draw_legend_at,
+    _legend_layout,
     _draw_legend,
     _dynamic_legend_width,
     _legend_reserve_for,
 )
+from dataviz.core.color_scale import categorical_palette_for
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
@@ -340,6 +344,14 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        ordered categories share a categorical frame and occupy adjacent
        subbands; POINT/LINE/AREA layers align to category centers. This
        path dispatches to `_render_bar_combo_layers` with a narrower scope.
+
+       Two or more `Mark.ARC` plots draw concentric rings,
+       `plots[0]` outermost. Each ring keeps its own proportions and palette;
+       legend entries are prefixed with its one-based ring number. Ring
+       geometry is assigned by the composition, so every input must use
+       `pie()`'s default `inner_radius_fraction=0`. A single ARC layer
+       renders exactly as that standalone pie or donut. All export backends
+       use this same layout.
 
        Every other mark raises with the reason: a categorical, polar,
        hierarchical or edge-list mark has no continuous x to share;
@@ -1019,6 +1031,124 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     )
 
 
+def _render_arc_layers[
+    T: DrawTarget
+](
+    mut target: T,
+    plots: List[Plot],
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """Concentric ARC layers, outermost first, sharing one center (#773).
+
+    Every ring retains its own category proportions and palette. The
+    composition assigns equal ring widths and a small center hole;
+    standalone `inner_radius_fraction` values would contradict that
+    geometry and are rejected. Legend entries name both ring and slice.
+    """
+    var totals = List[Float64]()
+    var legend_labels = List[String]()
+    var legend_colors = List[Color]()
+    for i in range(len(plots)):
+        if not (plots[i]._mark == Mark.ARC):
+            raise Error(
+                "render_layers(): Mark.ARC can share only concentric ARC"
+                " layers; layer "
+                + String(i)
+                + " is "
+                + plots[i]._mark.name()
+            )
+        if plots[i]._mark_style.donut_inner_radius_fraction != 0.0:
+            raise Error(
+                "render_layers(): ARC layer "
+                + String(i)
+                + " sets inner_radius_fraction; concentric layers assign"
+                " their own ring radii, so pass pie() with its default"
+                " inner_radius_fraction=0"
+            )
+        if plots[i]._secondary_axis or plots[i]._x_log or plots[i]._y_log:
+            raise Error(
+                "render_layers(): ARC layers have no x/y axis or"
+                " secondary axis (layer "
+                + String(i)
+                + ")"
+            )
+        totals.append(_arc_total(plots[i]))
+        if plots[i]._theme.show_legend:
+            var palette = categorical_palette_for(plots[i]._theme)
+            for j in range(len(plots[i]._categorical.x)):
+                legend_labels.append(
+                    "Ring " + String(i + 1) + ": " + plots[i]._categorical.x[j]
+                )
+                legend_colors.append(palette[j % len(palette)])
+
+    var theme = plots[0]._theme
+    var sc = _Scaled(theme)
+    var legend = (
+        _legend_layout(
+            legend_labels,
+            sc.legend_swatch_size,
+            sc,
+            theme,
+            ox1 - ox0,
+            cache=cache,
+        ) if len(legend_labels)
+        > 0 else _LegendLayout()
+    )
+    var plot_x0 = ox0 + sc.margin_left + legend.left
+    var plot_y0 = oy0 + sc.margin_top + legend.top
+    var plot_x1 = ox1 - sc.margin_right - legend.right
+    var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
+    var cx = Float64(plot_x0 + plot_x1) / 2.0
+    var cy = Float64(plot_y0 + plot_y1) / 2.0
+    var outer_radius = (
+        Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
+    )
+    if outer_radius <= 0.0:
+        raise Error("render_layers(): no room for ARC rings after margins")
+    var center_hole = outer_radius * 0.2
+    var gap = min(4.0 * sc.scale, outer_radius / (4.0 * Float64(len(plots))))
+    var ring_width = (
+        outer_radius - center_hole - gap * Float64(len(plots) - 1)
+    ) / Float64(len(plots))
+    if ring_width < 2.0:
+        raise Error(
+            "render_layers(): ARC rings are too thin for this figure size"
+        )
+    var text_requests = List[_TextRequest]()
+    for i in range(len(plots)):
+        var radius = outer_radius - Float64(i) * (ring_width + gap)
+        _draw_arc_wedges(
+            target,
+            plots[i],
+            cx,
+            cy,
+            radius - ring_width,
+            radius,
+            totals[i],
+            text_requests,
+        )
+    if len(legend_labels) > 0:
+        _draw_legend_at(
+            target,
+            text_requests,
+            legend_labels,
+            legend_colors,
+            legend,
+            plot_x0,
+            plot_y0,
+            plot_x1,
+            plot_y1,
+            theme,
+            cache=cache,
+        )
+    return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
 def _render_layers_generic[
     T: DrawTarget
 ](
@@ -1066,6 +1196,33 @@ def _render_layers_generic[
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
         return _RenderResult(text_requests^, ox0, oy0, ox1, oy1)
+
+    # Arcs have no x/y domain. A stack of them instead shares a center
+    # and divides the radius into rings; mixing an arc with an axis-based
+    # layer has no common frame.
+    var arc_count = 0
+    var first_arc = -1
+    for i in range(len(plots)):
+        if plots[i]._mark == Mark.ARC:
+            arc_count += 1
+            if first_arc < 0:
+                first_arc = i
+    if arc_count > 0:
+        if arc_count != len(plots):
+            raise Error(
+                "render_layers(): layer "
+                + String(first_arc)
+                + " is Mark.ARC, which can share only concentric ARC"
+                " layers, not an x/y axis with another mark. Use"
+                " render_facets() for unrelated marks"
+            )
+        if len(plots) == 1:
+            return _render_arc(
+                target, plots[0], ox0, oy0, ox1, oy1, cache=cache
+            )
+        return _render_arc_layers(
+            target, plots, ox0, oy0, ox1, oy1, cache=cache
+        )
 
     # Bar layers share a categorical frame. Multiple bar layers occupy
     # adjacent subbands in each category; continuous marks stay centered

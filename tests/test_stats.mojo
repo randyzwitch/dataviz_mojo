@@ -13,6 +13,8 @@ from std.testing import (
     assert_true,
 )
 
+from std.utils.numerics import nan
+
 from dataviz.core.cluster import (
     DistanceMetric,
     Linkage,
@@ -26,9 +28,28 @@ from dataviz.core.stats import (
     _estimate,
     _interval,
     _ols_fit,
+    _pearson_correlation,
     _sample_sd,
     _t_quantile,
 )
+
+
+def test_pearson_correlation_matches_hand_computed_pairs() raises:
+    var x: List[Float64] = [1.0, 2.0, 3.0]
+    var same: List[Float64] = [1.0, 2.0, 3.0]
+    var reverse: List[Float64] = [3.0, 2.0, 1.0]
+    var curved: List[Float64] = [1.0, 0.0, 1.0]
+    assert_almost_equal(_pearson_correlation(x, same), 1.0, atol=1e-12)
+    assert_almost_equal(_pearson_correlation(x, reverse), -1.0, atol=1e-12)
+    assert_almost_equal(_pearson_correlation(x, curved), 0.0, atol=1e-12)
+    var missing: List[Float64] = [1.0, nan[DType.float64](), 3.0]
+    assert_almost_equal(
+        _pearson_correlation(missing, reverse), -1.0, atol=1e-12
+    )
+    with assert_raises(contains="constant column"):
+        _ = _pearson_correlation([1.0, 1.0], [2.0, 3.0])
+    with assert_raises(contains="at least two complete rows"):
+        _ = _pearson_correlation([1.0, missing[1]], [2.0, 3.0])
 
 
 def test_ols_fit_matches_hand_derived_line_and_residual_error() raises:

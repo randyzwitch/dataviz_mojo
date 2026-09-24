@@ -36,6 +36,30 @@ already zero is not padded, so zero stays an exact endpoint. A bar
 chart's baseline really is zero, which is what makes bar lengths
 comparable.
 
+## Candlesticks on a time axis
+
+`candlestick()` accepts `List[Morrow]` dates as well as string categories.
+Dates use their real positions, so a Friday-to-Monday gap is three times a
+Monday-to-Tuesday gap. Its candle width follows the median interval between
+observations and is capped so neighboring bodies do not overlap.
+
+```mojo
+from dataviz import candlestick, save
+from morrow import Morrow
+
+def main() raises:
+    var dates: List[Morrow] = [
+        Morrow.get(2024, 3, 1),
+        Morrow.get(2024, 3, 4),
+        Morrow.get(2024, 3, 5),
+    ]
+    var open: List[Float64] = [10.0, 12.0, 14.0]
+    var high: List[Float64] = [15.0, 16.0, 17.0]
+    var low: List[Float64] = [8.0, 9.0, 11.0]
+    var close: List[Float64] = [13.0, 14.0, 12.0]
+    save(candlestick(dates, open, high, low, close), "candles.svg")
+```
+
 Padding applies to spatial axes only. Color and size domains are the
 data's own minimum and maximum, so a legend's extremes are real values.
 

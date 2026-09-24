@@ -6,10 +6,50 @@ hand-computed values away from any rendering, so a chart only has to
 show that the numbers reached the glyph.
 """
 
-from std.utils.numerics import isnan
+from std.utils.numerics import isfinite, isnan
 from std.math import sqrt
 
 from dataviz.distributions.box import _percentile
+
+
+def _pearson_correlation(x: List[Float64], y: List[Float64]) raises -> Float64:
+    """Pearson correlation over paired, present observations.
+
+    Missing values are excluded pairwise. A constant column or fewer than
+    two complete pairs has no correlation and raises.
+    """
+    if len(x) != len(y):
+        raise Error("correlation columns must have the same length")
+    var n = 0
+    var sum_x = 0.0
+    var sum_y = 0.0
+    for i in range(len(x)):
+        if isnan(x[i]) or isnan(y[i]):
+            continue
+        if not isfinite(x[i]) or not isfinite(y[i]):
+            raise Error("correlation values must be finite")
+        n += 1
+        sum_x += x[i]
+        sum_y += y[i]
+    if n < 2:
+        raise Error("correlation needs at least two complete rows")
+    var mean_x = sum_x / Float64(n)
+    var mean_y = sum_y / Float64(n)
+    var sxx = 0.0
+    var syy = 0.0
+    var sxy = 0.0
+    for i in range(len(x)):
+        if isnan(x[i]) or isnan(y[i]):
+            continue
+        var dx = x[i] - mean_x
+        var dy = y[i] - mean_y
+        sxx += dx * dx
+        syy += dy * dy
+        sxy += dx * dy
+    if sxx == 0.0 or syy == 0.0:
+        raise Error("correlation is undefined for a constant column")
+    var value = sxy / sqrt(sxx * syy)
+    return max(-1.0, min(1.0, value))
 
 
 struct _OlsFit(Copyable, Movable):

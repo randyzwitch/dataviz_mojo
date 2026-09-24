@@ -29,7 +29,10 @@ The corner opposite the two marginals is left empty and takes the figure backgro
 """
 
 
+from dataframe import DataFrame
+
 from dataviz.binned.histogram import bin_edges, histogram_bins
+from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
@@ -221,6 +224,57 @@ def _jointplot_weights(
     rows.append(ratio)
     cols.append(ratio)
     cols.append(1.0)
+
+
+def jointplot(
+    df: DataFrame,
+    x: String,
+    y: String,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 640,
+    bins: Int = 20,
+    ratio: Float64 = 4.0,
+    title: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Figure:
+    """Make a jointplot from two named numeric DataFrame columns (#743).
+
+    Args:
+        df: The frame containing both variables.
+        x: Name of the horizontal numeric column.
+        y: Name of the vertical numeric column.
+        theme: Figure styling and missing-value policy.
+        width: Figure width in pixels.
+        height: Figure height in pixels.
+        bins: Number of marginal histogram bins.
+        ratio: Main panel size relative to its marginals.
+        title: Figure title.
+        x_title: Horizontal title, defaulting to `x`.
+        y_title: Vertical title, defaulting to `y`.
+
+    Returns:
+        The unrendered figure.
+
+    Raises:
+        Error: A named column is absent, nonnumeric, or has missing
+            values under the default missing-value policy.
+    """
+    var xs = _frame_floats(df, x, "jointplot()", theme.missing)
+    var ys = _frame_floats(df, y, "jointplot()", theme.missing)
+    return jointplot(
+        xs,
+        ys,
+        theme=theme,
+        width=width,
+        height=height,
+        bins=bins,
+        ratio=ratio,
+        title=title,
+        x_title=x_title if x_title.byte_length() > 0 else x,
+        y_title=y_title if y_title.byte_length() > 0 else y,
+    )
 
 
 def jointplot[
