@@ -314,7 +314,11 @@ def _render_gantt[
         var by0 = snap_to_pixel_edge(row_y)
         var by1 = snap_to_pixel_edge(row_y + row_height)
         if tooltips_on:
-            var tooltip = String("")
+            var tooltip = _span_tooltip_label(
+                plot._categorical.x[i],
+                plot._gantt.start[i],
+                plot._gantt.end[i],
+            )
             if plot._x_time:
                 var zone = TimeZone(plot._x_tz_offset)
                 tooltip = (
@@ -327,12 +331,6 @@ def _render_gantt[
                     + Morrow.fromtimestamp(plot._gantt.end[i], zone).format(
                         "YYYY-MM-DD HH:mm"
                     )
-                )
-            else:
-                tooltip = _span_tooltip_label(
-                    plot._categorical.x[i],
-                    plot._gantt.start[i],
-                    plot._gantt.end[i],
                 )
             target.begin_annotated_group(tooltip)
         target.fill_rect(bx0, by0, bx1 - bx0, by1 - by0, theme.mark_color)
