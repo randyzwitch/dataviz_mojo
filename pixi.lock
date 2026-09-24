@@ -67,6 +67,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/click-8.5.0-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cpython-3.14.7-py314hd8ed1ab_106.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_client-8.6.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_core-5.9.1-pyhc90fa1f_0.conda
@@ -88,7 +89,7 @@ environments:
       - conda: https://conda.modular.com/max/linux-64/mojo-compiler-1.1.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mblack-26.6.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.1.0-release.conda
-      - conda_source: canvas_mojo[4de4e3c4] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+      - conda_source: canvas_mojo[6529bd7f] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
       - conda_source: dataframe_mojo[f72adba2] @ git+https://github.com/randyzwitch/dataframe_mojo?tag=v0.1.3#2c7943249a0bfb7a58de8fd8b23386100770f3e3
       - conda_source: morrow[caf241bc] @ git+https://github.com/randyzwitch/morrow.mojo?branch=support-mojo-1.1#ed2689033196a77fd62423fa0c1cf4a168834556
       linux-aarch64:
@@ -134,6 +135,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/click-8.5.0-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cpython-3.14.7-py314hd8ed1ab_106.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_client-8.6.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_core-5.9.1-pyhc90fa1f_0.conda
@@ -155,7 +157,7 @@ environments:
       - conda: https://conda.modular.com/max/linux-aarch64/mojo-compiler-1.1.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mblack-26.6.0-release.conda
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.1.0-release.conda
-      - conda_source: canvas_mojo[161843f2] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+      - conda_source: canvas_mojo[1e96f434] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
       - conda_source: dataframe_mojo[8f5e388d] @ git+https://github.com/randyzwitch/dataframe_mojo?tag=v0.1.3#2c7943249a0bfb7a58de8fd8b23386100770f3e3
       - conda_source: morrow[0f64f9de] @ git+https://github.com/randyzwitch/morrow.mojo?branch=support-mojo-1.1#ed2689033196a77fd62423fa0c1cf4a168834556
       osx-arm64:
@@ -163,6 +165,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.7.22-hbd8a1cb_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/click-8.5.0-pyh5ded981_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/cpython-3.14.7-py314hd8ed1ab_106.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_client-8.6.3-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/jupyter_core-5.9.1-pyhc90fa1f_0.conda
@@ -219,7 +222,7 @@ environments:
       - conda: https://conda.modular.com/max/noarch/mojo-python-1.1.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-1.1.0-release.conda
       - conda: https://conda.modular.com/max/osx-arm64/mojo-compiler-1.1.0-release.conda
-      - conda_source: canvas_mojo[81b747a2] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+      - conda_source: canvas_mojo[b36812f5] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
       - conda_source: dataframe_mojo[fb3f466e] @ git+https://github.com/randyzwitch/dataframe_mojo?tag=v0.1.3#2c7943249a0bfb7a58de8fd8b23386100770f3e3
       - conda_source: morrow[20146250] @ git+https://github.com/randyzwitch/morrow.mojo?branch=support-mojo-1.1#ed2689033196a77fd62423fa0c1cf4a168834556
 packages:
@@ -1535,6 +1538,14 @@ packages:
   run_exports: {}
   size: 51289
   timestamp: 1788383537525
+- conda: https://conda.anaconda.org/conda-forge/noarch/font-ttf-dejavu-sans-mono-2.37-hab24e00_0.tar.bz2
+  sha256: 58d7f40d2940dd0a8aa28651239adbf5613254df0f75789919c4e6762054403b
+  md5: 0c96522c6bdaed4b1566d11387caaf45
+  license: BSD-3-Clause
+  license_family: BSD
+  run_exports: {}
+  size: 397370
+  timestamp: 1566932522327
 - conda: https://conda.anaconda.org/conda-forge/noarch/importlib-metadata-9.0.1-pyhcf101f3_0.conda
   sha256: 95a074a7d3f58b3494c068d4789c364dcb591c56b70ca6b12f149a540f9aeea4
   md5: 77ec68e0aa61c3fff9ecbf840f93d64e
@@ -2444,7 +2455,7 @@ packages:
   run_exports: {}
   size: 62368467
   timestamp: 1789083852431
-- conda_source: canvas_mojo[161843f2] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+- conda_source: canvas_mojo[1e96f434] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
   version: 0.41.0
   build: he8cfe8b_0
   subdir: linux-aarch64
@@ -2507,7 +2518,7 @@ packages:
   - conda: https://conda.modular.com/max/linux-aarch64/mojo-compiler-1.1.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mblack-26.6.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mojo-python-1.1.0-release.conda
-- conda_source: canvas_mojo[4de4e3c4] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+- conda_source: canvas_mojo[6529bd7f] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
   version: 0.41.0
   build: hb0f4dca_0
   subdir: linux-64
@@ -2570,7 +2581,7 @@ packages:
   - conda: https://conda.modular.com/max/linux-64/mojo-compiler-1.1.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mblack-26.6.0-release.conda
   - conda: https://conda.modular.com/max/noarch/mojo-python-1.1.0-release.conda
-- conda_source: canvas_mojo[81b747a2] @ git+https://github.com/randyzwitch/canvas_mojo?tag=v0.41.0#d1f08674224dd9ddc40fd1f8d99c2ce5d3c505cf
+- conda_source: canvas_mojo[b36812f5] @ git+https://github.com/randyzwitch/canvas_mojo?rev=0bea340883a8c910efea6e527d8f889b5220d14f#0bea340883a8c910efea6e527d8f889b5220d14f
   version: 0.41.0
   build: h60d57d3_0
   subdir: osx-arm64

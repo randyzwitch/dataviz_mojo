@@ -29,7 +29,7 @@ version = "0.13.0"
 # costs a raise per Mojo series; dropping it trades a refusal nobody
 # has to maintain for a failure that lands on the caller instead.
 mojo = ">=1.1.0,<1.3"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.41.0" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", rev = "0bea340883a8c910efea6e527d8f889b5220d14f" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
 dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
@@ -38,6 +38,8 @@ go = ">=1.26.7,<2"
 # Dev/test dependencies for numpy_interop.mojo.
 numpy = ">=2.0,<3"
 pandas = ">=2.0,<3"
+# One DejaVu Sans face at $CONDA_PREFIX/fonts for fontless exports (#767).
+font-ttf-dejavu-sans-mono = "=2.37"
 
 [activation.env]
 # mblack caches its parsed grammar under a directory keyed only by its
@@ -104,14 +106,15 @@ path = "dataviz"
 
 [package.host-dependencies]
 mojo = ">=1.1.0,<1.3"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.41.0" }
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", rev = "0bea340883a8c910efea6e527d8f889b5220d14f" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
 dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
 
 [package.run-dependencies]
 mojo = ">=1.1.0,<1.3"
-canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", tag = "v0.41.0" }
+font-ttf-dejavu-sans-mono = "=2.37"
+canvas_mojo = { git = "https://github.com/randyzwitch/canvas_mojo.git", rev = "0bea340883a8c910efea6e527d8f889b5220d14f" }
 # Mojo 1.1 until upstream (mojoto/morrow.mojo) publishes a 1.1 build (#673).
 morrow = { git = "https://github.com/randyzwitch/morrow.mojo.git", branch = "support-mojo-1.1" }
 dataframe_mojo = { git = "https://github.com/randyzwitch/dataframe_mojo.git", tag = "v0.1.3" }
