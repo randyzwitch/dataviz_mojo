@@ -320,7 +320,7 @@ struct _ColorDomainOverride(Copyable, Movable):
     """An explicit color domain and/or ramp center, set via
     `Plot.scale_color_domain()`/`Plot.scale_color_center()`, overriding
     the `[min, max]` a continuous-color mark would otherwise take from
-    its own data. `_DomainOverride` (plot.mojo) is the same idea for a
+    its own data. `_DomainOverride` (plot_fields.mojo) is the same idea for a
     spatial axis; this one is separate because a color domain has a
     third thing to say (`center`) and applies to a different, much
     larger set of marks. Stored on `Plot._color_domain`.
