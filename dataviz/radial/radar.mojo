@@ -515,7 +515,8 @@ def radar[
 
 
 def _encode_radar(
-    mut plot: Plot,
+    mark: Mark,
+    mut radar: _RadarData,
     indicators: List[String],
     max_values: List[Float64],
     series_names: List[String],
@@ -523,7 +524,7 @@ def _encode_radar(
 ) raises:
     """`Plot.encode_radar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_radar", "mark_radar()", Mark.RADAR)
+    _require_mark(mark, "encode_radar", "mark_radar()", Mark.RADAR)
     if len(indicators) != len(max_values):
         raise Error(
             "Plot.encode_radar(): indicators and max_values must have the"
@@ -552,7 +553,7 @@ def _encode_radar(
                 + String(len(values))
                 + ")"
             )
-    plot._radar.indicators = indicators.copy()
-    plot._radar.max_values = max_values.copy()
-    plot._radar.series_names = series_names.copy()
-    plot._radar.series_values = series_values.copy()
+    radar.indicators = indicators.copy()
+    radar.max_values = max_values.copy()
+    radar.series_names = series_names.copy()
+    radar.series_values = series_values.copy()

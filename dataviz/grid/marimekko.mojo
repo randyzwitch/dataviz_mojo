@@ -362,16 +362,15 @@ def marimekko[
 
 
 def _encode_marimekko(
-    mut plot: Plot,
+    mark: Mark,
+    mut marimekko: _MarimekkoData,
     categories: List[String],
     subcategories: List[String],
     values: List[List[Float64]],
 ) raises:
     """`Plot.encode_marimekko()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO
-    )
-    plot._marimekko.categories = categories.copy()
-    plot._marimekko.subcategories = subcategories.copy()
-    plot._marimekko.values = values.copy()
+    _require_mark(mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO)
+    marimekko.categories = categories.copy()
+    marimekko.subcategories = subcategories.copy()
+    marimekko.values = values.copy()

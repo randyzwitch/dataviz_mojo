@@ -1038,7 +1038,8 @@ def fill_between3d[
 
 
 def _encode_vectors3d(
-    mut plot: Plot,
+    mark: Mark,
+    mut vectors3d: _Vectors3D,
     x: List[Float64],
     y: List[Float64],
     z: List[Float64],
@@ -1051,21 +1052,22 @@ def _encode_vectors3d(
     var _ok_encode_vectors3d = List[Mark]()
     _ok_encode_vectors3d.append(Mark.QUIVER3D)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_vectors3d",
         "mark_quiver3d()",
         _ok_encode_vectors3d^,
     )
-    plot._vectors3d.x = x.copy()
-    plot._vectors3d.y = y.copy()
-    plot._vectors3d.z = z.copy()
-    plot._vectors3d.u = u.copy()
-    plot._vectors3d.v = v.copy()
-    plot._vectors3d.w = w.copy()
+    vectors3d.x = x.copy()
+    vectors3d.y = y.copy()
+    vectors3d.z = z.copy()
+    vectors3d.u = u.copy()
+    vectors3d.v = v.copy()
+    vectors3d.w = w.copy()
 
 
 def _encode_ribbon3d(
-    mut plot: Plot,
+    mark: Mark,
+    mut ribbon3d: _Ribbon3D,
     x1: List[Float64],
     y1: List[Float64],
     z1: List[Float64],
@@ -1078,14 +1080,14 @@ def _encode_ribbon3d(
     var _ok_encode_ribbon3d = List[Mark]()
     _ok_encode_ribbon3d.append(Mark.FILL_BETWEEN3D)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_ribbon3d",
         "mark_fill_between3d()",
         _ok_encode_ribbon3d^,
     )
-    plot._ribbon3d.x1 = x1.copy()
-    plot._ribbon3d.y1 = y1.copy()
-    plot._ribbon3d.z1 = z1.copy()
-    plot._ribbon3d.x2 = x2.copy()
-    plot._ribbon3d.y2 = y2.copy()
-    plot._ribbon3d.z2 = z2.copy()
+    ribbon3d.x1 = x1.copy()
+    ribbon3d.y1 = y1.copy()
+    ribbon3d.z1 = z1.copy()
+    ribbon3d.x2 = x2.copy()
+    ribbon3d.y2 = y2.copy()
+    ribbon3d.z2 = z2.copy()

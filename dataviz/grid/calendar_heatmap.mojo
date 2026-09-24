@@ -1,3 +1,4 @@
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -539,20 +540,23 @@ def calendar_heatmap[
 
 
 def _encode_calendar(
-    mut plot: Plot,
+    mark: Mark,
+    mut calendar: _CalendarData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     dates: List[String],
     values: List[Float64],
 ) raises:
     """`Plot.encode_calendar()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_calendar",
         "mark_calendar_heatmap()",
         Mark.CALENDAR_HEATMAP,
     )
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._calendar.dates = dates.copy()
-    plot._calendar.values = values.copy()
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    calendar.dates = dates.copy()
+    calendar.values = values.copy()

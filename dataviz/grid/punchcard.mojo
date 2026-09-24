@@ -1,3 +1,4 @@
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -302,19 +303,20 @@ def punchcard[
 
 
 def _encode_punchcard(
-    mut plot: Plot,
+    mark: Mark,
+    mut punchcard: _PunchcardData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     x: List[String],
     y: List[String],
     sizes: List[Float64],
 ) raises:
     """`Plot.encode_punchcard()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD
-    )
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._punchcard.x = x.copy()
-    plot._punchcard.y = y.copy()
-    plot._punchcard.sizes = sizes.copy()
+    _require_mark(mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD)
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    punchcard.x = x.copy()
+    punchcard.y = y.copy()
+    punchcard.sizes = sizes.copy()

@@ -670,29 +670,31 @@ def polar[
 
 
 def _encode_polar(
-    mut plot: Plot,
+    mark: Mark,
+    mut polar: _PolarData,
     angle: List[Float64],
     radius: List[Float64],
 ) raises:
     """`Plot.encode_polar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_polar", "mark_polar()", Mark.POLAR)
-    plot._polar.angle = angle.copy()
-    plot._polar.radius = radius.copy()
-    plot._polar.series_names = List[String]()
-    plot._polar.series_radius = List[List[Float64]]()
+    _require_mark(mark, "encode_polar", "mark_polar()", Mark.POLAR)
+    polar.angle = angle.copy()
+    polar.radius = radius.copy()
+    polar.series_names = List[String]()
+    polar.series_radius = List[List[Float64]]()
 
 
 def _encode_polar_series(
-    mut plot: Plot,
+    mark: Mark,
+    mut polar: _PolarData,
     angle: List[Float64],
     series_names: List[String],
     series_values: List[List[Float64]],
 ) raises:
     """`Plot.encode_polar_series()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_polar_series", "mark_polar()", Mark.POLAR)
-    plot._polar.angle = angle.copy()
-    plot._polar.radius = List[Float64]()
-    plot._polar.series_names = series_names.copy()
-    plot._polar.series_radius = series_values.copy()
+    _require_mark(mark, "encode_polar_series", "mark_polar()", Mark.POLAR)
+    polar.angle = angle.copy()
+    polar.radius = List[Float64]()
+    polar.series_names = series_names.copy()
+    polar.series_radius = series_values.copy()

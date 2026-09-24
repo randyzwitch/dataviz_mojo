@@ -561,23 +561,24 @@ def waterfall[
 
 
 def _encode_waterfall(
-    mut plot: Plot,
+    mark: Mark,
+    mut waterfall: _WaterfallData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     deltas: List[Float64],
     is_total: List[Bool],
 ) raises:
     """`Plot.encode_waterfall()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL
-    )
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = deltas.copy()
-    plot._waterfall.is_total = is_total.copy()
+    _require_mark(mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL)
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = deltas.copy()
+    waterfall.is_total = is_total.copy()
     var bars = _waterfall_running_totals(deltas, is_total)
-    plot._waterfall.y0 = bars.y0.copy()
-    plot._waterfall.y1 = bars.y1.copy()
+    waterfall.y0 = bars.y0.copy()
+    waterfall.y1 = bars.y1.copy()
 
 
 def _render_waterfall_oriented[

@@ -147,7 +147,8 @@ def _build_hierarchy_index(
 
 
 def _encode_hierarchy(
-    mut plot: Plot,
+    mark: Mark,
+    mut hierarchy: _HierarchyData,
     ids: List[String],
     parent_ids: List[String],
     values: List[Float64],
@@ -159,11 +160,11 @@ def _encode_hierarchy(
     _ok_encode_hierarchy.append(Mark.TREE)
     _ok_encode_hierarchy.append(Mark.SUNBURST)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_hierarchy",
         "mark_treemap()",
         _ok_encode_hierarchy^,
     )
-    plot._hierarchy.ids = ids.copy()
-    plot._hierarchy.parent_ids = parent_ids.copy()
-    plot._hierarchy.values = values.copy()
+    hierarchy.ids = ids.copy()
+    hierarchy.parent_ids = parent_ids.copy()
+    hierarchy.values = values.copy()

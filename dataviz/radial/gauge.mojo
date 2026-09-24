@@ -391,7 +391,8 @@ def gauge(
 
 
 def _encode_gauge(
-    mut plot: Plot,
+    mark: Mark,
+    mut gauge: _GaugeData,
     value: Float64,
     min_value: Float64,
     max_value: Float64,
@@ -400,9 +401,9 @@ def _encode_gauge(
 ) raises:
     """`Plot.encode_gauge()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
-    plot._gauge.value = value
-    plot._gauge.min_value = min_value
-    plot._gauge.max_value = max_value
-    plot._gauge.breakpoints = breakpoints.copy()
-    plot._gauge.band_colors = band_colors.copy()
+    _require_mark(mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
+    gauge.value = value
+    gauge.min_value = min_value
+    gauge.max_value = max_value
+    gauge.breakpoints = breakpoints.copy()
+    gauge.band_colors = band_colors.copy()

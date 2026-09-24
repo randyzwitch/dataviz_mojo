@@ -12,6 +12,7 @@ the family's marks import. `_EdgeData` lives here rather than on
 """
 
 
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.plot import Plot
 from dataviz.core.frame import _categorical_indices
 from dataviz.core.validate import _require_non_empty, _require_non_negative
@@ -115,7 +116,10 @@ def _validate_edge_encoding(edge_data: _EdgeData, mark_name: String) raises:
 
 
 def _encode_chord(
-    mut plot: Plot,
+    mark: Mark,
+    mut edge_data: _EdgeData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     from_categories: List[String],
     to_categories: List[String],
     values: List[Float64],
@@ -127,10 +131,10 @@ def _encode_chord(
     _ok_encode_chord.append(Mark.ARC_DIAGRAM)
     _ok_encode_chord.append(Mark.GRAPH)
     _ok_encode_chord.append(Mark.SANKEY)
-    _require_mark(plot._mark, "encode_chord", "mark_chord()", _ok_encode_chord^)
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._edges.from_categories = from_categories.copy()
-    plot._edges.to_categories = to_categories.copy()
-    plot._edges.values = values.copy()
+    _require_mark(mark, "encode_chord", "mark_chord()", _ok_encode_chord^)
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    edge_data.from_categories = from_categories.copy()
+    edge_data.to_categories = to_categories.copy()
+    edge_data.values = values.copy()

@@ -1,4 +1,4 @@
-from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -549,13 +549,16 @@ def box[
 
 
 def _encode_boxplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut box: _BoxData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     values: List[List[Float64]],
 ) raises:
     """`Plot.encode_boxplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_boxplot", "mark_box()", Mark.BOX)
+    _require_mark(mark, "encode_boxplot", "mark_box()", Mark.BOX)
     if len(categories) != len(values):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have"
@@ -593,16 +596,16 @@ def _encode_boxplot(
             outlier_cat.append(i)
             outlier_value.append(v)
 
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._box.q1 = q1^
-    plot._box.median = median^
-    plot._box.q3 = q3^
-    plot._box.low = low^
-    plot._box.high = high^
-    plot._box.outlier_cat = outlier_cat^
-    plot._box.outlier_value = outlier_value^
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    box.q1 = q1^
+    box.median = median^
+    box.q3 = q3^
+    box.low = low^
+    box.high = high^
+    box.outlier_cat = outlier_cat^
+    box.outlier_value = outlier_value^
 
 
 def _render_box_oriented[

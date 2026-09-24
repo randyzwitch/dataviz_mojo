@@ -1,4 +1,4 @@
-from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
@@ -660,7 +660,10 @@ def grouped_bar[
 
 
 def _encode_grouped_bar(
-    mut plot: Plot,
+    mark: Mark,
+    mut grouped_bar: _GroupedBarData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     series_names: List[String],
     values: List[List[Float64]],
@@ -674,17 +677,17 @@ def _encode_grouped_bar(
     _ok_encode_grouped_bar.append(Mark.BUMP)
     _ok_encode_grouped_bar.append(Mark.STREAMGRAPH)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_grouped_bar",
         "mark_grouped_bar()",
         _ok_encode_grouped_bar^,
     )
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._grouped_bar.series_names = series_names.copy()
-    plot._grouped_bar.values = values.copy()
-    plot._grouped_bar.errors = errors.copy()
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    grouped_bar.series_names = series_names.copy()
+    grouped_bar.values = values.copy()
+    grouped_bar.errors = errors.copy()
 
 
 def _render_grouped_bar_oriented[

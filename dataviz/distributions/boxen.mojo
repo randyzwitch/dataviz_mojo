@@ -2,7 +2,7 @@
 whose single box and whiskers become nested boxes at successively finer
 quantiles, so a large sample's tail is drawn rather than discarded."""
 
-from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -476,15 +476,16 @@ def boxenplot[
 
 
 def _encode_boxenplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut boxen: _BoxenData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     values: List[List[Float64]],
 ) raises:
     """`Plot.encode_boxenplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT
-    )
+    _require_mark(mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT)
     if len(categories) != len(values):
         raise Error(
             "Plot.encode_boxenplot(): categories and values must have"
@@ -510,10 +511,10 @@ def _encode_boxenplot(
         for v in lv.outliers:
             data.outlier_cat.append(i)
             data.outlier_value.append(v)
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._boxen = data^
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    boxen = data^
 
 
 def _render_boxenplot_oriented[

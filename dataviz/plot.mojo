@@ -1333,7 +1333,7 @@ struct Plot(Copyable, Movable):
             Self, for further chaining -- `render()` raises later if the
             tree and the labels disagree.
         """
-        _encode_dendrogram(self, tree, labels, horizontal)
+        _encode_dendrogram(self._dendrogram, tree, labels, horizontal)
         return self^
 
     def mark_triplot(var self, show_points: Bool = True) -> Self:
@@ -1900,7 +1900,11 @@ struct Plot(Copyable, Movable):
         cookbook_recipes/error_bars.mojo) for a full worked example.
         """
         _encode(
-            self,
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._channels,
+            self._y_err,
             x,
             y,
             color,
@@ -2380,7 +2384,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_vectors3d(self, x, y, z, u, v, w)
+        _encode_vectors3d(self._mark, self._vectors3d, x, y, z, u, v, w)
         return self^
 
     def encode_ribbon3d(
@@ -2406,7 +2410,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_ribbon3d(self, x1, y1, z1, x2, y2, z2)
+        _encode_ribbon3d(self._mark, self._ribbon3d, x1, y1, z1, x2, y2, z2)
         return self^
 
     def encode_bars3d(
@@ -2432,7 +2436,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_bars3d(self, x, y, z)
+        _encode_bars3d(self._mark, self._bars3d, x, y, z)
         return self^
 
     def encode_voxels(var self, filled: List[List[List[Bool]]]) raises -> Self:
@@ -2447,7 +2451,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_voxels(self, filled)
+        _encode_voxels(self._mark, self._voxels, filled)
         return self^
 
     def encode_surface(
@@ -2476,7 +2480,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_surface(self, z, x, y)
+        _encode_surface(self._mark, self._surface, z, x, y)
         return self^
 
     def encode_xyz(
@@ -2504,7 +2508,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_xyz(self, x, y, z)
+        _encode_xyz(self._mark, self._xyz, x, y, z)
         return self^
 
     def encode_frame(
@@ -2593,7 +2597,18 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_categorical(self, x, y, y_err, y_err_lower, y_err_upper)
+        _encode_categorical(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._y_err,
+            self._settings,
+            x,
+            y,
+            y_err,
+            y_err_lower,
+            y_err_upper,
+        )
         return self^
 
     def encode_time_bars(
@@ -2611,7 +2626,18 @@ struct Plot(Copyable, Movable):
         their spacing at render time. The three error channels follow
         `encode_categorical()`'s rules. Only vertical bars have a time x-axis.
         """
-        _encode_time_bars(self, dates, values, y_err, y_err_lower, y_err_upper)
+        _encode_time_bars(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._y_err,
+            self._settings,
+            dates,
+            values,
+            y_err,
+            y_err_lower,
+            y_err_upper,
+        )
         return self^
 
     def encode_categorical[
@@ -2839,7 +2865,9 @@ struct Plot(Copyable, Movable):
             Error: The mark is not `Mark.BAR`, data is empty, bins is not
                 positive, or a value is not finite.
         """
-        _encode_binned_categories(self, data, bins)
+        _encode_binned_categories(
+            self._mark, self._continuous, self._categorical, data, bins
+        )
         return self^
 
     def encode_binned_categories(
@@ -2859,7 +2887,9 @@ struct Plot(Copyable, Movable):
             Error: The mark is not `Mark.BAR`, data is empty, or a value
                 is not finite.
         """
-        _encode_binned_categories(self, data, rule)
+        _encode_binned_categories(
+            self._mark, self._continuous, self._categorical, data, rule
+        )
         return self^
 
     def encode_waterfall(
@@ -2897,7 +2927,15 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_waterfall(self, categories, deltas, is_total)
+        _encode_waterfall(
+            self._mark,
+            self._waterfall,
+            self._continuous,
+            self._categorical,
+            categories,
+            deltas,
+            is_total,
+        )
         return self^
 
     def encode_boxenplot(
@@ -2922,7 +2960,14 @@ struct Plot(Copyable, Movable):
             Error: `categories` and `values` differ in length, or a
                 group is empty.
         """
-        _encode_boxenplot(self, categories, values)
+        _encode_boxenplot(
+            self._mark,
+            self._boxen,
+            self._continuous,
+            self._categorical,
+            categories,
+            values,
+        )
         return self^
 
     def encode_boxenplot[
@@ -2961,7 +3006,14 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
-        _encode_boxplot(self, categories, values)
+        _encode_boxplot(
+            self._mark,
+            self._box,
+            self._continuous,
+            self._categorical,
+            categories,
+            values,
+        )
         return self^
 
     def encode_boxplot[
@@ -3013,7 +3065,18 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_candlestick(self, categories, open, high, low, close)
+        _encode_candlestick(
+            self._mark,
+            self._candle,
+            self._continuous,
+            self._categorical,
+            self._settings,
+            categories,
+            open,
+            high,
+            low,
+            close,
+        )
         return self^
 
     def encode_candlestick_time(
@@ -3031,7 +3094,18 @@ struct Plot(Copyable, Movable):
         the time tick labels, as with `encode_time()`. Length and spacing
         checks happen when the chart is rendered.
         """
-        _encode_candlestick_time(self, dates, open, high, low, close)
+        _encode_candlestick_time(
+            self._mark,
+            self._candle,
+            self._continuous,
+            self._categorical,
+            self._settings,
+            dates,
+            open,
+            high,
+            low,
+            close,
+        )
         return self^
 
     def encode_bullet(
@@ -3061,7 +3135,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_bullet(self, categories, measures, targets, ranges)
+        _encode_bullet(
+            self._mark,
+            self._bullet,
+            self._continuous,
+            self._categorical,
+            categories,
+            measures,
+            targets,
+            ranges,
+        )
         return self^
 
     def encode_gantt(
@@ -3088,7 +3171,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_gantt(self, categories, start, end)
+        _encode_gantt(
+            self._mark,
+            self._gantt,
+            self._continuous,
+            self._categorical,
+            self._settings,
+            categories,
+            start,
+            end,
+        )
         return self^
 
     def encode_gantt_time(
@@ -3103,7 +3195,16 @@ struct Plot(Copyable, Movable):
         place bars at their absolute instants. Length checks remain at
         render time, as with `encode_gantt()`.
         """
-        _encode_gantt_time(self, categories, start, end)
+        _encode_gantt_time(
+            self._mark,
+            self._gantt,
+            self._continuous,
+            self._categorical,
+            self._settings,
+            categories,
+            start,
+            end,
+        )
         return self^
 
     def encode_grouped_bar(
@@ -3140,7 +3241,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_grouped_bar(self, categories, series_names, values, errors)
+        _encode_grouped_bar(
+            self._mark,
+            self._grouped_bar,
+            self._continuous,
+            self._categorical,
+            categories,
+            series_names,
+            values,
+            errors,
+        )
         return self^
 
     def encode_grouped_bar[
@@ -3241,7 +3351,10 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _encode_population_pyramid(
-            self,
+            self._mark,
+            self._pyramid,
+            self._continuous,
+            self._categorical,
             categories,
             left_values,
             right_values,
@@ -3269,7 +3382,15 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_heatmap(self, x, y, value)
+        _encode_heatmap(
+            self._mark,
+            self._heatmap,
+            self._continuous,
+            self._categorical,
+            x,
+            y,
+            value,
+        )
         return self^
 
     def encode_calendar(
@@ -3292,7 +3413,14 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_calendar(self, dates, values)
+        _encode_calendar(
+            self._mark,
+            self._calendar,
+            self._continuous,
+            self._categorical,
+            dates,
+            values,
+        )
         return self^
 
     def encode_corrplot(
@@ -3312,7 +3440,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_corrplot(self, variables, matrix)
+        _encode_corrplot(self._mark, self._corrplot, variables, matrix)
         return self^
 
     def encode_corrplot[
@@ -3355,7 +3483,15 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_punchcard(self, x, y, sizes)
+        _encode_punchcard(
+            self._mark,
+            self._punchcard,
+            self._continuous,
+            self._categorical,
+            x,
+            y,
+            sizes,
+        )
         return self^
 
     def encode_barbs(
@@ -3381,7 +3517,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_barbs(self, x, y, u, v)
+        _encode_barbs(
+            self._mark,
+            self._barbs,
+            self._continuous,
+            self._categorical,
+            x,
+            y,
+            u,
+            v,
+        )
         return self^
 
     def encode_barbs[
@@ -3451,7 +3596,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_contour(self, z, levels, x, y)
+        _encode_contour(self._mark, self._contour, z, levels, x, y)
         return self^
 
     def encode_imshow(var self, z: List[List[Float64]]) raises -> Self:
@@ -3506,7 +3651,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_pcolormesh(self, x_edges, y_edges, z)
+        _encode_pcolormesh(self._mark, self._image, x_edges, y_edges, z)
         return self^
 
     def encode_pcolormesh(
@@ -3549,7 +3694,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_pcolormesh(self, x_corners, y_corners, z)
+        _encode_pcolormesh(self._mark, self._image, x_corners, y_corners, z)
         return self^
 
     def encode_time(var self, x: List[Morrow], y: List[Float64]) raises -> Self:
@@ -3578,7 +3723,14 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `morrow` could not convert a value to a timestamp.
         """
-        _encode_time(self, x, y)
+        _encode_time(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._settings,
+            x,
+            y,
+        )
         return self^
 
     def _encode_raw_histogram(
@@ -3624,7 +3776,13 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_histogram_bins(self, bins)
+        _encode_histogram_bins(
+            self._mark,
+            self._histogram,
+            self._continuous,
+            self._categorical,
+            bins,
+        )
         return self^
 
     def encode_hist2d(
@@ -3657,7 +3815,7 @@ struct Plot(Copyable, Movable):
             Error: `x` and `y` differ in length, or an edge list is
                 shorter than 2.
         """
-        _encode_hist2d(self, x, y, x_edges, y_edges)
+        _encode_hist2d(self._mark, self._image, x, y, x_edges, y_edges)
         return self^
 
     def encode_streamplot(
@@ -3686,7 +3844,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_streamplot(self, x, y, u, v)
+        _encode_streamplot(
+            self._mark,
+            self._stream,
+            self._continuous,
+            self._categorical,
+            x,
+            y,
+            u,
+            v,
+        )
         return self^
 
     def encode_hexbin(
@@ -3704,7 +3871,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_hexbin(self, x, y, gridsize)
+        _encode_hexbin(self._mark, self._hexbin, x, y, gridsize)
         return self^
 
     def encode_quiver(
@@ -3786,7 +3953,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_tricontour(self, x, y, z, levels)
+        _encode_tricontour(self._mark, self._tricontour, x, y, z, levels)
         return self^
 
     def encode_triplot(
@@ -3830,7 +3997,16 @@ struct Plot(Copyable, Movable):
             Error: `facecolors` without a `triangulation`, or `gouraud`
                 together with `facecolors`.
         """
-        _encode_triplot(self, x, y, z, triangulation, facecolors, gouraud)
+        _encode_triplot(
+            self._mark,
+            self._triplot,
+            x,
+            y,
+            z,
+            triangulation,
+            facecolors,
+            gouraud,
+        )
         return self^
 
     def encode_marimekko(
@@ -3857,7 +4033,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_marimekko(self, categories, subcategories, values)
+        _encode_marimekko(
+            self._mark, self._marimekko, categories, subcategories, values
+        )
         return self^
 
     def encode_marimekko[
@@ -3915,7 +4093,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_hierarchy(self, ids, parent_ids, values)
+        _encode_hierarchy(self._mark, self._hierarchy, ids, parent_ids, values)
         return self^
 
     def encode_chord(
@@ -3942,7 +4120,15 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_chord(self, from_categories, to_categories, values)
+        _encode_chord(
+            self._mark,
+            self._edges,
+            self._continuous,
+            self._categorical,
+            from_categories,
+            to_categories,
+            values,
+        )
         return self^
 
     def encode_polar(
@@ -3962,7 +4148,7 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_polar(self, angle, radius)
+        _encode_polar(self._mark, self._polar, angle, radius)
         return self^
 
     def encode_polar_series(
@@ -3989,7 +4175,9 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_polar_series(self, angle, series_names, series_values)
+        _encode_polar_series(
+            self._mark, self._polar, angle, series_names, series_values
+        )
         return self^
 
     def encode_polar_series[
@@ -4050,7 +4238,14 @@ struct Plot(Copyable, Movable):
             `series_names`/`series_values` lengths don't match, or any
             series' value count doesn't match `indicators`'s count.
         """
-        _encode_radar(self, indicators, max_values, series_names, series_values)
+        _encode_radar(
+            self._mark,
+            self._radar,
+            indicators,
+            max_values,
+            series_names,
+            series_values,
+        )
         return self^
 
     def encode_radar[
@@ -4165,7 +4360,8 @@ struct Plot(Copyable, Movable):
             Self, for further chaining.
         """
         _encode_gauge(
-            self,
+            self._mark,
+            self._gauge,
             value,
             min_value,
             max_value,
@@ -4200,7 +4396,7 @@ struct Plot(Copyable, Movable):
             If `row_names`/`data` lengths don't match, or any row's
             value count doesn't match `dims`'s count.
         """
-        _encode_parallel(self, dims, row_names, data)
+        _encode_parallel(self._mark, self._parallel, dims, row_names, data)
         return self^
 
     def encode_parallel[
@@ -4252,7 +4448,7 @@ struct Plot(Copyable, Movable):
         Raises:
             Error: `values` is empty.
         """
-        _encode_kde(self, values)
+        _encode_kde(self._mark, self._distribution, values)
         return self^
 
     def encode_eventplot(
@@ -4297,7 +4493,14 @@ struct Plot(Copyable, Movable):
             Error: `labels` is empty, `labels`/`positions` lengths
                 don't match, or every row is empty.
         """
-        _encode_eventplot(self, labels, positions)
+        _encode_eventplot(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._distribution,
+            labels,
+            positions,
+        )
         return self^
 
     def encode_eventplot[
@@ -4371,7 +4574,14 @@ struct Plot(Copyable, Movable):
             If `categories`/`values` lengths don't match, `categories`
             is empty, or any category's value list is empty.
         """
-        _encode_distribution(self, categories, values)
+        _encode_distribution(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._distribution,
+            categories,
+            values,
+        )
         return self^
 
     def encode_distribution[
@@ -4428,7 +4638,16 @@ struct Plot(Copyable, Movable):
         Returns:
             Self, for further chaining.
         """
-        _encode_single_axis(self, x, color, color_categories, size)
+        _encode_single_axis(
+            self._mark,
+            self._continuous,
+            self._categorical,
+            self._channels,
+            x,
+            color,
+            color_categories,
+            size,
+        )
         return self^
 
     def theme(var self, t: Theme) -> Self:

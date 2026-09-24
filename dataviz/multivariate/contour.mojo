@@ -1564,7 +1564,8 @@ def contourf[
 
 
 def _encode_contour(
-    mut plot: Plot,
+    mark: Mark,
+    mut contour: _ContourData,
     z: List[List[Float64]],
     levels: List[Float64],
     x: List[Float64],
@@ -1575,10 +1576,8 @@ def _encode_contour(
     var _ok_encode_contour = List[Mark]()
     _ok_encode_contour.append(Mark.CONTOUR)
     _ok_encode_contour.append(Mark.CONTOURF)
-    _require_mark(
-        plot._mark, "encode_contour", "mark_contour()", _ok_encode_contour^
-    )
-    plot._contour.z = z.copy()
-    plot._contour.levels = levels.copy()
-    plot._contour.x = x.copy()
-    plot._contour.y = y.copy()
+    _require_mark(mark, "encode_contour", "mark_contour()", _ok_encode_contour^)
+    contour.z = z.copy()
+    contour.levels = levels.copy()
+    contour.x = x.copy()
+    contour.y = y.copy()

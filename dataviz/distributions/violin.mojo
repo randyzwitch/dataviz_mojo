@@ -2,6 +2,7 @@ from dataviz.core.plot_fields import (
     _CategoricalData,
     _DistributionData,
     _MarkStyle,
+    _ContinuousData,
 )
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import exp, pi, sqrt
@@ -446,7 +447,10 @@ def violin[
 
 
 def _encode_distribution(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut distribution: _DistributionData,
     categories: List[String],
     values: List[List[Float64]],
 ) raises:
@@ -457,7 +461,7 @@ def _encode_distribution(
     _ok_encode_distribution.append(Mark.BEESWARM)
     _ok_encode_distribution.append(Mark.RIDGELINE)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_distribution",
         "mark_violin()",
         _ok_encode_distribution^,
@@ -480,10 +484,10 @@ def _encode_distribution(
                 + "' has no values -- can't draw a distribution for"
                 " an empty one"
             )
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._distribution.values = values.copy()
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    distribution.values = values.copy()
 
 
 def _render_violin_oriented[

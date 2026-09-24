@@ -675,7 +675,11 @@ def bar[
 
 
 def _encode_categorical(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut error_bars: _ErrorBarData,
+    mut settings: _ChartSettings,
     x: List[String],
     y: List[Float64],
     y_err: List[Float64],
@@ -694,7 +698,7 @@ def _encode_categorical(
     _ok_encode_categorical.append(Mark.POLAR_BAR)
     _ok_encode_categorical.append(Mark.RADIALBAR)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_categorical",
         "mark_bar()",
         _ok_encode_categorical^,
@@ -712,17 +716,21 @@ def _encode_categorical(
                 + String(i)
             )
         first_position[category] = i
-    plot._categorical.x = x.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = y.copy()
-    plot._y_err.symmetric = y_err.copy()
-    plot._y_err.lower = y_err_lower.copy()
-    plot._y_err.upper = y_err_upper.copy()
-    plot._settings.x_time = False
+    categorical.x = x.copy()
+    continuous.x = List[Float64]()
+    continuous.y = y.copy()
+    error_bars.symmetric = y_err.copy()
+    error_bars.lower = y_err_lower.copy()
+    error_bars.upper = y_err_upper.copy()
+    settings.x_time = False
 
 
 def _encode_time_bars(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut error_bars: _ErrorBarData,
+    mut settings: _ChartSettings,
     dates: List[Morrow],
     values: List[Float64],
     y_err: List[Float64],
@@ -731,8 +739,8 @@ def _encode_time_bars(
 ) raises:
     """`Plot.encode_time_bars()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_time_bars", "mark_bar()", Mark.BAR)
-    if plot._settings.horizontal:
+    _require_mark(mark, "encode_time_bars", "mark_bar()", Mark.BAR)
+    if settings.horizontal:
         raise Error(
             "Plot.encode_time_bars(): horizontal bars cannot use a time x-axis"
         )
@@ -741,47 +749,47 @@ def _encode_time_bars(
     for date in dates:
         seconds.append(date.timestamp())
         labels.append(date.format("YYYY-MM-DD HH:mm:ss"))
-    plot._categorical.x = labels^
-    plot._continuous.x = seconds^
-    plot._continuous.y = values.copy()
-    plot._y_err.symmetric = y_err.copy()
-    plot._y_err.lower = y_err_lower.copy()
-    plot._y_err.upper = y_err_upper.copy()
-    plot._settings.x_time = True
+    categorical.x = labels^
+    continuous.x = seconds^
+    continuous.y = values.copy()
+    error_bars.symmetric = y_err.copy()
+    error_bars.lower = y_err_lower.copy()
+    error_bars.upper = y_err_upper.copy()
+    settings.x_time = True
     if len(dates) > 0:
-        plot._settings.x_tz_offset = dates[0].tz.offset
+        settings.x_tz_offset = dates[0].tz.offset
 
 
 def _encode_binned_categories(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     data: List[Float64],
     bins: Int,
 ) raises:
     """`Plot.encode_binned_categories()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
-    )
+    _require_mark(mark, "encode_binned_categories", "mark_bar()", Mark.BAR)
     var binned = _bin_histogram(data, bins)
-    plot._categorical.x = binned.labels.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = binned.counts.copy()
+    categorical.x = binned.labels.copy()
+    continuous.x = List[Float64]()
+    continuous.y = binned.counts.copy()
 
 
 def _encode_binned_categories(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     data: List[Float64],
     rule: BinRule,
 ) raises:
     """`Plot.encode_binned_categories()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_binned_categories", "mark_bar()", Mark.BAR
-    )
+    _require_mark(mark, "encode_binned_categories", "mark_bar()", Mark.BAR)
     var binned = _bin_histogram(data, rule)
-    plot._categorical.x = binned.labels.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = binned.counts.copy()
+    categorical.x = binned.labels.copy()
+    continuous.x = List[Float64]()
+    continuous.y = binned.counts.copy()
 
 
 def _render_bar_oriented[

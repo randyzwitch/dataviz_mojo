@@ -1,3 +1,4 @@
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import atan2, sqrt
 
@@ -556,7 +557,10 @@ def barbs[
 
 
 def _encode_barbs(
-    mut plot: Plot,
+    mark: Mark,
+    mut barbs: _BarbsData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     x: List[Float64],
     y: List[Float64],
     u: List[Float64],
@@ -569,11 +573,11 @@ def _encode_barbs(
     var _ok_encode_barbs = List[Mark]()
     _ok_encode_barbs.append(Mark.BARBS)
     _ok_encode_barbs.append(Mark.QUIVER)
-    _require_mark(plot._mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^)
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._barbs.x = x.copy()
-    plot._barbs.y = y.copy()
-    plot._barbs.u = u.copy()
-    plot._barbs.v = v.copy()
+    _require_mark(mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^)
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    barbs.x = x.copy()
+    barbs.y = y.copy()
+    barbs.u = u.copy()
+    barbs.v = v.copy()

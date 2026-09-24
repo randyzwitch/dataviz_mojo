@@ -1328,7 +1328,8 @@ def pcolormesh(
 
 
 def _encode_pcolormesh(
-    mut plot: Plot,
+    mark: Mark,
+    mut image: _ImageData,
     x_edges: List[Float64],
     y_edges: List[Float64],
     z: List[List[Float64]],
@@ -1336,21 +1337,22 @@ def _encode_pcolormesh(
     """`Plot.encode_pcolormesh()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_pcolormesh",
         "mark_pcolormesh()",
         Mark.PCOLORMESH,
     )
-    plot._image.z = z.copy()
-    plot._image.x_edges = x_edges.copy()
-    plot._image.y_edges = y_edges.copy()
+    image.z = z.copy()
+    image.x_edges = x_edges.copy()
+    image.y_edges = y_edges.copy()
     # The two forms are exclusive; see the curvilinear overload.
-    plot._image.x_corners = List[List[Float64]]()
-    plot._image.y_corners = List[List[Float64]]()
+    image.x_corners = List[List[Float64]]()
+    image.y_corners = List[List[Float64]]()
 
 
 def _encode_pcolormesh(
-    mut plot: Plot,
+    mark: Mark,
+    mut image: _ImageData,
     x_corners: List[List[Float64]],
     y_corners: List[List[Float64]],
     z: List[List[Float64]],
@@ -1358,22 +1360,23 @@ def _encode_pcolormesh(
     """`Plot.encode_pcolormesh()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_pcolormesh",
         "mark_pcolormesh()",
         Mark.PCOLORMESH,
     )
-    plot._image.z = z.copy()
-    plot._image.x_corners = x_corners.copy()
-    plot._image.y_corners = y_corners.copy()
+    image.z = z.copy()
+    image.x_corners = x_corners.copy()
+    image.y_corners = y_corners.copy()
     # Exclusive with the rectilinear form: a plot carrying both would
     # leave the renderer to guess which the caller meant.
-    plot._image.x_edges = List[Float64]()
-    plot._image.y_edges = List[Float64]()
+    image.x_edges = List[Float64]()
+    image.y_edges = List[Float64]()
 
 
 def _encode_hist2d(
-    mut plot: Plot,
+    mark: Mark,
+    mut image: _ImageData,
     x: List[Float64],
     y: List[Float64],
     x_edges: List[Float64],
@@ -1381,8 +1384,8 @@ def _encode_hist2d(
 ) raises:
     """`Plot.encode_hist2d()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_hist2d", "mark_hist2d()", Mark.HIST2D)
-    plot._image.z = _hist2d_counts(x, y, x_edges, y_edges)
-    plot._image.x_edges = x_edges.copy()
-    plot._image.y_edges = y_edges.copy()
-    plot._image.blank_zero = True
+    _require_mark(mark, "encode_hist2d", "mark_hist2d()", Mark.HIST2D)
+    image.z = _hist2d_counts(x, y, x_edges, y_edges)
+    image.x_edges = x_edges.copy()
+    image.y_edges = y_edges.copy()
+    image.blank_zero = True

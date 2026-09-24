@@ -855,8 +855,7 @@ def _draw_rug_ticks[
 
 
 def _encode_kde(
-    mut plot: Plot,
-    values: List[Float64],
+    mark: Mark, mut distribution: _DistributionData, values: List[Float64]
 ) raises:
     """`Plot.encode_kde()`'s body, which forwards here with
     every argument; see that method for the contract."""
@@ -866,7 +865,7 @@ def _encode_kde(
     _ok_encode_kde.append(Mark.KDE)
     _ok_encode_kde.append(Mark.RUG)
     _ok_encode_kde.append(Mark.ECDF)
-    _require_mark(plot._mark, "encode_kde", "mark_kde()", _ok_encode_kde^)
+    _require_mark(mark, "encode_kde", "mark_kde()", _ok_encode_kde^)
     _require_non_empty(len(values), "Plot.encode_kde()")
     # One ungrouped column, stored in `_DistributionData`'s
     # list-per-category shape as a single entry -- these marks share
@@ -874,4 +873,4 @@ def _encode_kde(
     # axis, so there is no category to name.
     var one = List[List[Float64]]()
     one.append(values.copy())
-    plot._distribution.values = one^
+    distribution.values = one^

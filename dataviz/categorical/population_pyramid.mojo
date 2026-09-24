@@ -1,4 +1,4 @@
-from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -431,7 +431,10 @@ def population_pyramid[
 
 
 def _encode_population_pyramid(
-    mut plot: Plot,
+    mark: Mark,
+    mut pyramid: _PyramidData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     left_values: List[Float64],
     right_values: List[Float64],
@@ -441,15 +444,15 @@ def _encode_population_pyramid(
     """`Plot.encode_population_pyramid()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_population_pyramid",
         "mark_population_pyramid()",
         Mark.POPULATION_PYRAMID,
     )
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._pyramid.left = left_values.copy()
-    plot._pyramid.right = right_values.copy()
-    plot._pyramid.left_name = left_name
-    plot._pyramid.right_name = right_name
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    pyramid.left = left_values.copy()
+    pyramid.right = right_values.copy()
+    pyramid.left_name = left_name
+    pyramid.right_name = right_name

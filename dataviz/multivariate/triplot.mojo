@@ -925,7 +925,8 @@ def tripcolor[
 
 
 def _encode_triplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut triplot: _TriplotData,
     x: List[Float64],
     y: List[Float64],
     z: List[Float64],
@@ -954,12 +955,10 @@ def _encode_triplot(
     var _ok_encode_triplot = List[Mark]()
     _ok_encode_triplot.append(Mark.TRIPLOT)
     _ok_encode_triplot.append(Mark.TRIPCOLOR)
-    _require_mark(
-        plot._mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^
-    )
-    plot._triplot.x = x.copy()
-    plot._triplot.y = y.copy()
-    plot._triplot.z = z.copy()
-    plot._triplot.triangulation = triangulation.copy()
-    plot._triplot.facecolors = facecolors.copy()
-    plot._triplot.gouraud = gouraud
+    _require_mark(mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^)
+    triplot.x = x.copy()
+    triplot.y = y.copy()
+    triplot.z = z.copy()
+    triplot.triangulation = triangulation.copy()
+    triplot.facecolors = facecolors.copy()
+    triplot.gouraud = gouraud

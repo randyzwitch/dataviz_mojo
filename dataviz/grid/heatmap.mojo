@@ -1,3 +1,4 @@
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -533,17 +534,20 @@ def heatmap[
 
 
 def _encode_heatmap(
-    mut plot: Plot,
+    mark: Mark,
+    mut heatmap: _HeatmapData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     x: List[String],
     y: List[String],
     value: List[Float64],
 ) raises:
     """`Plot.encode_heatmap()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP)
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._heatmap.x = x.copy()
-    plot._heatmap.y = y.copy()
-    plot._heatmap.value = value.copy()
+    _require_mark(mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP)
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    heatmap.x = x.copy()
+    heatmap.y = y.copy()
+    heatmap.value = value.copy()

@@ -1,4 +1,8 @@
-from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _MarkStyle,
+    _ContinuousData,
+)
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
@@ -579,7 +583,10 @@ def bullet(
 
 
 def _encode_bullet(
-    mut plot: Plot,
+    mark: Mark,
+    mut bullet: _BulletData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     categories: List[String],
     measures: List[Float64],
     targets: List[Float64],
@@ -587,13 +594,13 @@ def _encode_bullet(
 ) raises:
     """`Plot.encode_bullet()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_bullet", "mark_bullet()", Mark.BULLET)
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._bullet.measure = measures.copy()
-    plot._bullet.target = targets.copy()
-    plot._bullet.ranges = ranges.copy()
+    _require_mark(mark, "encode_bullet", "mark_bullet()", Mark.BULLET)
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    bullet.measure = measures.copy()
+    bullet.target = targets.copy()
+    bullet.ranges = ranges.copy()
 
 
 def _render_bullet_oriented[

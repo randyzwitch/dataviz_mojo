@@ -1019,7 +1019,8 @@ def tricontour[
 
 
 def _encode_tricontour(
-    mut plot: Plot,
+    mark: Mark,
+    mut tricontour: _TriContourData,
     x: List[Float64],
     y: List[Float64],
     z: List[Float64],
@@ -1031,12 +1032,12 @@ def _encode_tricontour(
     _ok_encode_tricontour.append(Mark.TRICONTOUR)
     _ok_encode_tricontour.append(Mark.TRICONTOURF)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_tricontour",
         "mark_tricontour()",
         _ok_encode_tricontour^,
     )
-    plot._tricontour.x = x.copy()
-    plot._tricontour.y = y.copy()
-    plot._tricontour.z = z.copy()
-    plot._tricontour.levels = levels.copy()
+    tricontour.x = x.copy()
+    tricontour.y = y.copy()
+    tricontour.z = z.copy()
+    tricontour.levels = levels.copy()

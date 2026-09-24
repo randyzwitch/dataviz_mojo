@@ -948,7 +948,8 @@ def trisurf3d[
 
 
 def _encode_surface(
-    mut plot: Plot,
+    mark: Mark,
+    mut surface: _Surface,
     z: List[List[Float64]],
     x: List[Float64],
     y: List[Float64],
@@ -959,11 +960,11 @@ def _encode_surface(
     _ok_encode_surface.append(Mark.SURFACE3D)
     _ok_encode_surface.append(Mark.WIRE3D)
     _require_mark(
-        plot._mark,
+        mark,
         "encode_surface",
         "mark_surface3d()",
         _ok_encode_surface^,
     )
-    plot._surface.z = z.copy()
-    plot._surface.x = x.copy()
-    plot._surface.y = y.copy()
+    surface.z = z.copy()
+    surface.x = x.copy()
+    surface.y = y.copy()

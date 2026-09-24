@@ -582,7 +582,11 @@ def candlestick[
 
 
 def _encode_candlestick(
-    mut plot: Plot,
+    mark: Mark,
+    mut candle: _CandleData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut settings: _ChartSettings,
     categories: List[String],
     open: List[Float64],
     high: List[Float64],
@@ -592,23 +596,27 @@ def _encode_candlestick(
     """`Plot.encode_candlestick()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_candlestick",
         "mark_candlestick()",
         Mark.CANDLESTICK,
     )
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._candle.open_price = open.copy()
-    plot._candle.high = high.copy()
-    plot._candle.low = low.copy()
-    plot._candle.close_price = close.copy()
-    plot._settings.x_time = False
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    candle.open_price = open.copy()
+    candle.high = high.copy()
+    candle.low = low.copy()
+    candle.close_price = close.copy()
+    settings.x_time = False
 
 
 def _encode_candlestick_time(
-    mut plot: Plot,
+    mark: Mark,
+    mut candle: _CandleData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut settings: _ChartSettings,
     dates: List[Morrow],
     open: List[Float64],
     high: List[Float64],
@@ -618,7 +626,7 @@ def _encode_candlestick_time(
     """`Plot.encode_candlestick_time()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_candlestick_time",
         "mark_candlestick()",
         Mark.CANDLESTICK,
@@ -628,13 +636,13 @@ def _encode_candlestick_time(
     for i in range(len(dates)):
         seconds.append(dates[i].timestamp())
         labels.append(dates[i].format("YYYY-MM-DD HH:mm"))
-    plot._continuous.x = seconds^
-    plot._categorical.x = labels^
-    plot._continuous.y = List[Float64]()
-    plot._candle.open_price = open.copy()
-    plot._candle.high = high.copy()
-    plot._candle.low = low.copy()
-    plot._candle.close_price = close.copy()
-    plot._settings.x_time = True
+    continuous.x = seconds^
+    categorical.x = labels^
+    continuous.y = List[Float64]()
+    candle.open_price = open.copy()
+    candle.high = high.copy()
+    candle.low = low.copy()
+    candle.close_price = close.copy()
+    settings.x_time = True
     if len(dates) > 0:
-        plot._settings.x_tz_offset = dates[0].tz.offset
+        settings.x_tz_offset = dates[0].tz.offset
