@@ -3,6 +3,7 @@ from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
 
 from dataframe import DataFrame
+from std.utils.numerics import isfinite
 
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.missing import Missing
@@ -467,6 +468,19 @@ def bullet[
     )
 
 
+def _require_finite_bullet_frame_column(
+    values: List[Float64], name: String
+) raises:
+    for row in range(len(values)):
+        if not isfinite(values[row]):
+            raise Error(
+                'bullet(): column "'
+                + name
+                + '" has a non-finite value at row '
+                + String(row)
+            )
+
+
 def bullet(
     df: DataFrame,
     categories: String,
@@ -523,9 +537,13 @@ def bullet(
     )
     var measure_values = _frame_floats(df, measures, "bullet()", Missing.RAISE)
     var target_values = _frame_floats(df, targets, "bullet()", Missing.RAISE)
+    _require_finite_bullet_frame_column(measure_values, measures)
+    _require_finite_bullet_frame_column(target_values, targets)
     var range_columns = List[List[Float64]](capacity=len(ranges))
     for name in ranges:
-        range_columns.append(_frame_floats(df, name, "bullet()", Missing.RAISE))
+        var thresholds = _frame_floats(df, name, "bullet()", Missing.RAISE)
+        _require_finite_bullet_frame_column(thresholds, name)
+        range_columns.append(thresholds^)
     var row_ranges = List[List[Float64]](capacity=len(category_values))
     for row in range(len(category_values)):
         var thresholds = List[Float64](capacity=len(range_columns))

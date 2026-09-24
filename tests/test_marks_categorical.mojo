@@ -62,6 +62,7 @@ from dataviz.plot import (
 )
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
+from std.math import nan
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 
 
@@ -3165,6 +3166,38 @@ def test_bullet_frame_reads_row_specific_range_columns() raises:
             measures="actual",
             targets="goal",
             ranges=List[String](),
+        )
+    var bad_measure = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([nan[DType.float64]()])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([100.0])),
+        ]
+    )
+    with assert_raises(contains='column "actual" has a non-finite value'):
+        _ = bullet(
+            bad_measure,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
+        )
+    var bad_range = DataFrame(
+        [
+            Series("region", Column[String](["North"])),
+            Series("actual", Column[Float64]([84.0])),
+            Series("goal", Column[Float64]([90.0])),
+            Series("high", Column[Float64]([nan[DType.float64]()])),
+        ]
+    )
+    with assert_raises(contains='column "high" has a non-finite value'):
+        _ = bullet(
+            bad_range,
+            categories="region",
+            measures="actual",
+            targets="goal",
+            ranges=["high"],
         )
 
 
