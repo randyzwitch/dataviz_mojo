@@ -38,6 +38,7 @@ from dataviz.core.scale import MinMax
 from dataviz.core.theme import Theme
 
 from dataviz.layout import Figure, GridCell
+from dataviz.chart import AnyChart
 from dataviz.plot import Plot
 
 
@@ -114,7 +115,7 @@ def _jointplot_panels[
     title: String,
     x_title: String,
     y_title: String,
-    mut plots: List[Plot],
+    mut plots: List[AnyChart],
     mut cells: List[GridCell],
 ) raises:
     """The three panels `jointplot()` lays out and where each goes,
@@ -201,9 +202,9 @@ def _jointplot_panels[
 
     # Top-left is the x marginal, bottom-left the panel, bottom-right the
     # y marginal. Top-right stays empty, as seaborn leaves it.
-    plots.append(top^)
-    plots.append(main^)
-    plots.append(right^)
+    plots.append(AnyChart(top))
+    plots.append(AnyChart(main))
+    plots.append(AnyChart(right))
     cells.append(GridCell(0, 0))
     cells.append(GridCell(1, 0))
     cells.append(GridCell(1, 1))
@@ -348,7 +349,7 @@ def jointplot[
         Error: Empty or mismatched columns, a non-positive `bins`, or a
             `ratio` that is not above zero.
     """
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     _jointplot_panels(
         x,

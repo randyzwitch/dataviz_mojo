@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import CalendarHeatmap
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -366,26 +368,6 @@ def _render_calendar_heatmap[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_calendar_heatmap_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_calendar_heatmap` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_calendar_heatmap(
-        target, plot._calendar, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def calendar_heatmap(
     df: DataFrame,
     dates: String,
@@ -397,7 +379,7 @@ def calendar_heatmap(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[CalendarHeatmap]:
     """`calendar_heatmap()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `dates` and `values` column names.
@@ -418,7 +400,7 @@ def calendar_heatmap(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -459,7 +441,7 @@ def calendar_heatmap[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[CalendarHeatmap]:
     """A calendar heatmap, in the style GitHub popularized for its
     contribution graph: one colored cell per day laid out in a year's
     actual week/weekday grid, for spotting daily patterns and streaks
@@ -487,7 +469,7 @@ def calendar_heatmap[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

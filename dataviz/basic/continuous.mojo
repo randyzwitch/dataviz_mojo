@@ -1,5 +1,7 @@
 """Point, line, and area rendering and their one-call constructors."""
 
+from dataviz.chart import Chart
+from dataviz.marks import Area, Line, Point
 from dataviz.core.plot_fields import (
     _ChannelData,
     _ContinuousData,
@@ -43,6 +45,7 @@ from dataviz.core.legend import (
     _legend_reserve_for,
 )
 from dataviz.core.mark import Mark
+from dataviz.basic.bar import _encode_categorical
 from dataviz.core.marker import (
     PointShape,
     _fill_shape_aa,
@@ -954,7 +957,7 @@ def scatter(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """`scatter()` over named columns of a `dataframe_mojo` `DataFrame`
     (#364). The columns carry their own names, so the axis titles
     default to them.
@@ -978,7 +981,7 @@ def scatter(
         y_title: The y-axis caption; defaults to `y`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -1015,7 +1018,7 @@ def line(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """`line()` over named columns of a `dataframe_mojo` `DataFrame`
     (#364); the axis titles default to the column names.
 
@@ -1032,7 +1035,7 @@ def line(
         y_title: The y-axis caption; defaults to `y`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, or has
@@ -1061,7 +1064,7 @@ def scatter(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """A scatter plot: one point per (x, y) pair, the standard choice for
     showing the relationship between two continuous variables.
 
@@ -1080,7 +1083,7 @@ def scatter(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1122,7 +1125,7 @@ def scatter[
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """`scatter()` generalized over numeric element type (`List[Int32]`,
     `List[Float32]`, ...), `x` and `y` each their own, so they need not
     match (#699); see `Plot.encode()`'s `DType` overload and
@@ -1150,7 +1153,7 @@ def line(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """A line chart: continuous x/y data connected in order, the standard
     choice for showing a trend over a continuous variable such as time.
 
@@ -1174,7 +1177,7 @@ def line(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1287,7 +1290,7 @@ def line[
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """`line()` generalized over numeric element type; see `scatter()`'s
     `DType` overload above. Delegates to the concrete overload above.
     """
@@ -1314,7 +1317,7 @@ def area(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Area]:
     """An area chart: a line chart with the region down to a zero
     baseline filled in, emphasizing a series' magnitude and cumulative
     feel over its exact trend line.
@@ -1341,7 +1344,7 @@ def area(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1421,7 +1424,7 @@ def area(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Area]:
     """`area()` over named columns of a `dataframe_mojo` `DataFrame`
     (#743); the axis titles default to the column names.
 
@@ -1442,7 +1445,7 @@ def area(
         y_title: The y-axis caption; defaults to `y`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, or has
@@ -1474,7 +1477,7 @@ def area[
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Area]:
     """`area()` generalized over numeric element type; see `scatter()`'s
     `DType` overload above. Delegates to the concrete overload above.
     """
@@ -1501,7 +1504,7 @@ def line(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """`line()` over a time axis: `x` as dates or timestamps rather than
     bare numbers, so the axis reads "Mar 2026" instead of "20515".
 
@@ -1521,7 +1524,7 @@ def line(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: `morrow` could not convert a value to a timestamp.
@@ -1573,7 +1576,7 @@ def scatter(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """`scatter()` over a time axis; see `line()`'s time overload.
 
     Args:
@@ -1587,7 +1590,7 @@ def scatter(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: `morrow` could not convert a value to a timestamp.
@@ -1606,7 +1609,7 @@ def area(
     title: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Area]:
     """`area()` over a time axis; see `line()`'s time overload.
 
     Args:
@@ -1621,7 +1624,7 @@ def area(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: `morrow` could not convert a value to a timestamp.
@@ -1697,58 +1700,156 @@ def _encode_time(
         settings.x_tz_offset = x[0].tz.offset
 
 
-def _encode_frame(
-    var plot: Plot,
+struct _FrameChannels(Movable):
+    """What `encode_frame()` reads out of a `DataFrame` before it
+    encodes: the y column, the optional color (numeric or string), size
+    and label columns. Shared by the continuous and categorical forms."""
+
+    var y: List[Float64]
+    var color: List[Float64]
+    var color_categories: List[String]
+    var size: List[Float64]
+    var labels: List[String]
+
+    def __init__(out self):
+        self.y = List[Float64]()
+        self.color = List[Float64]()
+        self.color_categories = List[String]()
+        self.size = List[Float64]()
+        self.labels = List[String]()
+
+
+def _frame_channels(
+    mut settings: _ChartSettings,
     df: DataFrame,
     x: String,
     y: String,
     color: String,
     size: String,
     labels: String,
-) raises -> Plot:
-    """`Plot.encode_frame()`'s body, which forwards here with every
-    argument; see that method for the contract. Takes and returns the
-    plot by value because it finishes by chaining to `encode()` or
-    `encode_categorical()`."""
+) raises -> _FrameChannels:
+    """Read `encode_frame()`'s optional channels from `df`, and default
+    the axis titles to the column names. `x` is read by the caller,
+    since its type decides between the continuous and categorical
+    encoders."""
     comptime caller = "Plot.encode_frame()"
-    var policy = plot._settings.theme.missing
-    var label = plot._settings.theme.missing_category_label
-    var y_values = _frame_floats(df, y, caller, policy)
-    var color_values = List[Float64]()
-    var color_categories = List[String]()
+    var policy = settings.theme.missing
+    var label = settings.theme.missing_category_label
+    var out = _FrameChannels()
+    out.y = _frame_floats(df, y, caller, policy)
     if color.byte_length() > 0:
         if _is_string_column(df, color):
-            color_categories = _frame_strings(df, color, caller, policy, label)
-        else:
-            color_values = _frame_floats(df, color, caller, policy)
-    var size_values = List[Float64]()
-    if size.byte_length() > 0:
-        size_values = _frame_floats(df, size, caller, policy)
-    var label_values = List[String]()
-    if labels.byte_length() > 0:
-        label_values = _frame_strings(df, labels, caller, policy, label)
-
-    if plot._settings.labels.x_title.byte_length() == 0:
-        plot._settings.labels.x_title = x
-    if plot._settings.labels.y_title.byte_length() == 0:
-        plot._settings.labels.y_title = y
-
-    if _is_string_column(df, x):
-        if len(size_values) > 0 or len(label_values) > 0:
-            raise Error(
-                caller
-                + ': a categorical x ("'
-                + x
-                + '") takes no size= or labels= channel'
+            out.color_categories = _frame_strings(
+                df, color, caller, policy, label
             )
-        return plot^.encode_categorical(
-            x=_frame_strings(df, x, caller, policy, label), y=y_values
+        else:
+            out.color = _frame_floats(df, color, caller, policy)
+    if size.byte_length() > 0:
+        out.size = _frame_floats(df, size, caller, policy)
+    if labels.byte_length() > 0:
+        out.labels = _frame_strings(df, labels, caller, policy, label)
+    if settings.labels.x_title.byte_length() == 0:
+        settings.labels.x_title = x
+    if settings.labels.y_title.byte_length() == 0:
+        settings.labels.y_title = y
+    return out^
+
+
+def _encode_frame_continuous(
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut channels: _ChannelData,
+    mut error_bars: _ErrorBarData,
+    mut settings: _ChartSettings,
+    df: DataFrame,
+    x: String,
+    y: String,
+    color: String,
+    size: String,
+    labels: String,
+) raises:
+    """`encode_frame()` for a mark with a continuous x axis: `x` must be
+    a numeric column."""
+    comptime caller = "Plot.encode_frame()"
+    if _is_string_column(df, x):
+        raise Error(
+            caller
+            + ': "'
+            + x
+            + '" is a string column, and '
+            + mark.name()
+            + " has a continuous x axis; use a categorical mark"
         )
-    return plot^.encode(
-        x=_frame_floats(df, x, caller, policy),
-        y=y_values,
-        color=color_values,
-        color_categories=color_categories,
-        size=size_values,
-        labels=label_values,
+    var read = _frame_channels(settings, df, x, y, color, size, labels)
+    _encode(
+        mark,
+        continuous,
+        categorical,
+        channels,
+        error_bars,
+        _frame_floats(df, x, caller, settings.theme.missing),
+        read.y,
+        read.color,
+        read.color_categories,
+        read.size,
+        List[Float64](),
+        List[Float64](),
+        List[Float64](),
+        Dict[String, Color](),
+        Dict[String, PointShape](),
+        read.labels,
+    )
+
+
+def _encode_frame_categorical(
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut error_bars: _ErrorBarData,
+    mut settings: _ChartSettings,
+    df: DataFrame,
+    x: String,
+    y: String,
+    color: String,
+    size: String,
+    labels: String,
+) raises:
+    """`encode_frame()` for a mark with a categorical x axis: `x` must be
+    a string column, and the size and label channels do not apply."""
+    comptime caller = "Plot.encode_frame()"
+    if not _is_string_column(df, x):
+        raise Error(
+            caller
+            + ': "'
+            + x
+            + '" is a numeric column, and '
+            + mark.name()
+            + " has a categorical x axis; use a continuous mark"
+        )
+    var read = _frame_channels(settings, df, x, y, color, size, labels)
+    if len(read.size) > 0 or len(read.labels) > 0:
+        raise Error(
+            caller
+            + ': a categorical x ("'
+            + x
+            + '") takes no size= or labels= channel'
+        )
+    _encode_categorical(
+        mark,
+        continuous,
+        categorical,
+        error_bars,
+        settings,
+        _frame_strings(
+            df,
+            x,
+            caller,
+            settings.theme.missing,
+            settings.theme.missing_category_label,
+        ),
+        read.y,
+        List[Float64](),
+        List[Float64](),
+        List[Float64](),
     )

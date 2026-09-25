@@ -47,17 +47,17 @@ def _y() -> List[Float64]:
 
 def test_lineplot_line_is_the_per_x_mean_with_a_band_of_the_interval() raises:
     var p = lineplot(_x(), _y(), errorbar=ErrorBar.se())
-    assert_equal(len(p._continuous.x), 3)
-    assert_equal(p._continuous.x[0], 1.0)
-    assert_equal(p._continuous.y[0], 11.0)
-    assert_equal(p._continuous.y[1], 21.0)
-    assert_equal(p._continuous.y[2], 32.0)
+    assert_equal(len(p.mark.continuous.x), 3)
+    assert_equal(p.mark.continuous.x[0], 1.0)
+    assert_equal(p.mark.continuous.y[0], 11.0)
+    assert_equal(p.mark.continuous.y[1], 21.0)
+    assert_equal(p.mark.continuous.y[2], 32.0)
     # One band: its edges are the estimate minus and plus one se, which
     # for each pair here is half the gap -- so the band runs exactly
     # through the raw readings.
-    assert_equal(len(p._annotations.band_x), 1)
-    var lower = p._annotations.band_y_lower[0].copy()
-    var upper = p._annotations.band_y_upper[0].copy()
+    assert_equal(len(p.annotations.band_x), 1)
+    var lower = p.annotations.band_y_lower[0].copy()
+    var upper = p.annotations.band_y_upper[0].copy()
     assert_almost_equal(lower[0], 10.0, atol=1e-12)
     assert_almost_equal(upper[0], 12.0, atol=1e-12)
     assert_almost_equal(lower[2], 30.0, atol=1e-12)
@@ -66,7 +66,7 @@ def test_lineplot_line_is_the_per_x_mean_with_a_band_of_the_interval() raises:
 
 def test_lineplot_with_no_errorbar_has_no_band() raises:
     var p = lineplot(_x(), _y(), errorbar=ErrorBar.none())
-    assert_equal(len(p._annotations.band_x), 0)
+    assert_equal(len(p.annotations.band_x), 0)
 
 
 def test_lineplot_names_the_estimator_on_the_y_axis_by_default() raises:
@@ -109,22 +109,22 @@ def test_residplot_points_are_hand_derived_fitted_values_and_residuals() raises:
     var p = residplot(x, y)
     var fitted: List[Float64] = [1.4, 2.2, 3.0, 3.8, 4.6]
     var resid: List[Float64] = [-0.4, 0.8, -1.0, 1.2, -0.6]
-    assert_equal(len(p._continuous.x), 5)
+    assert_equal(len(p.mark.continuous.x), 5)
     var total = 0.0
     for i in range(5):
-        assert_almost_equal(p._continuous.x[i], fitted[i], atol=1e-12)
-        assert_almost_equal(p._continuous.y[i], resid[i], atol=1e-12)
-        total += p._continuous.y[i]
+        assert_almost_equal(p.mark.continuous.x[i], fitted[i], atol=1e-12)
+        assert_almost_equal(p.mark.continuous.y[i], resid[i], atol=1e-12)
+        total += p.mark.continuous.y[i]
     # OLS residuals always sum to zero.
     assert_almost_equal(total, 0.0, atol=1e-12)
-    assert_equal(p._annotations.line_values[0], 0.0)
+    assert_equal(p.annotations.line_values[0], 0.0)
 
 
 def test_residplot_perfect_fit_has_all_zero_residuals() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [2.0, 4.0, 6.0, 8.0]
     var p = residplot(x, y)
-    for v in p._continuous.y:
+    for v in p.mark.continuous.y:
         assert_equal(v, 0.0)
 
 
@@ -180,14 +180,14 @@ def _values() -> List[Float64]:
 
 def test_barplot_bars_are_the_group_means_with_whiskers() raises:
     var p = barplot(_groups(), _values(), errorbar=ErrorBar.se())
-    assert_equal(len(p._categorical.x), 2)
-    assert_equal(p._categorical.x[0], "x")
-    assert_equal(p._categorical.x[1], "y")
-    assert_equal(p._continuous.y[0], 2.0)
-    assert_equal(p._continuous.y[1], 20.0)
+    assert_equal(len(p.mark.categorical.x), 2)
+    assert_equal(p.mark.categorical.x[0], "x")
+    assert_equal(p.mark.categorical.x[1], "y")
+    assert_equal(p.mark.continuous.y[0], 2.0)
+    assert_equal(p.mark.continuous.y[1], 20.0)
     # se of [1,2,3] is 1/sqrt(3); of [10,20,30] is 10/sqrt(3).
-    assert_almost_equal(p._y_err.lower[0], 0.5773502691896258, atol=1e-12)
-    assert_almost_equal(p._y_err.upper[1], 5.773502691896258, atol=1e-12)
+    assert_almost_equal(p.mark.y_err.lower[0], 0.5773502691896258, atol=1e-12)
+    assert_almost_equal(p.mark.y_err.upper[1], 5.773502691896258, atol=1e-12)
 
 
 def test_barplot_names_the_estimator_on_the_y_axis_by_default() raises:
@@ -233,8 +233,8 @@ def test_a_horizontal_barplot_names_the_estimator_on_the_value_axis() raises:
 
 def test_barplot_with_no_errorbar_has_no_whiskers() raises:
     var p = barplot(_groups(), _values(), errorbar=ErrorBar.none())
-    assert_equal(len(p._y_err.lower), 0)
-    assert_equal(len(p._y_err.symmetric), 0)
+    assert_equal(len(p.mark.y_err.lower), 0)
+    assert_equal(len(p.mark.y_err.symmetric), 0)
 
 
 def test_barplot_dtype_overload_matches_the_float64_path() raises:
@@ -273,11 +273,11 @@ def test_pointplot_points_are_the_group_means_with_se_whiskers() raises:
     var p = pointplot(
         _groups_pointplot(), _values_pointplot(), errorbar=ErrorBar.se()
     )
-    assert_equal(len(p._categorical.x), 2)
-    assert_equal(p._continuous.y[0], 2.0)
-    assert_equal(p._continuous.y[1], 15.0)
-    assert_almost_equal(p._y_err.lower[0], 1.0, atol=1e-12)
-    assert_almost_equal(p._y_err.upper[1], 5.0, atol=1e-12)
+    assert_equal(len(p.mark.categorical.x), 2)
+    assert_equal(p.mark.continuous.y[0], 2.0)
+    assert_equal(p.mark.continuous.y[1], 15.0)
+    assert_almost_equal(p.mark.y_err.lower[0], 1.0, atol=1e-12)
+    assert_almost_equal(p.mark.y_err.upper[1], 5.0, atol=1e-12)
 
 
 def test_pointplot_renders_points_a_joining_line_and_whiskers() raises:
@@ -342,7 +342,7 @@ def test_mark_pointplot_builder_sets_the_mark() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     var p = Plot().mark_pointplot().encode_categorical(x=cats, y=vals)
-    assert_equal(p._mark.name(), "Mark.POINTPLOT")
+    assert_equal(p.id().name(), "Mark.POINTPLOT")
     assert_equal(_count_tag(render_svg(p).to_string(), "circle"), 2)
 
 
@@ -411,7 +411,7 @@ def test_boxenplot_draws_one_rect_per_level_and_a_median_per_category() raises:
         b.append(Float64(i) * 2.0)
     var vals: List[List[Float64]] = [a^, b^]
     var p = boxenplot(cats, vals, width=400, height=300)
-    assert_equal(len(p._boxen.lower[0]), 2)
+    assert_equal(len(p.mark.boxen.lower[0]), 2)
     var s = render_svg(p).to_string()
     # Two levels per category, so four boxes (the background rect
     # excluded); eight outliers per category, so sixteen points.

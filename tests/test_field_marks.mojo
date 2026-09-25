@@ -1260,7 +1260,7 @@ def test_a_uniform_field_traces_straight_lines() raises:
         .mark_streamplot()
         .encode_streamplot(xs, ys, _uniform(11, 9), _zeros_streamplot(11, 9))
     )
-    var field = _build_field(p._stream)
+    var field = _build_field(p.mark.stream)
     # One occupancy cell, so nothing can block the line and the trace is
     # the integrator alone.
     var occ = _Occupancy(1, 1)
@@ -1299,7 +1299,7 @@ def test_solid_body_rotation_traces_exact_circles() raises:
         .mark_streamplot()
         .encode_streamplot(xs, ys, field_arrays[0], field_arrays[1])
     )
-    var field = _build_field(p._stream)
+    var field = _build_field(p.mark.stream)
     var occ = _Occupancy(1, 1)
     var claimed = List[Int]()
     # The grid center is index (10, 10); seed 6 cells to its right.
@@ -1348,7 +1348,7 @@ def test_a_line_stops_where_another_one_already_passed() raises:
         .mark_streamplot()
         .encode_streamplot(xs, ys, _uniform(11, 9), _zeros_streamplot(11, 9))
     )
-    var field = _build_field(p._stream)
+    var field = _build_field(p.mark.stream)
     var occ = _Occupancy(1, 1)
     var claimed = List[Int]()
     var first = _trace(field, occ, 2.0, 4.0, 1.0, 0, 200, claimed)
@@ -1371,7 +1371,7 @@ def test_a_field_with_no_flow_draws_no_lines() raises:
             xs, ys, _zeros_streamplot(9, 9), _zeros_streamplot(9, 9)
         )
     )
-    assert_equal(len(_streamlines(p._stream)), 0)
+    assert_equal(len(_streamlines(p.mark.stream)), 0)
 
 
 def test_density_controls_how_many_lines_are_drawn() raises:
@@ -1388,8 +1388,8 @@ def test_density_controls_how_many_lines_are_drawn() raises:
         .mark_streamplot(density=2.0)
         .encode_streamplot(xs, ys, f[0], f[1])
     )
-    var n_sparse = len(_streamlines(sparse._stream))
-    var n_dense = len(_streamlines(dense._stream))
+    var n_sparse = len(_streamlines(sparse.mark.stream))
+    var n_dense = len(_streamlines(dense.mark.stream))
     assert_true(n_sparse > 0, "a sparse field still draws")
     assert_true(
         n_dense > n_sparse,
@@ -1412,7 +1412,7 @@ def test_streamlines_run_downstream_not_from_the_seed_outward() raises:
         .mark_streamplot()
         .encode_streamplot(xs, ys, _uniform(21, 11), _zeros_streamplot(21, 11))
     )
-    var lines = _streamlines(p._stream)
+    var lines = _streamlines(p.mark.stream)
     assert_true(len(lines) > 0, "a uniform field draws lines")
     for idx in range(len(lines)):
         ref line = lines[idx]

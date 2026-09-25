@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Lollipop
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -264,7 +266,7 @@ def lollipop(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Lollipop]:
     """`lollipop()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `categories` and `values` column names.
@@ -286,7 +288,7 @@ def lollipop(
         horizontal: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -327,7 +329,7 @@ def lollipop[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Lollipop]:
     """A lollipop chart: the same category/value shape as `bar()`, drawn
     as a thin stem and dot instead of a filled rectangle, reducing
     visual weight when a chart has many categories or the comparison is
@@ -356,7 +358,7 @@ def lollipop[
             docstring.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -434,36 +436,6 @@ def _render_lollipop_oriented[
         categorical,
         y_err,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_lollipop_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_lollipop_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_lollipop_oriented(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._categorical,
-        plot._y_err,
-        plot._settings,
         ox0,
         oy0,
         ox1,

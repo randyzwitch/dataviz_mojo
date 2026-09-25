@@ -14,6 +14,8 @@ function the rug draws through, so the two marks cannot drift apart on
 the one thing that makes a thin vertical line legible.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Eventplot
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _DistributionData,
@@ -205,35 +207,6 @@ def _render_eventplot[
     return frame.result()
 
 
-def _render_eventplot_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_eventplot` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_eventplot(
-        target,
-        plot._categorical,
-        plot._distribution,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def eventplot(
     labels: List[String],
     positions: List[List[Float64]],
@@ -245,7 +218,7 @@ def eventplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Eventplot]:
     """One row of tick marks per series, each tick at the position of one
     event: a raster plot.
 
@@ -328,7 +301,7 @@ def eventplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Eventplot]:
     """An event raster from a long-form frame, one event per row (#743).
 
     Categories keep first-appearance order. Under `Missing.DRAW`, absent

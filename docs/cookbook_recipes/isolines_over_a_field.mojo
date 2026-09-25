@@ -3,6 +3,7 @@
 and isolines show exact levels."""
 from std.math import cos, sin
 
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.theme import Theme
 from dataviz.core.colormaps import viridis
@@ -39,5 +40,5 @@ def main() raises:
         .size(640, 440)
     )
 
-    var plots: List[Plot] = [field^, isolines^]
+    var plots: List[AnyChart] = [AnyChart(field), AnyChart(isolines)]
     save_layers(plots, "docs/src/examples/out_isolines_over_a_field.svg")

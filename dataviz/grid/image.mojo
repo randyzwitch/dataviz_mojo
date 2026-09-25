@@ -5,6 +5,8 @@ explicit cell edges. Unlike categorical `Mark.HEATMAP`, neither mark
 draws category labels.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Imshow, Pcolormesh
 from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isfinite
 
@@ -933,36 +935,6 @@ def _render_image[
     return frame.result()
 
 
-def _render_image_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises -> _RenderResult:
-    """`_render_image` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_image(
-        target,
-        plot._mark,
-        plot._image,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-        vector_target=vector_target,
-    )
-
-
 def imshow(
     df: DataFrame,
     row: String,
@@ -975,7 +947,7 @@ def imshow(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Imshow]:
     """`imshow()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per cell, with `row` and `column` giving the cell's
     coordinates and `value` its height.
@@ -1000,7 +972,7 @@ def imshow(
         y_title: The y-axis caption; defaults to `row`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, the columns
@@ -1030,7 +1002,7 @@ def imshow[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Imshow]:
     """Display a 2D array as an image: one colored cell per element, on
     continuous axes in row/column index units.
 
@@ -1085,7 +1057,7 @@ def imshow[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1141,7 +1113,7 @@ def pcolormesh(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Pcolormesh]:
     """Display a 2D array over cell boundaries you supply: `imshow()`
     for a grid whose rows and columns are not evenly spaced.
 
@@ -1187,7 +1159,7 @@ def pcolormesh(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1260,7 +1232,7 @@ def pcolormesh(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Pcolormesh]:
     """Draw an irregular cell mesh from long-form DataFrame values.
 
     `row` and `column` name numeric cell-center coordinates. The frame
@@ -1284,7 +1256,7 @@ def pcolormesh(
         y_title: See the grid overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is invalid, a cell repeats, the edge

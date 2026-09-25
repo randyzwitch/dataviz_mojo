@@ -41,6 +41,7 @@ from dataviz.categorical.grouped_bar import (
     _draw_grouped_bars,
     _grouped_bar_domain_data,
     _validate_grouped_bar_series,
+    _GroupedBarData,
 )
 from dataviz.categorical.stacked_bar import (
     _draw_stacked_segments,
@@ -93,7 +94,6 @@ from dataviz.rendering import (
     _all_at_dpi,
     _ink_box,
     _resolve_supersample,
-    _render_generic,
     _render_into,
     _require_positive_supersample,
     _resolve_output_format,
@@ -111,7 +111,19 @@ from dataviz.core.validate import (
     _validate_categorical_encoding,
     _validate_continuous_encoding,
 )
-from dataviz.plot import Plot
+from dataviz.chart import AnyChart, ChartLike
+from dataviz.marks import (
+    Barbs,
+    Contour,
+    Contourf,
+    GroupedBar,
+    Histogram,
+    StackedBar,
+    Tricontour,
+    Tricontourf,
+    Triplot,
+    Tripcolor,
+)
 from dataviz.core.render_result import _RenderResult
 from dataviz.core.extent import (
     _data_extent,
@@ -133,11 +145,13 @@ from dataviz.multivariate.contour import (
     _draw_contour_layer,
     _draw_contourf_layer,
     _validate_contour,
+    _ContourData,
 )
 from dataviz.multivariate.tricontour import (
     _draw_tricontour_layer,
     _draw_tricontourf_layer,
     _validate_tricontour,
+    _TriContourData,
 )
 from dataviz.multivariate.triplot import (
     _draw_tripcolor_layer,
@@ -148,7 +162,10 @@ from dataviz.multivariate.triplot import (
 
 
 def save_layers(
-    plots: List[Plot], path: String, dpi: Float64 = 72.0, tight: Bool = False
+    plots: List[AnyChart],
+    path: String,
+    dpi: Float64 = 72.0,
+    tight: Bool = False,
 ) raises:
     """`save()`'s `render_layers()`/`render_layers_svg()` counterpart. The
     format comes from `plots[0]`'s theme when the path's extension
@@ -169,7 +186,7 @@ def save_layers(
         raise Error("save_layers(): plots must not be empty")
     _require_uniform_size(plots, "save_layers")
     var format = _resolve_output_format(
-        plots[0]._settings.theme.output_format, path
+        plots[0].settings.theme.output_format, path
     )
     if format == OutputFormat.SVG:
         var f = open(path, "w")
@@ -179,11 +196,11 @@ def save_layers(
             svg.translate(-Float64(box[0]), -Float64(box[1]))
             var cache = FontCache()
             _draw_layers_figure(svg, plots, True, cache)
-            f.write(_svg_output_string(svg^, plots[0]._settings.labels))
+            f.write(_svg_output_string(svg^, plots[0].settings.labels))
         else:
             f.write(
                 _svg_output_string(
-                    render_layers_svg(plots), plots[0]._settings.labels
+                    render_layers_svg(plots), plots[0].settings.labels
                 )
             )
         f.close()
@@ -209,7 +226,7 @@ def save_layers(
             write_bmp(canvas, path)
 
 
-def _secondary_axis_y_title(plots: List[Plot]) -> String:
+def _secondary_axis_y_title(plots: List[AnyChart]) -> String:
     """`render_layers()`'s secondary (right) y-axis caption: the first
     layer's `Plot.labels()` `y_title` where that layer also called
     `.secondary_axis()`, read per-layer rather than from `plots[0]`'s
@@ -217,10 +234,10 @@ def _secondary_axis_y_title(plots: List[Plot]) -> String:
     """
     for i in range(len(plots)):
         if (
-            plots[i]._settings.secondary_axis
-            and plots[i]._settings.labels.y_title.byte_length() > 0
+            plots[i].settings.secondary_axis
+            and plots[i].settings.labels.y_title.byte_length() > 0
         ):
-            return plots[i]._settings.labels.y_title
+            return plots[i].settings.labels.y_title
     return ""
 
 
@@ -228,7 +245,7 @@ def _draw_layers_figure[
     T: DrawTarget
 ](
     mut target: T,
-    plots: List[Plot],
+    plots: List[AnyChart],
     fill_background: Bool,
     mut cache: FontCache,
 ) raises:
@@ -256,13 +273,13 @@ def _draw_layers_figure[
     var cx1 = plots[0].width
     var cy1 = plots[0].height
     if fill_background:
-        target.fill_rect(0, 0, cx1, cy1, plots[0]._settings.theme.background)
-    var sc = _Scaled(plots[0]._settings.theme)
+        target.fill_rect(0, 0, cx1, cy1, plots[0].settings.theme.background)
+    var sc = _Scaled(plots[0].settings.theme)
     var y2_title = _secondary_axis_y_title(plots)
     var frame = _apply_labels(
-        plots[0]._settings.labels,
-        plots[0]._mark,
-        plots[0]._settings.theme,
+        plots[0].settings.labels,
+        plots[0].id(),
+        plots[0].settings.theme,
         0,
         0,
         cx1,
@@ -284,8 +301,8 @@ def _draw_layers_figure[
         cache=cache,
     )
     var label_requests = _label_text_requests(
-        plots[0]._settings.labels,
-        plots[0]._settings.theme,
+        plots[0].settings.labels,
+        plots[0].settings.theme,
         0,
         0,
         cx1,
@@ -305,10 +322,10 @@ def _draw_layers_figure[
                 cx1 - Int(sc.axis_title_font_size * 0.8),
                 (result.py0 + result.py1) // 2,
                 y2_title,
-                plots[0]._settings.theme.text_color,
+                plots[0].settings.theme.text_color,
                 sc.axis_title_font_size,
                 TextAlign.CENTER,
-                plots[0]._settings.theme.font_family,
+                plots[0].settings.theme.font_family,
                 rotation=pi / 2.0,
             )
         )
@@ -316,23 +333,25 @@ def _draw_layers_figure[
     _replay_text_requests(target, result.text_requests, cache)
 
 
-def _layers_supersample(plots: List[Plot], caller: String) raises -> Int:
+def _layers_supersample(plots: List[AnyChart], caller: String) raises -> Int:
     """The raster supersampling factor for a layered figure: the largest
     any layer asks for, since one canvas has one factor and a curved mark
     beside a bar chart must not be drawn at the bar's."""
     var factor = _resolve_supersample(
-        plots[0]._mark, plots[0]._settings.theme, caller
+        plots[0].id(), plots[0].settings.theme, caller
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i]._mark, plots[i]._settings.theme, caller
+            plots[i].id(), plots[i].settings.theme, caller
         )
         if f > factor:
             factor = f
     return factor
 
 
-def _layers_tight_box(plots: List[Plot]) raises -> Tuple[Int, Int, Int, Int]:
+def _layers_tight_box(
+    plots: List[AnyChart],
+) raises -> Tuple[Int, Int, Int, Int]:
     """`_tight_box` for a layered figure (#701): the box around its ink,
     as `(x, y, width, height)`, measured by drawing it into a
     `BoundsTarget` without the background."""
@@ -342,15 +361,15 @@ def _layers_tight_box(plots: List[Plot]) raises -> Tuple[Int, Int, Int, Int]:
     return _ink_box(probe, plots[0].width, plots[0].height)
 
 
-def _render_layers_tight(plots: List[Plot]) raises -> Canvas:
+def _render_layers_tight(plots: List[AnyChart]) raises -> Canvas:
     """`render_layers()` cropped to the figure's ink; `render_tight()`'s
     layered counterpart. Laid out at full size and cropped, not laid out
     smaller, so the crop frames the figure the caller asked for."""
     _require_uniform_size(plots, "save_layers")
     var box = _layers_tight_box(plots)
     var factor = _layers_supersample(plots, "save_layers")
-    var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
-    canvas.begin_supersampled(factor, plots[0]._settings.theme.background)
+    var canvas = Canvas(box[2], box[3], plots[0].settings.theme.background)
+    canvas.begin_supersampled(factor, plots[0].settings.theme.background)
     canvas.translate(-Float64(box[0]), -Float64(box[1]))
     var cache = FontCache()
     _draw_layers_figure(canvas, plots, True, cache)
@@ -358,7 +377,7 @@ def _render_layers_tight(plots: List[Plot]) raises -> Canvas:
     return canvas^
 
 
-def render_layers(plots: List[Plot]) raises -> Canvas:
+def render_layers(plots: List[AnyChart]) raises -> Canvas:
     """Render every `Plot` in `plots` onto one shared coordinate system: one
        combined x/y domain across every layer, one set of axes/gridlines/
        ticks, each mark drawn over the last in the order given.
@@ -416,7 +435,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
        axis.
 
        Every `Plot` must share the same `.size()`; an empty list raises.
-       Supersampled by `plots[0]._settings.theme.raster_supersample` like `render()`,
+       Supersampled by `plots[0].settings.theme.raster_supersample` like `render()`,
        bumping every layer's scale together on a copy (`plots` is a plain
        borrow).
     """
@@ -435,7 +454,7 @@ def render_layers(plots: List[Plot]) raises -> Canvas:
     return canvas^
 
 
-def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
+def render_layers_svg(plots: List[AnyChart]) raises -> SvgCanvas:
     """`render_layers()`'s counterpart for `SvgCanvas`, with the same
     `_render_layers_generic` core and `_require_uniform_size`
     precondition.
@@ -447,7 +466,7 @@ def render_layers_svg(plots: List[Plot]) raises -> SvgCanvas:
     return svg^
 
 
-def render_layers_pdf(plots: List[Plot]) raises -> PdfCanvas:
+def render_layers_pdf(plots: List[AnyChart]) raises -> PdfCanvas:
     """`render_layers()`'s counterpart for a one-page `PdfCanvas`, with
     the same `_render_layers_generic` core and `_require_uniform_size`
     precondition (#372). The figure's size is in points, 1/72 inch, so
@@ -473,7 +492,7 @@ def _render_bar_combo_layers[
     T: DrawTarget
 ](
     mut target: T,
-    plots: List[Plot],
+    plots: List[AnyChart],
     bar_index: Int,
     ox0: Int,
     oy0: Int,
@@ -489,7 +508,7 @@ def _render_bar_combo_layers[
     POINT/LINE/AREA layers align to the full category band center.
 
     Every non-bar layer aligns to the categories by position:
-    `plots[j]._continuous.y[k]` plots at category `k`'s band center, and its
+    `plots[j].continuous.y[k]` plots at category `k`'s band center, and its
     `_continuous.x` must have exactly `len(bar_categories)` entries (checked
     here) but its numeric content is never read; callers commonly pass
     `x=[0.0, 1.0, 2.0, ...]`.
@@ -505,11 +524,11 @@ def _render_bar_combo_layers[
     The shared y-domain always includes a zero baseline
     (`_zero_baseline_y_extent`), as categorical bars require.
     """
-    var bar_categories = plots[bar_index]._categorical.x.copy()
+    var bar_categories = plots[bar_index].categorical.x.copy()
     var bar_count = 0
     var subdivided_count = 0
     for i in range(len(plots)):
-        var mark = plots[i]._mark
+        var mark = plots[i].id()
         if not (
             mark == Mark.BAR
             or mark == Mark.GROUPED_BAR
@@ -518,23 +537,23 @@ def _render_bar_combo_layers[
             continue
         if mark == Mark.BAR:
             _validate_categorical_encoding(
-                plots[i]._categorical,
-                plots[i]._continuous,
-                plots[i]._y_err,
-                plots[i]._mark,
+                plots[i].categorical,
+                plots[i].continuous,
+                plots[i].y_err,
+                plots[i].id(),
             )
             bar_count += 1
         else:
             _validate_grouped_bar_series(
-                plots[i]._mark, plots[i]._grouped_bar, plots[i]._categorical
+                plots[i].id(), _grouped_bar_of(plots[i]), plots[i].categorical
             )
             if mark == Mark.STACKED_BAR:
                 _validate_stacked_bar_percent(
-                    plots[i]._grouped_bar,
-                    len(plots[i]._grouped_bar.series_names),
+                    _grouped_bar_of(plots[i]),
+                    len(_grouped_bar_of(plots[i]).series_names),
                 )
             subdivided_count += 1
-        if len(plots[i]._categorical.x) != len(bar_categories):
+        if len(plots[i].categorical.x) != len(bar_categories):
             raise Error(
                 "render_layers(): every categorical bar layer must have the"
                 " same categories in the same order (layer "
@@ -542,7 +561,7 @@ def _render_bar_combo_layers[
                 + ")"
             )
         for k in range(len(bar_categories)):
-            if plots[i]._categorical.x[k] != bar_categories[k]:
+            if plots[i].categorical.x[k] != bar_categories[k]:
                 raise Error(
                     "render_layers(): every categorical bar layer must have the"
                     " same categories in the same order (layer "
@@ -556,21 +575,21 @@ def _render_bar_combo_layers[
         )
 
     for i in range(len(plots)):
-        if plots[i]._settings.secondary_axis:
+        if plots[i].settings.secondary_axis:
             raise Error(
                 "render_layers(): Plot.secondary_axis() isn't supported yet on"
                 " a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
-        if plots[i]._settings.y_log or plots[i]._settings.x_log:
+        if plots[i].settings.y_log or plots[i].settings.x_log:
             raise Error(
                 "render_layers(): Plot.scale_y_log()/scale_x_log() aren't"
                 " supported yet on a Mark.BAR combo chart (layer "
                 + String(i)
                 + ")"
             )
-        if plots[i]._settings.horizontal:
+        if plots[i].settings.horizontal:
             raise Error(
                 "render_layers(): Plot.mark_bar(horizontal=True) isn't"
                 " supported yet on a Mark.BAR combo chart (layer "
@@ -580,13 +599,13 @@ def _render_bar_combo_layers[
                 " doesn't attempt"
             )
         var has_annotations = (
-            len(plots[i]._annotations.line_values) > 0
-            or len(plots[i]._annotations.area_y0) > 0
-            or len(plots[i]._annotations.vline_values) > 0
-            or len(plots[i]._annotations.point_x) > 0
-            or len(plots[i]._annotations.band_x) > 0
-            or plots[i]._annotations.best_fit
-            or plots[i]._annotations.smooth
+            len(plots[i].annotations.line_values) > 0
+            or len(plots[i].annotations.area_y0) > 0
+            or len(plots[i].annotations.vline_values) > 0
+            or len(plots[i].annotations.point_x) > 0
+            or len(plots[i].annotations.band_x) > 0
+            or plots[i].annotations.best_fit
+            or plots[i].annotations.smooth
         )
         if has_annotations:
             raise Error(
@@ -596,15 +615,15 @@ def _render_bar_combo_layers[
                 + ")"
             )
         if (
-            plots[i]._mark == Mark.BAR
-            or plots[i]._mark == Mark.GROUPED_BAR
-            or plots[i]._mark == Mark.STACKED_BAR
+            plots[i].id() == Mark.BAR
+            or plots[i].id() == Mark.GROUPED_BAR
+            or plots[i].id() == Mark.STACKED_BAR
         ):
             continue
         if not (
-            plots[i]._mark == Mark.POINT
-            or plots[i]._mark == Mark.LINE
-            or plots[i]._mark == Mark.AREA
+            plots[i].id() == Mark.POINT
+            or plots[i].id() == Mark.LINE
+            or plots[i].id() == Mark.AREA
         ):
             raise Error(
                 "render_layers(): alongside categorical bars, every other layer"
@@ -612,36 +631,36 @@ def _render_bar_combo_layers[
                 + String(i)
                 + ")"
             )
-        if len(plots[i]._continuous.x) != len(bar_categories):
+        if len(plots[i].continuous.x) != len(bar_categories):
             raise Error(
                 "render_layers(): with categorical bars present, every other"
                 " layer's own data must have one entry per bar category --"
                 " layer "
                 + String(i)
                 + " has "
-                + String(len(plots[i]._continuous.x))
+                + String(len(plots[i].continuous.x))
                 + " points, the bar layer has "
                 + String(len(bar_categories))
                 + " categories"
             )
-        if len(plots[i]._continuous.y) != len(plots[i]._continuous.x):
+        if len(plots[i].continuous.y) != len(plots[i].continuous.x):
             raise Error(
                 "render_layers(): layer "
                 + String(i)
                 + ": x and y must have the same length (got "
-                + String(len(plots[i]._continuous.x))
+                + String(len(plots[i].continuous.x))
                 + " and "
-                + String(len(plots[i]._continuous.y))
+                + String(len(plots[i].continuous.y))
                 + ")"
             )
         if (
-            len(plots[i]._channels.color) > 0
-            or len(plots[i]._channels.color_categories) > 0
-            or len(plots[i]._channels.size) > 0
-            or len(plots[i]._y_err.symmetric) > 0
-            or len(plots[i]._y_err.lower) > 0
-            or len(plots[i]._y_err.upper) > 0
-            or len(plots[i]._channels.point_labels) > 0
+            len(plots[i].channels.color) > 0
+            or len(plots[i].channels.color_categories) > 0
+            or len(plots[i].channels.size) > 0
+            or len(plots[i].y_err.symmetric) > 0
+            or len(plots[i].y_err.lower) > 0
+            or len(plots[i].y_err.upper) > 0
+            or len(plots[i].channels.point_labels) > 0
         ):
             raise Error(
                 "render_layers():"
@@ -659,25 +678,27 @@ def _render_bar_combo_layers[
     # rejected above, so its own y_data is all it ever contributes.
     var combined_y = List[Float64]()
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR:
-            for v in _bar_y_domain_data(plots[i]._continuous, plots[i]._y_err):
+        if plots[i].id() == Mark.BAR:
+            for v in _bar_y_domain_data(plots[i].continuous, plots[i].y_err):
                 combined_y.append(v)
-        elif plots[i]._mark == Mark.GROUPED_BAR:
-            for v in _grouped_bar_domain_data(plots[i]._grouped_bar):
+        elif plots[i].id() == Mark.GROUPED_BAR:
+            for v in _grouped_bar_domain_data(
+                plots[i].mark[GroupedBar]().grouped_bar
+            ):
                 combined_y.append(v)
-        elif plots[i]._mark == Mark.STACKED_BAR:
+        elif plots[i].id() == Mark.STACKED_BAR:
             for v in _stacked_bar_domain_data(
-                plots[i]._grouped_bar,
-                plots[i]._categorical,
-                len(plots[i]._grouped_bar.series_names),
+                plots[i].mark[StackedBar]().grouped_bar,
+                plots[i].categorical,
+                len(plots[i].mark[StackedBar]().grouped_bar.series_names),
             ):
                 combined_y.append(v)
         else:
-            for v in plots[i]._continuous.y:
+            for v in plots[i].continuous.y:
                 combined_y.append(v)
     var y_scale = _zero_baseline_y_extent(combined_y)
 
-    var theme = plots[0]._settings.theme
+    var theme = plots[0].settings.theme
     var sc = _Scaled(theme)
 
     # One legend row per named layer, including each bar layer, in list order.
@@ -685,16 +706,16 @@ def _render_bar_combo_layers[
     var series_colors = List[Color]()
     for i in range(len(plots)):
         if (
-            plots[i]._mark == Mark.GROUPED_BAR
-            or plots[i]._mark == Mark.STACKED_BAR
-        ) and plots[i]._settings.theme.show_legend:
-            var palette = categorical_palette_for(plots[i]._settings.theme)
-            for j in range(len(plots[i]._grouped_bar.series_names)):
-                series_names.append(plots[i]._grouped_bar.series_names[j])
+            plots[i].id() == Mark.GROUPED_BAR
+            or plots[i].id() == Mark.STACKED_BAR
+        ) and plots[i].settings.theme.show_legend:
+            var palette = categorical_palette_for(plots[i].settings.theme)
+            for j in range(len(_grouped_bar_of(plots[i]).series_names)):
+                series_names.append(_grouped_bar_of(plots[i]).series_names[j])
                 series_colors.append(palette[j % len(palette)])
-        if plots[i]._settings.labels.series_name.byte_length() > 0:
-            series_names.append(plots[i]._settings.labels.series_name)
-            series_colors.append(plots[i]._settings.theme.mark_color)
+        if plots[i].settings.labels.series_name.byte_length() > 0:
+            series_names.append(plots[i].settings.labels.series_name)
+            series_colors.append(plots[i].settings.theme.mark_color)
     var legend_reserve = (
         _dynamic_legend_width(
             series_names,
@@ -731,42 +752,42 @@ def _render_bar_combo_layers[
 
     var bar_slot = 0
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.GROUPED_BAR:
+        if plots[i].id() == Mark.GROUPED_BAR:
             _draw_grouped_bars(
                 target,
-                plots[i]._grouped_bar,
-                plots[i]._categorical,
-                plots[i]._settings,
+                plots[i].mark[GroupedBar]().grouped_bar,
+                plots[i].categorical,
+                plots[i].settings,
                 frame.x_scale,
                 frame.y_scale,
                 frame.py1,
                 _Orientation(False),
-                categorical_palette_for(plots[i]._settings.theme),
+                categorical_palette_for(plots[i].settings.theme),
                 frame.text_requests,
             )
             continue
-        if plots[i]._mark == Mark.STACKED_BAR:
+        if plots[i].id() == Mark.STACKED_BAR:
             _draw_stacked_segments(
                 target,
-                plots[i]._grouped_bar,
-                plots[i]._categorical,
-                plots[i]._settings,
+                plots[i].mark[StackedBar]().grouped_bar,
+                plots[i].categorical,
+                plots[i].settings,
                 frame.x_scale,
                 frame.y_scale,
                 frame.py1,
                 _Orientation(False),
-                categorical_palette_for(plots[i]._settings.theme),
+                categorical_palette_for(plots[i].settings.theme),
                 frame.text_requests,
             )
             continue
-        if not (plots[i]._mark == Mark.BAR):
+        if not (plots[i].id() == Mark.BAR):
             continue
         _draw_bar_rects(
             target,
-            plots[i]._continuous,
-            plots[i]._categorical,
-            plots[i]._y_err,
-            plots[i]._settings,
+            plots[i].continuous,
+            plots[i].categorical,
+            plots[i].y_err,
+            plots[i].settings,
             frame.x_scale,
             frame.y_scale,
             frame.py1,
@@ -779,12 +800,12 @@ def _render_bar_combo_layers[
 
     for i in range(len(plots)):
         if (
-            plots[i]._mark == Mark.BAR
-            or plots[i]._mark == Mark.GROUPED_BAR
-            or plots[i]._mark == Mark.STACKED_BAR
+            plots[i].id() == Mark.BAR
+            or plots[i].id() == Mark.GROUPED_BAR
+            or plots[i].id() == Mark.STACKED_BAR
         ):
             continue
-        var layer_theme = plots[i]._settings.theme
+        var layer_theme = plots[i].settings.theme
         _check_line_smoothing(layer_theme)
         var layer_sc = _Scaled(layer_theme)
         # Precomputed band centers instead of a continuous x_scale --
@@ -800,8 +821,8 @@ def _render_bar_combo_layers[
         # (#422), each found only after it
         # shipped, because a dropped argument renders a different claim
         # about the data rather than an error.
-        var band_px = List[Float64](capacity=len(plots[i]._continuous.y))
-        for k in range(len(plots[i]._continuous.y)):
+        var band_px = List[Float64](capacity=len(plots[i].continuous.y))
+        for k in range(len(plots[i].continuous.y)):
             band_px.append(frame.x_scale.center(k))
 
         # Decimation is a no-op here rather than something to suppress:
@@ -810,27 +831,27 @@ def _render_bar_combo_layers[
         # every point. color/size/y_err/labels are rejected above, so
         # the shared functions' handling of them is unreachable, not
         # bypassed.
-        if plots[i]._mark == Mark.POINT:
+        if plots[i].id() == Mark.POINT:
             # x_scale is unused whenever band_px is supplied, but the
             # signature is shared with the continuous path, so a
             # placeholder domain goes in rather than an Optional.
             var unused_x = LinearScale(0.0, 1.0, 0.0, 1.0)
             var ch = _PointChannels(
-                plots[i]._channels,
-                plots[i]._settings.theme,
-                plots[i]._settings.color_domain,
+                plots[i].channels,
+                plots[i].settings.theme,
+                plots[i].settings.color_domain,
                 layer_sc,
             )
             var unused_legend = List[_TextRequest]()
             _ = _draw_point_layer(
                 target,
                 unused_legend,
-                plots[i]._mark,
-                plots[i]._continuous,
-                plots[i]._channels,
-                plots[i]._y_err,
-                plots[i]._mark_style,
-                plots[i]._settings,
+                plots[i].id(),
+                plots[i].continuous,
+                plots[i].channels,
+                plots[i].y_err,
+                plots[i].style,
+                plots[i].settings,
                 ch,
                 unused_x,
                 frame.y_scale,
@@ -839,13 +860,13 @@ def _render_bar_combo_layers[
                 band_px=band_px,
                 cache=cache,
             )
-        elif plots[i]._mark == Mark.LINE:
+        elif plots[i].id() == Mark.LINE:
             _draw_line_layer(
                 target,
-                plots[i]._continuous,
-                plots[i]._y_err,
-                plots[i]._mark_style,
-                plots[i]._settings,
+                plots[i].continuous,
+                plots[i].y_err,
+                plots[i].style,
+                plots[i].settings,
                 LinearScale(0.0, 1.0, 0.0, 1.0),
                 frame.y_scale,
                 band_px,
@@ -853,9 +874,9 @@ def _render_bar_combo_layers[
         else:
             _draw_area_layer(
                 target,
-                plots[i]._continuous,
-                plots[i]._mark_style,
-                plots[i]._settings,
+                plots[i].continuous,
+                plots[i].style,
+                plots[i].settings,
                 LinearScale(0.0, 1.0, 0.0, 1.0),
                 frame.y_scale,
                 band_px,
@@ -1056,7 +1077,28 @@ struct _LayerDomain(Copyable, Movable):
         self.unpadded = unpadded
 
 
-def _layer_domain(plot: Plot) raises -> _LayerDomain:
+def _grouped_bar_of(plot: AnyChart) raises -> _GroupedBarData:
+    """The series payload a `GroupedBar` and a `StackedBar` share."""
+    if plot.id() == Mark.GROUPED_BAR:
+        return plot.mark[GroupedBar]().grouped_bar.copy()
+    return plot.mark[StackedBar]().grouped_bar.copy()
+
+
+def _contour_of(plot: AnyChart) raises -> _ContourData:
+    """The field a `Contour` and a `Contourf` share."""
+    if plot.id() == Mark.CONTOUR:
+        return plot.mark[Contour]().contour.copy()
+    return plot.mark[Contourf]().contour.copy()
+
+
+def _tricontour_of(plot: AnyChart) raises -> _TriContourData:
+    """The field a `Tricontour` and a `Tricontourf` share."""
+    if plot.id() == Mark.TRICONTOUR:
+        return plot.mark[Tricontour]().tricontour.copy()
+    return plot.mark[Tricontourf]().tricontour.copy()
+
+
+def _layer_domain(plot: AnyChart) raises -> _LayerDomain:
     """One layer's `_LayerDomain`, with that mark's own pre-draw checks
     run first.
 
@@ -1067,12 +1109,10 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     mark's validator is the same free function its `_render_*` calls, so
     a bad layer raises the message a standalone render of it would.
     """
-    var mark = plot._mark
+    var mark = plot.id()
     if mark == Mark.KDE:
-        var values = _kde_observations(plot._distribution)
-        var curve = _kde_curve(
-            values, plot._distribution.kde_bandwidth_override
-        )
+        var values = _kde_observations(plot.distribution)
+        var curve = _kde_curve(values, plot.distribution.kde_bandwidth_override)
         return _LayerDomain(curve[0].copy(), curve[1].copy(), True)
     if mark == Mark.ECDF:
         # The staircase's own vertices, exactly what _render_ecdf strokes,
@@ -1081,41 +1121,47 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
         # ECDF shares a group with another mark, and a group that is
         # all ECDFs pins the axis to [0, 1] outright (see the scale
         # block in _render_layers_generic).
-        _require_non_empty(len(plot._distribution.values), "Plot.encode_ecdf()")
-        var observations = plot._distribution.values[0].copy()
+        _require_non_empty(len(plot.distribution.values), "Plot.encode_ecdf()")
+        var observations = plot.distribution.values[0].copy()
         _require_non_empty(len(observations), "Plot.encode_ecdf()")
         var curve = _ecdf_points(
-            observations, plot._distribution.ecdf_complementary
+            observations, plot.distribution.ecdf_complementary
         )
         return _LayerDomain(curve.x.copy(), curve.y.copy(), True)
     if mark == Mark.RUG:
         return _LayerDomain(
-            _kde_observations(plot._distribution), List[Float64](), False
+            _kde_observations(plot.distribution), List[Float64](), False
         )
     if mark == Mark.BARBS:
-        _validate_barbs(plot._barbs)
-        return _LayerDomain(plot._barbs.x.copy(), plot._barbs.y.copy(), False)
+        _validate_barbs(plot.mark[Barbs]().barbs)
+        return _LayerDomain(
+            plot.mark[Barbs]().barbs.x.copy(),
+            plot.mark[Barbs]().barbs.y.copy(),
+            False,
+        )
     if mark == Mark.TRICONTOUR or mark == Mark.TRICONTOURF:
         _validate_tricontour(
-            plot._tricontour,
+            _tricontour_of(plot),
             "Plot.mark_tricontour()" if mark
             == Mark.TRICONTOUR else "Plot.mark_tricontourf()",
         )
         return _LayerDomain(
-            plot._tricontour.x.copy(), plot._tricontour.y.copy(), False
+            _tricontour_of(plot).x.copy(), _tricontour_of(plot).y.copy(), False
         )
     if mark == Mark.CONTOUR or mark == Mark.CONTOURF:
         var shape = _validate_contour(
-            plot._contour,
+            _contour_of(plot),
             "Plot.mark_contour()" if mark
             == Mark.CONTOUR else "Plot.mark_contourf()",
         )
         # The grid's own coordinates, or its indices when it has none.
         # Either way these are the two columns the standalone frame is
         # sized from, so a lone contour layer reproduces it exactly.
-        var unpadded = len(plot._contour.x) == 0 and len(plot._contour.y) == 0
-        var xs = plot._contour.x.copy()
-        var ys = plot._contour.y.copy()
+        var unpadded = (
+            len(_contour_of(plot).x) == 0 and len(_contour_of(plot).y) == 0
+        )
+        var xs = _contour_of(plot).x.copy()
+        var ys = _contour_of(plot).y.copy()
         if len(xs) == 0:
             for c in range(shape[1]):
                 xs.append(Float64(c))
@@ -1124,14 +1170,18 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
                 ys.append(Float64(r))
         return _LayerDomain(xs^, ys^, False, unpadded)
     if mark == Mark.TRIPLOT:
-        _validate_triplot(plot._triplot)
+        _validate_triplot(plot.mark[Triplot]().triplot)
         return _LayerDomain(
-            plot._triplot.x.copy(), plot._triplot.y.copy(), False
+            plot.mark[Triplot]().triplot.x.copy(),
+            plot.mark[Triplot]().triplot.y.copy(),
+            False,
         )
     if mark == Mark.TRIPCOLOR:
-        _validate_tripcolor(plot._triplot)
+        _validate_tripcolor(plot.mark[Tripcolor]().triplot)
         return _LayerDomain(
-            plot._triplot.x.copy(), plot._triplot.y.copy(), False
+            plot.mark[Tripcolor]().triplot.x.copy(),
+            plot.mark[Tripcolor]().triplot.y.copy(),
+            False,
         )
 
     # Mark.POINT/LINE/AREA/EFFECT_SCATTER: Plot.encode()'s own columns.
@@ -1139,25 +1189,25 @@ def _layer_domain(plot: Plot) raises -> _LayerDomain:
     # each whisker's endpoints, so the shared axis spans everything
     # drawn, exactly as _render_generic's y_domain_data does.
     var ys = List[Float64]()
-    if len(plot._y_err.symmetric) > 0:
-        for i in range(len(plot._continuous.y)):
-            ys.append(plot._continuous.y[i] - plot._y_err.symmetric[i])
-            ys.append(plot._continuous.y[i] + plot._y_err.symmetric[i])
-    elif len(plot._y_err.lower) > 0:
-        for i in range(len(plot._continuous.y)):
-            ys.append(plot._continuous.y[i] - plot._y_err.lower[i])
-            ys.append(plot._continuous.y[i] + plot._y_err.upper[i])
+    if len(plot.y_err.symmetric) > 0:
+        for i in range(len(plot.continuous.y)):
+            ys.append(plot.continuous.y[i] - plot.y_err.symmetric[i])
+            ys.append(plot.continuous.y[i] + plot.y_err.symmetric[i])
+    elif len(plot.y_err.lower) > 0:
+        for i in range(len(plot.continuous.y)):
+            ys.append(plot.continuous.y[i] - plot.y_err.lower[i])
+            ys.append(plot.continuous.y[i] + plot.y_err.upper[i])
     else:
-        for v in plot._continuous.y:
+        for v in plot.continuous.y:
             ys.append(v)
-    if mark == Mark.HISTOGRAM and plot._histogram.horizontal:
+    if mark == Mark.HISTOGRAM and plot.mark[Histogram]().histogram.horizontal:
         raise Error(
             "render_layers(): a horizontal Mark.HISTOGRAM layer isn't"
             " supported -- the combined domain zero-baselines y, not x."
             " Use render_facets(), or a vertical histogram."
         )
     return _LayerDomain(
-        plot._continuous.x.copy(),
+        plot.continuous.x.copy(),
         ys^,
         mark == Mark.AREA or mark == Mark.HISTOGRAM,
     )
@@ -1167,7 +1217,7 @@ def _render_arc_layers[
     T: DrawTarget
 ](
     mut target: T,
-    plots: List[Plot],
+    plots: List[AnyChart],
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -1186,15 +1236,15 @@ def _render_arc_layers[
     var legend_labels = List[String]()
     var legend_colors = List[Color]()
     for i in range(len(plots)):
-        if not (plots[i]._mark == Mark.ARC):
+        if not (plots[i].id() == Mark.ARC):
             raise Error(
                 "render_layers(): Mark.ARC can share only concentric ARC"
                 " layers; layer "
                 + String(i)
                 + " is "
-                + plots[i]._mark.name()
+                + plots[i].id().name()
             )
-        if plots[i]._mark_style.donut_inner_radius_fraction != 0.0:
+        if plots[i].style.donut_inner_radius_fraction != 0.0:
             raise Error(
                 "render_layers(): ARC layer "
                 + String(i)
@@ -1203,9 +1253,9 @@ def _render_arc_layers[
                 " inner_radius_fraction=0"
             )
         if (
-            plots[i]._settings.secondary_axis
-            or plots[i]._settings.x_log
-            or plots[i]._settings.y_log
+            plots[i].settings.secondary_axis
+            or plots[i].settings.x_log
+            or plots[i].settings.y_log
         ):
             raise Error(
                 "render_layers(): ARC layers have no x/y axis or"
@@ -1215,21 +1265,21 @@ def _render_arc_layers[
             )
         totals.append(
             _arc_total(
-                plots[i]._mark,
-                plots[i]._continuous,
-                plots[i]._categorical,
-                plots[i]._y_err,
+                plots[i].id(),
+                plots[i].continuous,
+                plots[i].categorical,
+                plots[i].y_err,
             )
         )
-        if plots[i]._settings.theme.show_legend:
-            var palette = categorical_palette_for(plots[i]._settings.theme)
-            for j in range(len(plots[i]._categorical.x)):
+        if plots[i].settings.theme.show_legend:
+            var palette = categorical_palette_for(plots[i].settings.theme)
+            for j in range(len(plots[i].categorical.x)):
                 legend_labels.append(
-                    "Ring " + String(i + 1) + ": " + plots[i]._categorical.x[j]
+                    "Ring " + String(i + 1) + ": " + plots[i].categorical.x[j]
                 )
                 legend_colors.append(palette[j % len(palette)])
 
-    var theme = plots[0]._settings.theme
+    var theme = plots[0].settings.theme
     var sc = _Scaled(theme)
     var legend = (
         _legend_layout(
@@ -1267,9 +1317,9 @@ def _render_arc_layers[
         var radius = outer_radius - Float64(i) * (ring_width + gap)
         _draw_arc_wedges(
             target,
-            plots[i]._continuous,
-            plots[i]._categorical,
-            plots[i]._settings,
+            plots[i].continuous,
+            plots[i].categorical,
+            plots[i].settings,
             cx,
             cy,
             radius - ring_width,
@@ -1298,7 +1348,7 @@ def _render_layers_generic[
     T: DrawTarget
 ](
     mut target: T,
-    plots: List[Plot],
+    plots: List[AnyChart],
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -1348,7 +1398,7 @@ def _render_layers_generic[
     var arc_count = 0
     var first_arc = -1
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.ARC:
+        if plots[i].id() == Mark.ARC:
             arc_count += 1
             if first_arc < 0:
                 first_arc = i
@@ -1364,12 +1414,12 @@ def _render_layers_generic[
         if len(plots) == 1:
             return _render_arc(
                 target,
-                plots[0]._mark,
-                plots[0]._continuous,
-                plots[0]._categorical,
-                plots[0]._y_err,
-                plots[0]._mark_style,
-                plots[0]._settings,
+                plots[0].id(),
+                plots[0].continuous,
+                plots[0].categorical,
+                plots[0].y_err,
+                plots[0].style,
+                plots[0].settings,
                 ox0,
                 oy0,
                 ox1,
@@ -1383,15 +1433,15 @@ def _render_layers_generic[
     # Time bars need a continuous date axis; mixed time-bar layers need a
     # separate layout. Categorical bars share adjacent subbands.
     for i in range(len(plots)):
-        if plots[i]._mark == Mark.BAR and plots[i]._settings.x_time:
+        if plots[i].id() == Mark.BAR and plots[i].settings.x_time:
             if len(plots) == 1:
                 return _render_bar(
                     target,
-                    plots[i]._mark,
-                    plots[i]._continuous,
-                    plots[i]._categorical,
-                    plots[i]._y_err,
-                    plots[i]._settings,
+                    plots[i].id(),
+                    plots[i].continuous,
+                    plots[i].categorical,
+                    plots[i].y_err,
+                    plots[i].settings,
                     ox0,
                     oy0,
                     ox1,
@@ -1411,9 +1461,9 @@ def _render_layers_generic[
     var bar_layer_index = -1
     for i in range(len(plots)):
         if (
-            plots[i]._mark == Mark.BAR
-            or plots[i]._mark == Mark.GROUPED_BAR
-            or plots[i]._mark == Mark.STACKED_BAR
+            plots[i].id() == Mark.BAR
+            or plots[i].id() == Mark.GROUPED_BAR
+            or plots[i].id() == Mark.STACKED_BAR
         ) and bar_layer_index < 0:
             bar_layer_index = i
     if bar_layer_index >= 0:
@@ -1446,12 +1496,12 @@ def _render_layers_generic[
         # layer marks this rejects, and a reader who followed one got a
         # message that named neither.
         # constants and the index was all a raise could report.
-        if not _is_layerable_mark(plots[i]._mark):
+        if not _is_layerable_mark(plots[i].id()):
             raise Error(
                 "render_layers(): layer "
                 + String(i)
                 + " is "
-                + plots[i]._mark.name()
+                + plots[i].id().name()
                 + ", which can't share a continuous frame. Layerable marks"
                 " are Mark.POINT, LINE, AREA, EFFECT_SCATTER, KDE, RUG,"
                 " BARBS, TRICONTOUR, TRICONTOURF, TRIPLOT and TRIPCOLOR --"
@@ -1468,12 +1518,12 @@ def _render_layers_generic[
                 " real y-axis. Use render_facets(), which has no allow-list"
                 " and takes any mark."
             )
-        if (plots[i]._settings.x_log or plots[i]._settings.y_log) and not (
-            plots[i]._mark == Mark.POINT
-            or plots[i]._mark == Mark.LINE
-            or plots[i]._mark == Mark.AREA
-            or plots[i]._mark == Mark.HISTOGRAM
-            or plots[i]._mark == Mark.EFFECT_SCATTER
+        if (plots[i].settings.x_log or plots[i].settings.y_log) and not (
+            plots[i].id() == Mark.POINT
+            or plots[i].id() == Mark.LINE
+            or plots[i].id() == Mark.AREA
+            or plots[i].id() == Mark.HISTOGRAM
+            or plots[i].id() == Mark.EFFECT_SCATTER
         ):
             # The same rule _render_generic enforces on a standalone plot,
             # repeated here because the marks admitted reach this
@@ -1489,10 +1539,10 @@ def _render_layers_generic[
                 " standalone render enforces -- layer "
                 + String(i)
                 + " is "
-                + plots[i]._mark.name()
+                + plots[i].id().name()
                 + ", whose domain is only ever taken linearly"
             )
-        if plots[i]._settings.secondary_axis and plots[i]._mark == Mark.RUG:
+        if plots[i].settings.secondary_axis and plots[i].id() == Mark.RUG:
             raise Error(
                 "render_layers(): Plot.secondary_axis() has nothing to do on a"
                 " Mark.RUG layer (layer "
@@ -1510,42 +1560,42 @@ def _render_layers_generic[
         # own mark with its own colors, and only one layer in an overlay
         # normally carries a continuous color channel at all.
         _validate_color_domain(
-            plots[i]._settings.color_domain, plots[i]._mark, plots[i]._channels
+            plots[i].settings.color_domain, plots[i].id(), plots[i].channels
         )
-        if plots[i]._settings.x_domain.has:
+        if plots[i].settings.x_domain.has:
             _validate_domain_override(
-                plots[i]._settings.x_domain,
-                plots[i]._settings.x_log,
+                plots[i].settings.x_domain,
+                plots[i].settings.x_log,
                 "Plot.scale_x_domain",
             )
             _merge_override(
                 x_override,
-                plots[i]._settings.x_domain,
+                plots[i].settings.x_domain,
                 i,
                 "Plot.scale_x_domain",
             )
-        if plots[i]._settings.y_domain.has:
-            if plots[i]._settings.secondary_axis:
+        if plots[i].settings.y_domain.has:
+            if plots[i].settings.secondary_axis:
                 raise Error(
                     "render_layers(): Plot.scale_y_domain() on a"
                     " .secondary_axis() layer isn't supported yet -- layer "
                     + String(i)
                 )
             _validate_domain_override(
-                plots[i]._settings.y_domain,
-                plots[i]._settings.y_log,
+                plots[i].settings.y_domain,
+                plots[i].settings.y_log,
                 "Plot.scale_y_domain",
             )
             _merge_override(
                 y_override,
-                plots[i]._settings.y_domain,
+                plots[i].settings.y_domain,
                 i,
                 "Plot.scale_y_domain",
             )
         if not x_log_seen:
             x_log_seen = True
-            x_log_value = plots[i]._settings.x_log
-        elif plots[i]._settings.x_log != x_log_value:
+            x_log_value = plots[i].settings.x_log
+        elif plots[i].settings.x_log != x_log_value:
             raise Error(
                 "render_layers(): every layer must agree on"
                 " Plot.scale_x_log() -- got a mix of log and linear x-axes"
@@ -1553,11 +1603,11 @@ def _render_layers_generic[
                 + String(i)
                 + ")"
             )
-        if plots[i]._settings.secondary_axis:
+        if plots[i].settings.secondary_axis:
             if not y2_log_seen:
                 y2_log_seen = True
-                y2_log_value = plots[i]._settings.y_log
-            elif plots[i]._settings.y_log != y2_log_value:
+                y2_log_value = plots[i].settings.y_log
+            elif plots[i].settings.y_log != y2_log_value:
                 raise Error(
                     "render_layers(): every Plot.secondary_axis() layer must"
                     " agree on Plot.scale_y_log() -- got a mix of log and"
@@ -1568,8 +1618,8 @@ def _render_layers_generic[
         else:
             if not y_log_seen:
                 y_log_seen = True
-                y_log_value = plots[i]._settings.y_log
-            elif plots[i]._settings.y_log != y_log_value:
+                y_log_value = plots[i].settings.y_log
+            elif plots[i].settings.y_log != y_log_value:
                 raise Error(
                     "render_layers(): every primary-axis layer must agree on"
                     " Plot.scale_y_log() -- got a mix of log and linear"
@@ -1577,8 +1627,8 @@ def _render_layers_generic[
                     + String(i)
                     + ")"
                 )
-        if plots[i]._settings.y_log and (
-            plots[i]._mark == Mark.AREA or plots[i]._mark == Mark.HISTOGRAM
+        if plots[i].settings.y_log and (
+            plots[i].id() == Mark.AREA or plots[i].id() == Mark.HISTOGRAM
         ):
             raise Error(
                 "render_layers(): Plot.scale_y_log() isn't supported on a"
@@ -1589,16 +1639,16 @@ def _render_layers_generic[
                 + ")"
             )
         _validate_continuous_encoding(
-            plots[i]._continuous,
-            plots[i]._channels,
-            plots[i]._y_err,
-            plots[i]._mark,
+            plots[i].continuous,
+            plots[i].channels,
+            plots[i].y_err,
+            plots[i].id(),
             "render_layers(): layer " + String(i),
         )
         _validate_log_scale_annotations(
-            plots[i]._annotations,
-            plots[i]._settings.x_log,
-            plots[i]._settings.y_log,
+            plots[i].annotations,
+            plots[i].settings.x_log,
+            plots[i].settings.y_log,
         )
         # Last in the loop so the layering-specific rejections above are
         # what a caller meets first; this is where a layer's own
@@ -1608,7 +1658,7 @@ def _render_layers_generic[
     var has_secondary = False
     var has_primary = False
     for i in range(len(plots)):
-        if plots[i]._settings.secondary_axis:
+        if plots[i].settings.secondary_axis:
             has_secondary = True
         else:
             has_primary = True
@@ -1619,7 +1669,7 @@ def _render_layers_generic[
             ' "secondary" to mean relative to)'
         )
 
-    var theme = plots[0]._settings.theme
+    var theme = plots[0].settings.theme
 
     # Every layer's columns, already read out of whichever field its mark
     # keeps them in and already widened for y_err (see `_LayerDomain`).
@@ -1639,7 +1689,7 @@ def _render_layers_generic[
             unpadded_layers += 1
         for v in domains[i].xs:
             combined_x.append(v)
-        if plots[i]._settings.secondary_axis:
+        if plots[i].settings.secondary_axis:
             for v in domains[i].ys:
                 combined_y2.append(v)
             if domains[i].zero_baseline:
@@ -1649,7 +1699,7 @@ def _render_layers_generic[
                 combined_y.append(v)
             if domains[i].zero_baseline:
                 any_zero_baseline = True
-            if not (plots[i]._mark == Mark.ECDF):
+            if not (plots[i].id() == Mark.ECDF):
                 all_ecdf = False
 
     # All unpadded or none. A grid-index contour spans its rect edge to
@@ -1729,9 +1779,9 @@ def _render_layers_generic[
     # legitimate (the instants are absolute), and the axis then reads in
     # the first layer's zone, the same rule a standalone plot follows.
     for i in range(len(plots)):
-        if plots[i]._settings.x_time:
+        if plots[i].settings.x_time:
             x_scale.is_time = True
-            x_scale.tz_offset = plots[i]._settings.x_tz_offset
+            x_scale.tz_offset = plots[i].settings.x_tz_offset
             break
 
     var has_secondary_data = has_secondary and len(combined_y2) > 0
@@ -1778,12 +1828,12 @@ def _render_layers_generic[
     var series_names = List[String]()
     var series_colors = List[Color]()
     for j in range(len(plots)):
-        if plots[j]._settings.labels.series_name.byte_length() > 0:
-            var name = plots[j]._settings.labels.series_name
-            if plots[j]._settings.secondary_axis:
+        if plots[j].settings.labels.series_name.byte_length() > 0:
+            var name = plots[j].settings.labels.series_name
+            if plots[j].settings.secondary_axis:
                 name += " (right axis)"
             series_names.append(name)
-            series_colors.append(plots[j]._settings.theme.mark_color)
+            series_colors.append(plots[j].settings.theme.mark_color)
 
     # legend_reserve is the widest legend section across every
     # encoding-using Mark.POINT layer, each measured with that layer's own
@@ -1791,15 +1841,15 @@ def _render_layers_generic[
     # not a sum.
     var legend_width = 0
     for j in range(len(plots)):
-        var p_sc_j = _Scaled(plots[j]._settings.theme)
+        var p_sc_j = _Scaled(plots[j].settings.theme)
         var ch_j = _PointChannels(
-            plots[j]._channels,
-            plots[j]._settings.theme,
-            plots[j]._settings.color_domain,
+            plots[j].channels,
+            plots[j].settings.theme,
+            plots[j].settings.color_domain,
             p_sc_j,
         )
         var layer_legend = _legend_reserve_for(
-            plots[j]._mark, plots[j]._settings.theme, ch_j, p_sc_j, cache=cache
+            plots[j].id(), plots[j].settings.theme, ch_j, p_sc_j, cache=cache
         )
         legend_width = max(legend_width, layer_legend.left + layer_legend.right)
     if len(series_names) > 0:
@@ -1927,10 +1977,10 @@ def _render_layers_generic[
     for j in range(len(plots)):
         var under_y_scale = out_y_scale2 if plots[
             j
-        ]._settings.secondary_axis else frame.y_scale
+        ].settings.secondary_axis else frame.y_scale
         var under_has_y = has_secondary_data if plots[
             j
-        ]._settings.secondary_axis else frame.has_y_scale
+        ].settings.secondary_axis else frame.has_y_scale
         var under_result = _RenderResult(
             List[_TextRequest](),
             frame.px0,
@@ -1944,48 +1994,48 @@ def _render_layers_generic[
         )
         var under_areas = _draw_annotation_areas(
             target,
-            plots[j]._annotations,
+            plots[j].annotations,
             under_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         for k in range(len(under_areas)):
             text_requests.append(under_areas[k].copy())
         var under_bands = _draw_annotation_bands(
             target,
-            plots[j]._annotations,
+            plots[j].annotations,
             under_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         for k in range(len(under_bands)):
             text_requests.append(under_bands[k].copy())
 
     for j in range(len(plots)):
-        var mark = plots[j]._mark
-        var layer_theme = plots[j]._settings.theme
+        var mark = plots[j].id()
+        var layer_theme = plots[j].settings.theme
         var layer_sc = _Scaled(layer_theme)
         var layer_y_scale = out_y_scale2 if plots[
             j
-        ]._settings.secondary_axis else frame.y_scale
+        ].settings.secondary_axis else frame.y_scale
         if mark == Mark.POINT or mark == Mark.EFFECT_SCATTER:
-            if len(plots[j]._continuous.x) == 0:
+            if len(plots[j].continuous.x) == 0:
                 continue
             var ch_j = _PointChannels(
-                plots[j]._channels,
-                plots[j]._settings.theme,
-                plots[j]._settings.color_domain,
+                plots[j].channels,
+                plots[j].settings.theme,
+                plots[j].settings.color_domain,
                 layer_sc,
             )
             legend_y = _draw_point_layer(
                 target,
                 text_requests,
-                plots[j]._mark,
-                plots[j]._continuous,
-                plots[j]._channels,
-                plots[j]._y_err,
-                plots[j]._mark_style,
-                plots[j]._settings,
+                plots[j].id(),
+                plots[j].continuous,
+                plots[j].channels,
+                plots[j].y_err,
+                plots[j].style,
+                plots[j].settings,
                 ch_j,
                 frame.x_scale,
                 layer_y_scale,
@@ -1995,35 +2045,35 @@ def _render_layers_generic[
                 cache=cache,
             )
         elif mark == Mark.LINE:
-            if len(plots[j]._continuous.x) == 0:
+            if len(plots[j].continuous.x) == 0:
                 continue
             _draw_line_layer(
                 target,
-                plots[j]._continuous,
-                plots[j]._y_err,
-                plots[j]._mark_style,
-                plots[j]._settings,
+                plots[j].continuous,
+                plots[j].y_err,
+                plots[j].style,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
             )
         elif mark == Mark.AREA:
-            if len(plots[j]._continuous.x) == 0:
+            if len(plots[j].continuous.x) == 0:
                 continue
             _draw_area_layer(
                 target,
-                plots[j]._continuous,
-                plots[j]._mark_style,
-                plots[j]._settings,
+                plots[j].continuous,
+                plots[j].style,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
             )
         elif mark == Mark.HISTOGRAM:
-            if len(plots[j]._continuous.x) == 0:
+            if len(plots[j].continuous.x) == 0:
                 continue
             _draw_histogram_layer(
                 target,
-                plots[j]._histogram,
-                plots[j]._settings,
+                plots[j].mark[Histogram]().histogram,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
                 text_requests,
@@ -2036,11 +2086,11 @@ def _render_layers_generic[
             # mark_kde(rug=True) ticks.
             _draw_kde_layer(
                 target,
-                plots[j]._distribution,
-                plots[j]._settings,
+                plots[j].distribution,
+                plots[j].settings,
                 domains[j].xs,
                 domains[j].ys,
-                _kde_observations(plots[j]._distribution),
+                _kde_observations(plots[j].distribution),
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -2049,8 +2099,8 @@ def _render_layers_generic[
         elif mark == Mark.ECDF:
             _draw_ecdf_layer(
                 target,
-                plots[j]._distribution,
-                plots[j]._settings,
+                plots[j].distribution,
+                plots[j].settings,
                 domains[j].xs,
                 domains[j].ys,
                 frame.x_scale,
@@ -2074,8 +2124,8 @@ def _render_layers_generic[
         elif mark == Mark.BARBS:
             _draw_barbs_layer(
                 target,
-                plots[j]._barbs,
-                plots[j]._settings,
+                plots[j].mark[Barbs]().barbs,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -2083,8 +2133,8 @@ def _render_layers_generic[
         elif mark == Mark.TRICONTOUR:
             _draw_tricontour_layer(
                 target,
-                plots[j]._tricontour,
-                plots[j]._settings,
+                plots[j].mark[Tricontour]().tricontour,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -2092,16 +2142,16 @@ def _render_layers_generic[
         elif mark == Mark.TRICONTOURF:
             _draw_tricontourf_layer(
                 target,
-                plots[j]._tricontour,
-                plots[j]._settings,
+                plots[j].mark[Tricontourf]().tricontour,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
             )
         elif mark == Mark.TRIPLOT:
             _draw_triplot_layer(
                 target,
-                plots[j]._triplot,
-                plots[j]._settings,
+                plots[j].mark[Triplot]().triplot,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -2109,16 +2159,16 @@ def _render_layers_generic[
         elif mark == Mark.TRIPCOLOR:
             _draw_tripcolor_layer(
                 target,
-                plots[j]._triplot,
-                plots[j]._settings,
+                plots[j].mark[Tripcolor]().triplot,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
             )
         elif mark == Mark.CONTOUR:
             _draw_contour_layer(
                 target,
-                plots[j]._contour,
-                plots[j]._settings,
+                plots[j].mark[Contour]().contour,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
                 layer_sc,
@@ -2126,8 +2176,8 @@ def _render_layers_generic[
         elif mark == Mark.CONTOURF:
             _draw_contourf_layer(
                 target,
-                plots[j]._contour,
-                plots[j]._settings,
+                plots[j].mark[Contourf]().contour,
+                plots[j].settings,
                 frame.x_scale,
                 layer_y_scale,
             )
@@ -2142,7 +2192,7 @@ def _render_layers_generic[
     for j in range(len(plots)):
         var layer_y_scale = out_y_scale2 if plots[
             j
-        ]._settings.secondary_axis else frame.y_scale
+        ].settings.secondary_axis else frame.y_scale
         # Whether that y-scale measures anything. A secondary-axis
         # layer's does when some layer contributed to the secondary
         # domain; a primary one's follows the frame, which is false only
@@ -2153,7 +2203,7 @@ def _render_layers_generic[
         # drawing against a placeholder domain.
         var layer_has_y_scale = has_secondary_data if plots[
             j
-        ]._settings.secondary_axis else frame.has_y_scale
+        ].settings.secondary_axis else frame.has_y_scale
         var layer_result = _RenderResult(
             List[_TextRequest](),
             frame.px0,
@@ -2170,40 +2220,40 @@ def _render_layers_generic[
         var layer_band_requests = List[_TextRequest]()
         var layer_vline_requests = _draw_annotation_vlines(
             target,
-            plots[j]._annotations,
+            plots[j].annotations,
             layer_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         var layer_line_requests = _draw_annotation_lines(
             target,
-            plots[j]._annotations,
+            plots[j].annotations,
             layer_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         var layer_point_requests = _draw_annotation_points(
             target,
-            plots[j]._annotations,
+            plots[j].annotations,
             layer_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         _draw_annotation_smooth(
             target,
-            plots[j]._annotations,
-            plots[j]._continuous.x,
-            plots[j]._continuous.y,
+            plots[j].annotations,
+            plots[j].continuous.x,
+            plots[j].continuous.y,
             layer_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
         )
         var layer_best_fit_requests = _draw_annotation_best_fit(
             target,
-            plots[j]._annotations,
-            plots[j]._continuous.x,
-            plots[j]._continuous.y,
+            plots[j].annotations,
+            plots[j].continuous.x,
+            plots[j].continuous.y,
             layer_result,
-            plots[j]._settings.theme,
+            plots[j].settings.theme,
             cache=cache,
         )
         _extend_text_requests(text_requests, layer_area_requests)
@@ -2216,3 +2266,44 @@ def _render_layers_generic[
     return _RenderResult(
         text_requests^, frame.px0, frame.py0, frame.px1, frame.py1
     )
+
+
+def render_layers[*Cs: ChartLike](*charts: *Cs) raises -> Canvas:
+    """`render_layers(plots)` for charts named one by one, of any mark
+    types: `render_layers(bars, line)`. Each is erased for the shared
+    list; the layout is the same."""
+    var plots = List[AnyChart]()
+
+    comptime for i in range(charts.__len__()):
+        plots.append(charts[i].erased())
+    return render_layers(plots)
+
+
+def render_layers_svg[*Cs: ChartLike](*charts: *Cs) raises -> SvgCanvas:
+    """`render_layers_svg(plots)` for charts named one by one."""
+    var plots = List[AnyChart]()
+
+    comptime for i in range(charts.__len__()):
+        plots.append(charts[i].erased())
+    return render_layers_svg(plots)
+
+
+def render_layers_pdf[*Cs: ChartLike](*charts: *Cs) raises -> PdfCanvas:
+    """`render_layers_pdf(plots)` for charts named one by one."""
+    var plots = List[AnyChart]()
+
+    comptime for i in range(charts.__len__()):
+        plots.append(charts[i].erased())
+    return render_layers_pdf(plots)
+
+
+def save_layers[
+    *Cs: ChartLike
+](*charts: *Cs, path: String, dpi: Float64 = 72.0, tight: Bool = False) raises:
+    """`save_layers(plots, path)` for charts named one by one:
+    `save_layers(bars, line, path="combo.svg")`."""
+    var plots = List[AnyChart]()
+
+    comptime for i in range(charts.__len__()):
+        plots.append(charts[i].erased())
+    save_layers(plots, path, dpi=dpi, tight=tight)

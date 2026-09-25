@@ -62,7 +62,9 @@ def _mesh_for(grid: List[List[List[Bool]]]) raises -> Int:
         _W,
         _H,
     )
-    var mesh = _voxel_mesh(plot._voxels, frame, (layers, rows, cols), Theme())
+    var mesh = _voxel_mesh(
+        plot.mark.voxels, frame, (layers, rows, cols), Theme()
+    )
     return len(mesh.colors)
 
 
@@ -268,11 +270,6 @@ def test_a_ragged_voxel_row_names_the_row() raises:
     grid[1][0].append(True)
     with assert_raises(contains="layer 1 row 0 has 3 against 2"):
         _ = render(voxels(grid))
-
-
-def test_encode_voxels_rejects_a_mark_with_no_grid() raises:
-    with assert_raises(contains="encode_voxels"):
-        _ = Plot().mark_bar3d().encode_voxels(_solid(1, 1, 1))
 
 
 def test_voxels_frame_marks_sparse_occupied_cells() raises:

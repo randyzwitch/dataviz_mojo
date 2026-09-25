@@ -3,6 +3,8 @@ the standard check on whether a straight line was the right model."""
 
 from dataframe import DataFrame
 
+from dataviz.chart import Chart
+from dataviz.marks import Point
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -21,7 +23,7 @@ def residplot(
     subtitle: String = "",
     x_title: String = "Fitted value",
     y_title: String = "Residual",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """`residplot()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -42,7 +44,7 @@ def residplot(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -75,7 +77,7 @@ def residplot[
     subtitle: String = "",
     x_title: String = "Fitted value",
     y_title: String = "Residual",
-) raises -> Plot:
+) raises -> Chart[Point]:
     """Fit `y = m*x + b` by ordinary least squares and scatter each point's
     residual (`y - fitted`) against its fitted value, with a reference
     line at zero: the diagnostic for whether a

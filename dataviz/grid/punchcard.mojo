@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Punchcard
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -119,26 +121,6 @@ def _render_punchcard[
     return frame.result()
 
 
-def _render_punchcard_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_punchcard` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_punchcard(
-        target, plot._punchcard, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def punchcard(
     df: DataFrame,
     x: String,
@@ -152,7 +134,7 @@ def punchcard(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Punchcard]:
     """`punchcard()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -175,7 +157,7 @@ def punchcard(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -217,7 +199,7 @@ def punchcard[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Punchcard]:
     """A punchcard, in the style of GitHub's old commit-activity graph: a
     scatter plot on a categorical grid where bubble size encodes a value
     at each (x, y) cell, for spotting when activity clusters across two
@@ -245,7 +227,7 @@ def punchcard[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

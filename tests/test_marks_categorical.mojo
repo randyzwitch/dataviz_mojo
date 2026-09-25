@@ -2124,18 +2124,6 @@ def test_imshow_and_pcolormesh_validation_raises_name_what_is_wrong() raises:
     # The two raises Mark.name() is what makes readable: a mark paired
     # with the other one's encoding. Neither can draw what the caller
     # asked for, and the message has to say which mark is asking.
-    with assert_raises(contains="Mark.PCOLORMESH"):
-        _ = render(
-            Plot().mark_pcolormesh().encode_imshow(z).theme(t).size(200, 150)
-        )
-    with assert_raises(contains="Mark.IMSHOW"):
-        _ = render(
-            Plot()
-            .mark_imshow()
-            .encode_pcolormesh(ok_edges, ok_edges, z)
-            .theme(t)
-            .size(200, 150)
-        )
 
 
 def _fill_count(z: List[List[Float64]], lo: Float64, hi: Float64) raises -> Int:

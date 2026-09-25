@@ -25,6 +25,8 @@ keeps a full-size head on a shaft with no length, which is exactly when
 a reader should distrust the picture anyway.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import FillBetween3d, Quiver3d, Stem3d
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
@@ -268,26 +270,6 @@ def _render_stem3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_stem3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_stem3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_stem3d(
-        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _render_quiver3d[
     T: DrawTarget
 ](
@@ -351,26 +333,6 @@ def _render_quiver3d[
             theme.mark_color,
         )
     return _RenderResult(text^, px0, py0, px1, py1)
-
-
-def _render_quiver3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_quiver3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_quiver3d(
-        target, plot._vectors3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
 
 
 struct _Ribbon3D(Copyable, Movable):
@@ -529,26 +491,6 @@ def _render_fill_between3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_fill_between3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_fill_between3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_fill_between3d(
-        target, plot._ribbon3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def stem3d(
     df: DataFrame,
     x: String,
@@ -561,7 +503,7 @@ def stem3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Stem3d]:
     """`stem3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -583,7 +525,7 @@ def stem3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -619,7 +561,7 @@ def stem3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Stem3d]:
     """Points tethered to the base plane: a line from the plane to each
     (x, y, z), with a marker on the end.
 
@@ -644,7 +586,7 @@ def stem3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The three columns disagree in length, or are empty.
@@ -701,7 +643,7 @@ def quiver3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Quiver3d]:
     """`quiver3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -726,7 +668,7 @@ def quiver3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -771,7 +713,7 @@ def quiver3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Quiver3d]:
     """Arrows in space: a direction and a magnitude sampled at points.
 
     `Mark.QUIVER3D`. Each arrow runs from its (x, y, z) along
@@ -805,7 +747,7 @@ def quiver3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The six columns disagree in length, or are empty.
@@ -874,7 +816,7 @@ def fill_between3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[FillBetween3d]:
     """`fill_between3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -899,7 +841,7 @@ def fill_between3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -944,7 +886,7 @@ def fill_between3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[FillBetween3d]:
     """The surface between two curves through space: a ribbon joining
     them sample by sample.
 
@@ -978,7 +920,7 @@ def fill_between3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The six columns disagree in length, or there are fewer

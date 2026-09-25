@@ -4,6 +4,8 @@ drawn as colored hexagons. The lattice tiles the plane without the
 axis-aligned artifacts a rectangular grid shows on diagonal structure,
 which is the reason it exists alongside `hist2d()`."""
 
+from dataviz.chart import Chart
+from dataviz.marks import Hexbin
 from dataviz.core.chart_settings import _ChartSettings
 from std.collections import Set
 from std.math import floor, log10, pi, sqrt
@@ -532,26 +534,6 @@ def _render_hexbin[
     return frame.result()
 
 
-def _render_hexbin_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_hexbin` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_hexbin(
-        target, plot._hexbin, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def hexbin(
     df: DataFrame,
     x: String,
@@ -564,7 +546,7 @@ def hexbin(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hexbin]:
     """`hexbin()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -586,7 +568,7 @@ def hexbin(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -621,7 +603,7 @@ def hexbin[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hexbin]:
     """A hexagonal-bin density plot: `(x, y)`
     points counted into a lattice of hexagons `gridsize` cells across,
     each hexagon colored by how many points fell in it.
@@ -658,7 +640,7 @@ def hexbin[
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: `x` and `y` differ in length or are empty, or `gridsize`

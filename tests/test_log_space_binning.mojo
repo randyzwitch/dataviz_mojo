@@ -98,7 +98,7 @@ def test_hist2d_log_x_bins_in_log_space() raises:
     var x = _log_uniform(2000)
     var y = _spread(2000)
     var plot = hist2d(x, y, 10, log_x=True)
-    var e = plot._image.x_edges.copy()
+    var e = plot.mark.image.x_edges.copy()
     var ratio = e[1] / e[0]
     for i in range(2, len(e)):
         assert_true(

@@ -9,6 +9,7 @@ It then checks the saved file really has that size.
 """
 from std.math import cos, exp, sin
 
+from dataviz.chart import AnyChart
 from dataviz import GridCell, Plot, Theme, imshow, line, save_grid
 
 
@@ -83,7 +84,11 @@ def main() raises:
         y_title="$\\Delta T$ (K)",
     )
 
-    var plots: List[Plot] = [left^, right^, trend^]
+    var plots: List[AnyChart] = [
+        AnyChart(left),
+        AnyChart(right),
+        AnyChart(trend),
+    ]
     var cells: List[GridCell] = [
         GridCell(0, 0),
         GridCell(0, 1),

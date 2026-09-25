@@ -4,6 +4,8 @@ a dataset where a plain `line()` cannot."""
 
 from dataframe import DataFrame
 
+from dataviz.chart import Chart
+from dataviz.marks import Line
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -30,7 +32,7 @@ def lineplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """`lineplot()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -54,7 +56,7 @@ def lineplot(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -93,7 +95,7 @@ def lineplot[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Line]:
     """A line through the *estimate* of `y` at each distinct `x` -- the
     mean by default -- with a shaded band for its uncertainty. Where
     `line()` connects the points it is given,

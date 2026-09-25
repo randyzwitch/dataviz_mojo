@@ -18,7 +18,7 @@ def main() raises:
     var b = Plot().mark_line().encode(
         x=[1.0, 2.0, 3.0], y=[8.0, 22.0, 18.0]
     ).labels(title="South")
-    save_facets([a^, b^], cols=2, path="facets.svg", shared_y_scale=True)
+    save_facets(a, b, cols=2, path="facets.svg", shared_y_scale=True)
 ```
 
 For a DataFrame, `scatter_facets(df, x="spend", y="revenue",

@@ -21,6 +21,7 @@ it were the largest.
 """
 from dataframe import Column, DataFrame, Series, col
 
+from dataviz.chart import AnyChart
 from dataviz import Plot, facet_by, pooled_extent, scatter
 from dataviz.facets import save_facets
 
@@ -55,19 +56,21 @@ def main() raises:
     var y = pooled_extent(campaigns, "revenue_kusd")
     var x = pooled_extent(campaigns, "spend_kusd")
 
-    var panels = List[Plot]()
+    var panels = List[AnyChart]()
     for part in facet_by(campaigns.filter(col("spend_kusd") > 0.0), "region"):
         panels.append(
-            scatter(
-                part.frame,
-                x="spend_kusd",
-                y="revenue_kusd",
-                title=part.name,
-                width=320,
-                height=260,
+            AnyChart(
+                scatter(
+                    part.frame,
+                    x="spend_kusd",
+                    y="revenue_kusd",
+                    title=part.name,
+                    width=320,
+                    height=260,
+                )
+                .scale_x_domain(x[0], x[1])
+                .scale_y_domain(y[0], y[1])
             )
-            .scale_x_domain(x[0], x[1])
-            .scale_y_domain(y[0], y[1])
         )
 
     var path = "docs/src/examples/out_dataframe_facets.svg"

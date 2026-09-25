@@ -20,6 +20,7 @@ from dataviz.core.theme import Theme
 from dataviz.grid.heatmap import heatmap
 
 from dataviz.layout import Figure, GridCell
+from dataviz.chart import AnyChart
 from dataviz.plot import Plot
 
 
@@ -91,7 +92,7 @@ def _clustermap_panels(
     ratio: Float64,
     cluster_rows: Bool,
     cluster_cols: Bool,
-    mut plots: List[Plot],
+    mut plots: List[AnyChart],
     mut cells: List[GridCell],
     mut row_weights: List[Float64],
     mut col_weights: List[Float64],
@@ -148,8 +149,8 @@ def _clustermap_panels(
 
     var row_order = _identity_order(n_rows)
     var col_order = _identity_order(n_cols)
-    var row_tree = Plot()
-    var col_tree = Plot()
+    var row_tree = Plot().mark_dendrogram(horizontal=True)
+    var col_tree = Plot().mark_dendrogram()
     if cluster_rows:
         var tree = linkage(values, metric, method)
         row_order = tree.leaf_order.copy()
@@ -208,15 +209,15 @@ def _clustermap_panels(
     # where they belong, and the row names keep the left margin.
     var top = 1 if cluster_cols else 0
     if cluster_cols:
-        plots.append(col_tree^)
+        plots.append(AnyChart(col_tree))
         cells.append(GridCell(0, 0))
         row_weights.append(1.0)
-    plots.append(matrix^)
+    plots.append(AnyChart(matrix))
     cells.append(GridCell(top, 0))
     row_weights.append(ratio)
     col_weights.append(ratio)
     if cluster_rows:
-        plots.append(row_tree^)
+        plots.append(AnyChart(row_tree))
         cells.append(GridCell(top, 1))
         col_weights.append(1.0)
 
@@ -326,7 +327,7 @@ def clustermap(
             axis, a non-positive `ratio`, or anything `linkage()`
             raises.
     """
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     var row_weights = List[Float64]()
     var col_weights = List[Float64]()

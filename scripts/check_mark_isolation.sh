@@ -68,9 +68,9 @@ if [ -n "$found" ]; then
     status=1
 fi
 found="$(renderers "$WORK/heatmap_only.ll")"
-if [ "$found" != "$(printf 'grid::heatmap::_render_heatmap\ngrid::heatmap::_render_heatmap_plot')" ]; then
+if [ "$found" != "grid::heatmap::_render_heatmap" ]; then
     echo "check_mark_isolation: a heatmap-only program should compile" >&2
-    echo "grid::heatmap::_render_heatmap, its _plot adapter, and no other renderer; it compiled:" >&2
+    echo "grid::heatmap::_render_heatmap and no other renderer; it compiled:" >&2
     printf '  %s\n' ${found:-(none)} >&2
     status=1
 fi

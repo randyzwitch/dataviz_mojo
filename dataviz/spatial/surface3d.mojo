@@ -23,6 +23,8 @@ the fix is splitting faces at their crossings or a depth buffer,
 neither of which exists here.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Surface3d, Trisurf3d, Wire3d
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.geometry import FPoint
@@ -304,26 +306,6 @@ def _render_surface3d[
     )
 
 
-def _render_surface3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_surface3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_surface3d(
-        target, plot._surface, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _render_wire3d[
     T: DrawTarget
 ](
@@ -398,26 +380,6 @@ def _render_wire3d[
         oy0 + sc.margin_top,
         ox1 - sc.margin_right,
         oy1 - sc.margin_bottom,
-    )
-
-
-def _render_wire3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_wire3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_wire3d(
-        target, plot._surface, plot._settings, ox0, oy0, ox1, oy1, cache=cache
     )
 
 
@@ -499,26 +461,6 @@ def _render_trisurf3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_trisurf3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_trisurf3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_trisurf3d(
-        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def surface3d(
     df: DataFrame,
     row: String,
@@ -531,7 +473,7 @@ def surface3d(
     height: Int = 420,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Surface3d]:
     """`surface3d()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per cell, with `row` and `column` giving the cell's
     coordinates and `value` its height.
@@ -556,7 +498,7 @@ def surface3d(
         subtitle: A line under the title.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, the columns
@@ -590,7 +532,7 @@ def surface3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Surface3d]:
     """A 3D surface: a height field over a regular grid, drawn as filled
     faces shaded by height.
 
@@ -626,7 +568,7 @@ def surface3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The grid is ragged, or smaller than 2x2.
@@ -679,7 +621,7 @@ def wire3d(
     height: Int = 420,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Wire3d]:
     """`wire3d()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per cell, with `row` and `column` giving the cell's
     coordinates and `value` its height.
@@ -704,7 +646,7 @@ def wire3d(
         subtitle: A line under the title.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, the columns
@@ -738,7 +680,7 @@ def wire3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Wire3d]:
     """A 3D wireframe: the same height field as `surface3d`, drawn as
     the lattice's own lines with nothing filled in.
 
@@ -766,7 +708,7 @@ def wire3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The grid is ragged, or smaller than 2x2.
@@ -815,7 +757,7 @@ def trisurf3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Trisurf3d]:
     """`trisurf3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -837,7 +779,7 @@ def trisurf3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -873,7 +815,7 @@ def trisurf3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Trisurf3d]:
     """A 3D surface over scattered points: the `(x, y)` are
     triangulated, lifted to their z, and filled.
 
@@ -901,7 +843,7 @@ def trisurf3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The three columns disagree in length, or are empty.

@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Arc
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -227,37 +229,6 @@ def _render_arc[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_arc_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_arc` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_arc(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._categorical,
-        plot._y_err,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def pie(
     df: DataFrame,
     categories: String,
@@ -270,7 +241,7 @@ def pie(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Arc]:
     """`pie()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -292,7 +263,7 @@ def pie(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -329,7 +300,7 @@ def pie[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Arc]:
     """A pie chart, showing each category's share of a whole as a wedge's
     angle. Best for a small number of categories (roughly two to six)
     that sum to a meaningful total; more than that becomes hard to
@@ -356,7 +327,7 @@ def pie[
         y_title: Unused -- a pie chart has no y-axis to label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

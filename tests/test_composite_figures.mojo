@@ -7,6 +7,7 @@ compilation, so the suite is organized by family (#605).
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.buffer import Canvas
 from canvas.color import Color
+from dataviz.chart import AnyChart
 from dataviz import (
     render,
     render_pdf,
@@ -856,7 +857,7 @@ def test_constructing_a_figure_does_not_render() raises:
     var cols = _three()
     var panels = pairplot(cols[0], cols[1], cell_width=140, cell_height=120)
     var cells: List[GridCell] = [GridCell(0, 0), GridCell(0, 1)]
-    var one = List[Plot]()
+    var one = List[AnyChart]()
     one.append(panels.plots[0].copy())
     var bad = Figure(
         one^,

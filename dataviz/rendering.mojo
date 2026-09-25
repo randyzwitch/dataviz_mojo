@@ -73,7 +73,7 @@ from dataviz.core.render_result import _RenderResult
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import _draw_histogram_layer, _HistogramData
-from dataviz.plot import Plot
+from dataviz.chart import AnyChart, ChartLike
 from dataviz.core.plot_fields import (
     _LabelData,
     _ChannelData,
@@ -179,8 +179,8 @@ def _resolve_supersample(
     return configured
 
 
-def render(plot: Plot) raises -> Canvas:
-    """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
+def render[C: ChartLike](plot: C) raises -> Canvas:
+    """Render `plot` into a fresh `Canvas` sized `plot.canvas_width()` x `plot.canvas_height()`
     and return it, supersampled by `plot._settings.theme.raster_supersample`
     (default automatic, resolved per mark by `_auto_supersample()`):
     the drawing is recorded once at logical coordinates and replayed
@@ -197,9 +197,13 @@ def render(plot: Plot) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(
-        plot._mark, plot._settings.theme, "render"
+        plot.id(), plot.chart_settings().theme, "render"
     )
-    var out = Canvas(plot.width, plot.height, plot._settings.theme.background)
+    var out = Canvas(
+        plot.canvas_width(),
+        plot.canvas_height(),
+        plot.chart_settings().theme.background,
+    )
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output
     # band at a time, so the enlarged buffer never exists whole. Byte
@@ -210,8 +214,8 @@ def render(plot: Plot) raises -> Canvas:
     # two-step recipe and `render()` chose per plot; canvas_mojo v0.33.3
     # records the whole call as one op and that was the last primitive
     # that did so (benchmarks/METHODOLOGY.md).
-    out.begin_supersampled(factor, plot._settings.theme.background)
-    _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
+    out.begin_supersampled(factor, plot.chart_settings().theme.background)
+    _ = _render_into(out, plot, 0, 0, plot.canvas_width(), plot.canvas_height())
     out.end_supersampled()
     return out^
 
@@ -250,10 +254,10 @@ struct _DrawnFigure(Movable):
 
 
 def _draw_figure_into[
-    T: DrawTarget
+    C: ChartLike, T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    plot: C,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -298,33 +302,39 @@ def _draw_figure_into[
     Raises:
         Error: Whatever the mark's render raises.
     """
+    var settings = plot.chart_settings()
+    var annotations = plot.chart_annotations()
+    var mark = plot.id()
     if fill_background:
         target.fill_rect(
-            ox0, oy0, ox1 - ox0, oy1 - oy0, plot._settings.theme.background
+            ox0, oy0, ox1 - ox0, oy1 - oy0, settings.theme.background
         )
     var frame = _apply_labels(
-        plot._settings.labels,
-        plot._mark,
-        plot._settings.theme,
+        plot.chart_settings().labels,
+        mark,
+        settings.theme,
         ox0,
         oy0,
         ox1,
         oy1,
         cache=cache,
     )
-    var result = _render_generic(
+    var result = plot.render_mark(
         target,
-        plot,
         frame.ox0,
         frame.oy0,
         frame.ox1,
         frame.oy1,
+        False,
+        0.0,
+        0.0,
+        False,
         cache=cache,
         vector_target=vector_target,
     )
     var text = _label_text_requests(
-        plot._settings.labels,
-        plot._settings.theme,
+        plot.chart_settings().labels,
+        settings.theme,
         ox0,
         oy0,
         ox1,
@@ -335,15 +345,15 @@ def _draw_figure_into[
         result.py1,
         cache=cache,
     )
-    var under_mark = _filled_annotations_go_under(plot._mark)
+    var under_mark = _filled_annotations_go_under(mark)
     if not under_mark:
         _extend_text_requests(
             text,
             _draw_annotation_areas(
                 target,
-                plot._annotations,
+                annotations,
                 result,
-                plot._settings.theme,
+                settings.theme,
                 cache=cache,
             ),
         )
@@ -351,53 +361,53 @@ def _draw_figure_into[
             text,
             _draw_annotation_bands(
                 target,
-                plot._annotations,
+                annotations,
                 result,
-                plot._settings.theme,
+                settings.theme,
                 cache=cache,
             ),
         )
     _extend_text_requests(
         text,
         _draw_annotation_vlines(
-            target, plot._annotations, result, plot._settings.theme, cache=cache
+            target, annotations, result, settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_lines(
-            target, plot._annotations, result, plot._settings.theme, cache=cache
+            target, annotations, result, settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_points(
-            target, plot._annotations, result, plot._settings.theme, cache=cache
+            target, annotations, result, settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_arrows(
-            target, plot._annotations, result, plot._settings.theme, cache=cache
+            target, annotations, result, settings.theme, cache=cache
         ),
     )
     _draw_annotation_smooth(
         target,
-        plot._annotations,
-        plot._continuous.x,
-        plot._continuous.y,
+        annotations,
+        plot.x_data(),
+        plot.y_data(),
         result,
-        plot._settings.theme,
+        settings.theme,
     )
     _extend_text_requests(
         text,
         _draw_annotation_best_fit(
             target,
-            plot._annotations,
-            plot._continuous.x,
-            plot._continuous.y,
+            annotations,
+            plot.x_data(),
+            plot.y_data(),
             result,
-            plot._settings.theme,
+            settings.theme,
             cache=cache,
         ),
     )
@@ -405,7 +415,7 @@ def _draw_figure_into[
     return _DrawnFigure(result.px0, result.py0, result.px1, result.py1, text^)
 
 
-def render_tight(plot: Plot) raises -> Canvas:
+def render_tight[C: ChartLike](plot: C) raises -> Canvas:
     """`render()` cropped to the figure's ink: the whitespace a fixed
     figure size reserves for a longer title or a legend that is not
     there is trimmed away (#372).
@@ -434,20 +444,20 @@ def render_tight(plot: Plot) raises -> Canvas:
     """
     var box = _tight_box(plot, False)
     var factor = _resolve_supersample(
-        plot._mark, plot._settings.theme, "render_tight"
+        plot.id(), plot.chart_settings().theme, "render_tight"
     )
-    var out = Canvas(box[2], box[3], plot._settings.theme.background)
-    out.begin_supersampled(factor, plot._settings.theme.background)
+    var out = Canvas(box[2], box[3], plot.chart_settings().theme.background)
+    out.begin_supersampled(factor, plot.chart_settings().theme.background)
     # Draw the figure at its full size into a smaller canvas, shifted so
     # the ink's top-left lands at the origin. Everything outside the
     # canvas is clipped, which is exactly the crop.
     out.translate(-Float64(box[0]), -Float64(box[1]))
-    _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
+    _ = _render_into(out, plot, 0, 0, plot.canvas_width(), plot.canvas_height())
     out.end_supersampled()
     return out^
 
 
-def render_tight_svg(plot: Plot) raises -> SvgCanvas:
+def render_tight_svg[C: ChartLike](plot: C) raises -> SvgCanvas:
     """`render_svg()` cropped to the figure's ink; `render_tight()`'s
     vector counterpart (#372).
 
@@ -467,11 +477,13 @@ def render_tight_svg(plot: Plot) raises -> SvgCanvas:
     var box = _tight_box(plot, True)
     var svg = SvgCanvas(box[2], box[3])
     svg.translate(-Float64(box[0]), -Float64(box[1]))
-    _ = _render_svg_into(svg, plot, 0, 0, plot.width, plot.height)
+    _ = _render_svg_into(
+        svg, plot, 0, 0, plot.canvas_width(), plot.canvas_height()
+    )
     return svg^
 
 
-def render_tight_pdf(plot: Plot) raises -> PdfCanvas:
+def render_tight_pdf[C: ChartLike](plot: C) raises -> PdfCanvas:
     """`render_pdf()` cropped to the figure's ink, so the page is the
     figure rather than the figure plus its margins (#372).
 
@@ -491,13 +503,15 @@ def render_tight_pdf(plot: Plot) raises -> PdfCanvas:
     var box = _tight_box(plot, True)
     var pdf = PdfCanvas(box[2], box[3])
     pdf.translate(-Float64(box[0]), -Float64(box[1]))
-    _ = _render_pdf_into(pdf, plot, 0, 0, plot.width, plot.height)
+    _ = _render_pdf_into(
+        pdf, plot, 0, 0, plot.canvas_width(), plot.canvas_height()
+    )
     return pdf^
 
 
-def _tight_box(
-    plot: Plot, vector_target: Bool
-) raises -> Tuple[Int, Int, Int, Int]:
+def _tight_box[
+    C: ChartLike
+](plot: C, vector_target: Bool) raises -> Tuple[Int, Int, Int, Int]:
     """The whole-pixel box around everything `plot` would draw, as
     `(x, y, width, height)` in the figure's own coordinates (#372).
 
@@ -529,18 +543,28 @@ def _tight_box(
     Raises:
         Error: Whatever the mark's render raises.
     """
-    var probe = BoundsTarget(plot.width, plot.height)
+    var probe = BoundsTarget(plot.canvas_width(), plot.canvas_height())
     var cache = FontCache()
     var drawn = _draw_figure_into(
-        probe, plot, 0, 0, plot.width, plot.height, False, vector_target, cache
+        probe,
+        plot,
+        0,
+        0,
+        plot.canvas_width(),
+        plot.canvas_height(),
+        False,
+        vector_target,
+        cache,
     )
     _replay_text_requests(probe, drawn.text, cache)
-    return _ink_box(probe, plot.width, plot.height)
+    return _ink_box(probe, plot.canvas_width(), plot.canvas_height())
 
 
-def _render_into(
+def _render_into[
+    C: ChartLike
+](
     mut canvas: Canvas,
-    plot: Plot,
+    plot: C,
     ox0: Int = 0,
     oy0: Int = 0,
     ox1: Int = -1,
@@ -589,19 +613,21 @@ def _render_into(
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
-def render_svg(plot: Plot) raises -> SvgCanvas:
-    """Render `plot` into a fresh `SvgCanvas` sized `plot.width` x
-    `plot.height` and return it; `render()`'s vector counterpart,
+def render_svg[C: ChartLike](plot: C) raises -> SvgCanvas:
+    """Render `plot` into a fresh `SvgCanvas` sized `plot.canvas_width()` x
+    `plot.canvas_height()` and return it; `render()`'s vector counterpart,
     wrapping `_render_svg_into`.
     """
-    var svg = SvgCanvas(plot.width, plot.height)
+    var svg = SvgCanvas(plot.canvas_width(), plot.canvas_height())
     _ = _render_svg_into(svg, plot)
     return svg^
 
 
-def _render_svg_into(
+def _render_svg_into[
+    C: ChartLike
+](
     mut svg: SvgCanvas,
-    plot: Plot,
+    plot: C,
     ox0: Int = 0,
     oy0: Int = 0,
     ox1: Int = -1,
@@ -732,9 +758,9 @@ def _svg_output_string(var svg: SvgCanvas, labels: _LabelData) raises -> String:
     return svg.to_string()
 
 
-def render_pdf(plot: Plot) raises -> PdfCanvas:
-    """Render `plot` into a one-page `PdfCanvas` sized `plot.width` by
-    `plot.height` points and return it; `render_svg()`'s counterpart for
+def render_pdf[C: ChartLike](plot: C) raises -> PdfCanvas:
+    """Render `plot` into a one-page `PdfCanvas` sized `plot.canvas_width()` by
+    `plot.canvas_height()` points and return it; `render_svg()`'s counterpart for
     a print-ready document (#372).
 
     **One layout unit is one PDF point, 1/72 inch**, which is the whole
@@ -778,14 +804,18 @@ def render_pdf(plot: Plot) raises -> PdfCanvas:
     Raises:
         Error: Whatever rendering the plot raises.
     """
-    var pdf = PdfCanvas(plot.width, plot.height)
-    _ = _render_pdf_into(pdf, plot, 0, 0, plot.width, plot.height)
+    var pdf = PdfCanvas(plot.canvas_width(), plot.canvas_height())
+    _ = _render_pdf_into(
+        pdf, plot, 0, 0, plot.canvas_width(), plot.canvas_height()
+    )
     return pdf^
 
 
-def _render_pdf_into(
+def _render_pdf_into[
+    C: ChartLike
+](
     mut pdf: PdfCanvas,
-    plot: Plot,
+    plot: C,
     ox0: Int = 0,
     oy0: Int = 0,
     ox1: Int = -1,
@@ -824,7 +854,9 @@ def _render_pdf_into(
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
 
 
-def _at_dpi(plot: Plot, dpi: Float64, caller: String = "save") raises -> Plot:
+def _at_dpi[
+    C: ChartLike
+](plot: C, dpi: Float64, caller: String = "save") raises -> C:
     """`plot` laid out for a raster export at `dpi` (#372).
 
     The figure's size is in points, 1/72 inch, so a raster at `dpi`
@@ -852,18 +884,14 @@ def _at_dpi(plot: Plot, dpi: Float64, caller: String = "save") raises -> Plot:
             caller + "(): dpi must be positive (got " + String(dpi) + ")"
         )
     var factor = dpi / 72.0
-    var out = plot.copy()
     if factor == 1.0:
-        return out^
-    out.width = Int(Float64(plot.width) * factor + 0.5)
-    out.height = Int(Float64(plot.height) * factor + 0.5)
-    out._settings.theme.scale = plot._settings.theme.scale * factor
-    return out^
+        return plot.copy()
+    return plot.scaled_by(factor)
 
 
 def _all_at_dpi(
-    plots: List[Plot], dpi: Float64, caller: String
-) raises -> List[Plot]:
+    plots: List[AnyChart], dpi: Float64, caller: String
+) raises -> List[AnyChart]:
     """`_at_dpi` over every plot of a composition (#701).
 
     Every plot gets the same factor, so a layered chart's layers, a
@@ -883,7 +911,7 @@ def _all_at_dpi(
     Raises:
         Error: `dpi` is not positive.
     """
-    var out = List[Plot](capacity=len(plots))
+    var out = List[AnyChart](capacity=len(plots))
     for p in plots:
         out.append(_at_dpi(p, dpi, caller))
     return out^
@@ -912,12 +940,12 @@ def _ink_box(
     return probe.ink_pixels()
 
 
-def save(
-    plot: Plot, path: String, dpi: Float64 = 72.0, tight: Bool = False
-) raises:
+def save[
+    C: ChartLike
+](plot: C, path: String, dpi: Float64 = 72.0, tight: Bool = False) raises:
     """Render `plot` and write it to `path` in one call. The format
     comes from the path's extension -- `.svg`, `.png`, `.bmp` or `.pdf`
-    -- or from `plot._settings.theme.output_format` when `path` has no extension
+    -- or from `plot.chart_settings().theme.output_format` when `path` has no extension
     at all; `PNG`/`BMP` both go through `render()` and differ only in
     the writer.
 
@@ -929,7 +957,7 @@ def save(
     `plot` is a plain borrow: `save(scatter(x, y), path)` compiles
     inline, with no need to bind the temporary to a variable first. Call
     `render()`/`render_svg()` directly to get the `Canvas`/`SvgCanvas`
-    itself. `save_layers()`/`save_facets()` are the `List[Plot]`
+    itself. `save_layers()`/`save_facets()` are the `List[AnyChart]`
     counterparts; the `save(canvas: Canvas, path)` overload below writes
     an already-rendered `Canvas`.
 
@@ -956,7 +984,7 @@ def save(
     An untitled plot's SVG is unaffected.
     """
     var format = _resolve_output_format(
-        plot._settings.theme.output_format, path
+        plot.chart_settings().theme.output_format, path
     )
     # Each arm binds its canvas with `^` rather than through a ternary:
     # none of the three canvas types is `ImplicitlyCopyable`, so a
@@ -965,10 +993,10 @@ def save(
         var f = open(path, "w")
         if tight:
             var vector = render_tight_svg(plot)
-            f.write(_svg_output_string(vector^, plot._settings.labels))
+            f.write(_svg_output_string(vector^, plot.chart_settings().labels))
         else:
             var vector = render_svg(plot)
-            f.write(_svg_output_string(vector^, plot._settings.labels))
+            f.write(_svg_output_string(vector^, plot.chart_settings().labels))
         f.close()
     elif format == OutputFormat.PDF:
         if tight:
@@ -1667,260 +1695,3 @@ def _render_continuous[
         )
 
     return frame.result()
-
-
-def _render_generic[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    has_shared_y_domain: Bool = False,
-    shared_y_min: Float64 = 0.0,
-    shared_y_max: Float64 = 0.0,
-    shared_y_is_log: Bool = False,
-    *,
-    mut cache: FontCache,
-    vector_target: Bool = False,
-) raises -> _RenderResult:
-    """The dispatch, layout, and shape-drawing core `render()`/
-    `render_svg()` (and the facet/layer variants) delegate to, generic
-    over any `DrawTarget`, returning every axis/tick/legend label as
-    `_TextRequest`s.
-
-    `cache` is shared by label measurement and drawing throughout the
-    render. `vector_target` is True when `target` keeps what it is given
-    as elements rather than pixels (the SVG backend); the one mark that
-    cares is `Mark.IMSHOW`, which draws a large grid as an image there
-    (see `_draw_cells_as_image`).
-
-    Every mark other than `Mark.POINT`/`LINE`/`AREA`/`EFFECT_SCATTER`
-    dispatches to its own `_render_*` function immediately
-    (`horizontal=True` variants included). What's left, the
-    continuous-axis path, is the same assembly every categorical
-    `_render_*` has: decide the two domains, size the legend column
-    (`_legend_reserve_for`), draw the axis frame
-    (`_draw_continuous_axis_frame`), then draw the mark
-    (`_draw_point_layer`/`_draw_line_layer`/`_draw_area_layer`), all
-    shared with `_render_layers_generic`.
-
-    Raises up front for settings that can't apply to a standalone plot:
-    `Plot.secondary_axis()`, a log scale on a non-continuous mark or on
-    `Mark.AREA`'s y-axis, and `render_facets(shared_y_scale=True)`
-    (`has_shared_y_domain`) on anything but `Mark.POINT`/`LINE`/`AREA`/
-    `EFFECT_SCATTER`, or together with `y_err*`.
-
-    `shared_y_is_log` is `_render_facets_generic`'s own decision,
-    already validated there (every cell agrees, `shared_y_min`/
-    `shared_y_max` already computed in log10-space via `_log_data_extent`)
-    -- this only requires `plot._settings.y_log` to match it, a defensive check
-    against calling this directly with an inconsistent combination rather
-    than a real per-cell decision point.
-    """
-    _check_render_settings(
-        plot._mark,
-        plot._continuous,
-        plot._channels,
-        plot._y_err,
-        plot._annotations,
-        plot._settings,
-        has_shared_y_domain,
-        shared_y_is_log,
-    )
-    var selected = _call_mark_renderer(
-        target,
-        plot,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache,
-        vector_target,
-    )
-    if selected:
-        return selected.take()
-    if not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.AREA
-        or plot._mark == Mark.EFFECT_SCATTER
-        or plot._mark == Mark.HISTOGRAM
-    ):
-        # Only the continuous marks bind `_callback_continuous`, which
-        # hands the plot back to this path. Any other mark here has a
-        # `mark_*()` setter that bound no renderer of its own.
-        raise Error(
-            plot._mark.name()
-            + " has no renderer: its mark_*() setter must call"
-            " Plot._bind[<its _render_* function>]()"
-        )
-
-    return _render_continuous(
-        target,
-        plot._mark,
-        plot._histogram,
-        plot._continuous,
-        plot._channels,
-        plot._y_err,
-        plot._mark_style,
-        plot._annotations,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        has_shared_y_domain,
-        shared_y_min,
-        shared_y_max,
-        shared_y_is_log,
-        cache=cache,
-    )
-
-
-comptime _MarkRenderer = def[T: DrawTarget](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int, *,
-    mut cache: FontCache,
-) raises thin -> _RenderResult
-"""A mark's own renderer, generic over the draw target: what
-`Plot._bind()` stores, specialized once per backend."""
-
-comptime _VectorMarkRenderer = def[T: DrawTarget](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int, *,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises thin -> _RenderResult
-"""`_MarkRenderer` for a renderer that draws differently to a vector
-target (the image marks); stored by `Plot._bind_vector()`."""
-
-
-def _mark_callback[
-    f: _MarkRenderer, T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises -> Optional[_RenderResult]:
-    """`f` in the stored callback's shape. Referencing only `f`, it
-    compiles only that mark's renderer."""
-    return Optional(f[T](target, plot, ox0, oy0, ox1, oy1, cache=cache))
-
-
-def _vector_mark_callback[
-    f: _VectorMarkRenderer, T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises -> Optional[_RenderResult]:
-    """`_mark_callback` for a `_VectorMarkRenderer`."""
-    return Optional(
-        f[T](
-            target,
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache=cache,
-            vector_target=vector_target,
-        )
-    )
-
-
-def _callback_continuous[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises -> Optional[_RenderResult]:
-    """Continue through the shared continuous path."""
-    return None
-
-
-def _call_mark_renderer[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    mut cache: FontCache,
-    vector_target: Bool,
-) raises -> Optional[_RenderResult]:
-    """Invoke the selected callback for this concrete backend."""
-    comptime if T == Canvas:
-        return plot._render_canvas(
-            rebind[Canvas](target),
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache,
-            vector_target,
-        )
-    elif T == SvgCanvas:
-        return plot._render_svg(
-            rebind[SvgCanvas](target),
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache,
-            vector_target,
-        )
-    elif T == PdfCanvas:
-        return plot._render_pdf(
-            rebind[PdfCanvas](target),
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache,
-            vector_target,
-        )
-    else:
-        comptime assert T == BoundsTarget, "Unsupported render callback target"
-        return plot._render_bounds(
-            rebind[BoundsTarget](target),
-            plot,
-            ox0,
-            oy0,
-            ox1,
-            oy1,
-            cache,
-            vector_target,
-        )

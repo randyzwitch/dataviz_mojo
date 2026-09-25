@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import ArcDiagram
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
 
@@ -126,26 +128,6 @@ def _render_arc_diagram[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_arc_diagram_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_arc_diagram` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_arc_diagram(
-        target, plot._edges, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def arc_diagram(
     df: DataFrame,
     from_categories: String,
@@ -158,7 +140,7 @@ def arc_diagram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[ArcDiagram]:
     """Draw an arc diagram from named DataFrame edge columns (#743).
 
     `from_categories` and `to_categories` name string columns; `values`
@@ -224,7 +206,7 @@ def arc_diagram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[ArcDiagram]:
     """An arc diagram: relationships between nodes on a single line, each
     connection drawn as a semicircular arc instead of a matrix or a 2D
     network layout. Well suited to nodes with a natural order (a
@@ -252,7 +234,7 @@ def arc_diagram(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

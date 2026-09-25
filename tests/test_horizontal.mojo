@@ -16,6 +16,7 @@ regardless of orientation, so neither gets a horizontal-specific
 test.
 """
 
+from dataviz.chart import AnyChart
 from dataviz.core.stats import ErrorBar
 from dataviz.plot import Plot
 from dataviz import (
@@ -181,7 +182,7 @@ def test_render_layers_raises_on_horizontal_bar_in_a_combo() raises:
         .size(400, 300)
     )
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 

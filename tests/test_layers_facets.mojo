@@ -39,6 +39,7 @@ from _test_helpers import (
 from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.path import PathOp
+from dataviz.chart import AnyChart, ChartLike
 from dataviz.core.tooltips import Tooltips
 from dataviz.core.color_scale import (
     _ColorDomainOverride,
@@ -102,29 +103,33 @@ def test_render_layers_shares_one_domain_across_a_line_and_a_point() raises:
         .theme(Theme(mark_color=RED, point_radius=5.0))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(plot_a^)
-    plots.append(plot_b^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plot_a))
+    plots.append(AnyChart(plot_b))
 
     var c = render_layers(plots)
     _assert_color(
         c, 220, 135, RED, "the layered point, at the shared domain's pixel"
     )
 
-    var svg_plots = List[Plot]()
+    var svg_plots = List[AnyChart]()
     svg_plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=line_x, y=line_y)
-        .theme(Theme(show_gridlines=False))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=line_x, y=line_y)
+            .theme(Theme(show_gridlines=False))
+            .size(400, 300)
+        )
     )
     svg_plots.append(
-        Plot()
-        .mark_point()
-        .encode(x=point_x, y=point_y)
-        .theme(Theme(mark_color=RED, point_radius=5.0))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_point()
+            .encode(x=point_x, y=point_y)
+            .theme(Theme(mark_color=RED, point_radius=5.0))
+            .size(400, 300)
+        )
     )
     var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
@@ -152,7 +157,7 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots: List[Plot] = [line^]
+    var plots: List[AnyChart] = [AnyChart(line)]
 
     var c = render_layers(plots)
     _assert_near_color(
@@ -176,7 +181,7 @@ def test_render_layers_annotate_vline_and_point_match_standalone_hand_derived_po
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var svg_plots: List[Plot] = [svg_line^]
+    var svg_plots: List[AnyChart] = [AnyChart(svg_line)]
     var svg = render_layers_svg(svg_plots)
     var s = svg.to_string()
     assert_true(
@@ -220,7 +225,7 @@ def test_render_layers_svg_annotate_band_and_best_fit_draw_against_the_layers_fr
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots: List[Plot] = [line^]
+    var plots: List[AnyChart] = [AnyChart(line)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -259,21 +264,25 @@ def test_render_layers_svg_title_from_plots0_centers_on_shared_inner_rect() rais
     var line_y: List[Float64] = [0.0, 10.0]
     var point_x: List[Float64] = [5.0]
     var point_y: List[Float64] = [5.0]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=line_x, y=line_y)
-        .labels(title="Combined")
-        .theme(Theme(show_gridlines=False))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=line_x, y=line_y)
+            .labels(title="Combined")
+            .theme(Theme(show_gridlines=False))
+            .size(400, 300)
+        )
     )
     plots.append(
-        Plot()
-        .mark_point()
-        .encode(x=point_x, y=point_y)
-        .theme(Theme(mark_color=RED, point_radius=5.0))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_point()
+            .encode(x=point_x, y=point_y)
+            .theme(Theme(mark_color=RED, point_radius=5.0))
+            .size(400, 300)
+        )
     )
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
@@ -317,13 +326,15 @@ def test_render_layers_svg_point_layer_color_categories_matches_hand_derived_leg
     var x: List[Float64] = [0.0, 10.0]
     var y: List[Float64] = [0.0, 0.0]
     var cats: List[String] = ["A", "B"]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot()
-        .mark_point()
-        .encode(x=x, y=y, color_categories=cats)
-        .theme(Theme(show_gridlines=False))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_point()
+            .encode(x=x, y=y, color_categories=cats)
+            .theme(Theme(show_gridlines=False))
+            .size(400, 300)
+        )
     )
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
@@ -353,11 +364,13 @@ def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
     var line_x: List[Float64] = [0.0, 10.0]
     var line_y: List[Float64] = [0.0, 10.0]
     var line_cats: List[String] = ["a", "b"]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=line_x, y=line_y, color_categories=line_cats)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=line_x, y=line_y, color_categories=line_cats)
+        )
     )
     with assert_raises():
         _ = render_layers(plots)
@@ -366,7 +379,7 @@ def test_render_layers_raises_when_a_line_layer_uses_color_categories() raises:
 def test_render_layers_with_empty_list_and_a_title_raises() raises:
     # render_layers() builds its own canvas from the plots list, so an
     # empty list has no size to derive and raises.
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     with assert_raises():
         _ = render_layers(plots)
 
@@ -376,14 +389,16 @@ def test_render_layers_no_longer_raises_when_a_single_bar_plot_is_included() rai
     var line_y: List[Float64] = [0.0, 10.0]
     var bar_x: List[String] = ["a", "b"]
     var bar_y: List[Float64] = [1.0, 2.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_bar().encode_categorical(x=bar_x, y=bar_y))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(Plot().mark_line().encode(x=line_x, y=line_y)))
+    plots.append(
+        AnyChart(Plot().mark_bar().encode_categorical(x=bar_x, y=bar_y))
+    )
     _ = render_layers(plots)
 
 
 def test_render_layers_with_empty_list_raises() raises:
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     with assert_raises():
         _ = render_layers(plots)
 
@@ -396,10 +411,12 @@ def test_render_layers_raises_when_a_lollipop_plot_is_included() raises:
     var line_y: List[Float64] = [0.0, 10.0]
     var lolli_x: List[String] = ["a", "b"]
     var lolli_y: List[Float64] = [1.0, 2.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(Plot().mark_line().encode(x=line_x, y=line_y)))
     plots.append(
-        Plot().mark_lollipop().encode_categorical(x=lolli_x, y=lolli_y)
+        AnyChart(
+            Plot().mark_lollipop().encode_categorical(x=lolli_x, y=lolli_y)
+        )
     )
     with assert_raises():
         _ = render_layers(plots)
@@ -411,10 +428,14 @@ def test_render_layers_raises_when_a_candlestick_plot_is_included() raises:
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
     var one: List[Float64] = [1.0, 2.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(Plot().mark_line().encode(x=line_x, y=line_y)))
     plots.append(
-        Plot().mark_candlestick().encode_candlestick(cats, one, one, one, one)
+        AnyChart(
+            Plot()
+            .mark_candlestick()
+            .encode_candlestick(cats, one, one, one, one)
+        )
     )
     with assert_raises():
         _ = render_layers(plots)
@@ -427,9 +448,11 @@ def test_render_layers_raises_when_a_bullet_plot_is_included() raises:
     var cats: List[String] = ["a", "b"]
     var one: List[Float64] = [1.0, 2.0]
     var ranges: List[List[Float64]] = [[1.0], [1.0]]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_bullet().encode_bullet(cats, one, one, ranges))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(Plot().mark_line().encode(x=line_x, y=line_y)))
+    plots.append(
+        AnyChart(Plot().mark_bullet().encode_bullet(cats, one, one, ranges))
+    )
     with assert_raises():
         _ = render_layers(plots)
 
@@ -440,9 +463,9 @@ def test_render_layers_raises_when_a_gantt_plot_is_included() raises:
     var line_y: List[Float64] = [0.0, 10.0]
     var cats: List[String] = ["a", "b"]
     var one: List[Float64] = [1.0, 2.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_line().encode(x=line_x, y=line_y))
-    plots.append(Plot().mark_gantt().encode_gantt(cats, one, one))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(Plot().mark_line().encode(x=line_x, y=line_y)))
+    plots.append(AnyChart(Plot().mark_gantt().encode_gantt(cats, one, one)))
     with assert_raises():
         _ = render_layers(plots)
 
@@ -468,7 +491,9 @@ def test_grouped_bar_layers_align_a_line_to_category_centers() raises:
         .series_name("Trend")
         .size(400, 300)
     )
-    var svg = render_layers_svg([grouped^, trend^]).to_string()
+    var svg = render_layers_svg(
+        [AnyChart(grouped), AnyChart(trend)]
+    ).to_string()
     assert_true(
         ">North<" in svg and ">South<" in svg, "both grouped series in legend"
     )
@@ -491,7 +516,9 @@ def test_grouped_bar_layers_align_a_line_to_category_centers() raises:
         .size(400, 300)
     )
     assert_equal(
-        render_layers_svg([same_grouped^, same_trend^]).to_string(),
+        render_layers_svg(
+            [AnyChart(same_grouped), AnyChart(same_trend)]
+        ).to_string(),
         svg,
         "line positions follow category centers, independent of numeric x",
     )
@@ -517,7 +544,9 @@ def test_stacked_bar_layers_keep_totals_and_series_legend() raises:
         .theme(Theme(mark_color=TOMATO))
         .size(400, 300)
     )
-    var svg = render_layers_svg([stacked^, trend^]).to_string()
+    var svg = render_layers_svg(
+        [AnyChart(stacked), AnyChart(trend)]
+    ).to_string()
     assert_true(
         ">North<" in svg and ">South<" in svg, "stacked series in legend"
     )
@@ -537,7 +566,9 @@ def test_stacked_bar_layers_keep_totals_and_series_legend() raises:
         .size(400, 300)
     )
     assert_equal(
-        render_layers_svg([same_stacked^, same_trend^]).to_string(),
+        render_layers_svg(
+            [AnyChart(same_stacked), AnyChart(same_trend)]
+        ).to_string(),
         svg,
         "line positions follow category centers, independent of numeric x",
     )
@@ -557,7 +588,9 @@ def test_percent_stacked_layer_preserves_normalization_and_validation() raises:
         .size(400, 300)
     )
     var trend = Plot().mark_line().encode(x=xs, y=ys).size(400, 300)
-    var svg = render_layers_svg([stacked^, trend^]).to_string()
+    var svg = render_layers_svg(
+        [AnyChart(stacked), AnyChart(trend)]
+    ).to_string()
     assert_true(">100<" in svg, "percent stack keeps a 100% axis tick")
     var negative: List[List[Float64]] = [[10.0, 20.0], [-1.0, 5.0]]
     var invalid = (
@@ -567,7 +600,7 @@ def test_percent_stacked_layer_preserves_normalization_and_validation() raises:
     )
     var line = Plot().mark_line().encode(x=xs, y=ys)
     with assert_raises(contains="negative share has no meaning"):
-        _ = render_layers([invalid^, line^])
+        _ = render_layers([AnyChart(invalid), AnyChart(line)])
 
 
 def test_subdivided_bar_layers_reject_a_second_categorical_bar() raises:
@@ -579,7 +612,7 @@ def test_subdivided_bar_layers_reject_a_second_categorical_bar() raises:
     )
     var plain = Plot().mark_bar().encode_categorical(x=cats, y=[5.0, 6.0])
     with assert_raises(contains="only categorical bar layer"):
-        _ = render_layers([grouped^, plain^])
+        _ = render_layers([AnyChart(grouped), AnyChart(plain)])
 
 
 def test_render_layers_line_honors_theme_line_smoothing() raises:
@@ -596,9 +629,11 @@ def test_render_layers_line_honors_theme_line_smoothing() raises:
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+        AnyChart(
+            Plot().mark_line().encode(x=x, y=y).theme(theme).size(400, 300)
+        )
     )
     var c_layered = render_layers(plots)
 
@@ -631,9 +666,11 @@ def test_render_layers_area_honors_theme_line_smoothing() raises:
     var y: List[Float64] = [0.0, 10.0, 0.0]
     var theme = Theme(line_smoothing=1.0, show_gridlines=False)
 
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+        AnyChart(
+            Plot().mark_area().encode(x=x, y=y).theme(theme).size(400, 300)
+        )
     )
     var c_layered = render_layers(plots)
 
@@ -657,16 +694,23 @@ def test_render_layers_raises_on_out_of_range_smoothing() raises:
     var x: List[Float64] = [0.0, 10.0, 20.0]
     var y: List[Float64] = [0.0, 10.0, 0.0]
 
-    var low = List[Plot]()
+    var low = List[AnyChart]()
     low.append(
-        Plot().mark_line().encode(x=x, y=y).theme(Theme(line_smoothing=-0.1))
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=x, y=y)
+            .theme(Theme(line_smoothing=-0.1))
+        )
     )
     with assert_raises():
         _ = render_layers(low)
 
-    var high = List[Plot]()
+    var high = List[AnyChart]()
     high.append(
-        Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1))
+        AnyChart(
+            Plot().mark_area().encode(x=x, y=y).theme(Theme(line_smoothing=1.1))
+        )
     )
     with assert_raises():
         _ = render_layers(high)
@@ -703,7 +747,7 @@ def test_render_layers_svg_named_layers_get_one_legend_row_each_in_order() raise
         .theme(Theme(mark_color=RED))
         .size(400, 300)
     )  # unnamed
-    var plots: List[Plot] = [a^, b^, c^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b), AnyChart(c)]
     var s = render_layers_svg(plots).to_string()
     var a_idx = s.find(">A<")
     var b_idx = s.find(">B<")
@@ -728,7 +772,7 @@ def test_render_layers_svg_no_named_layers_draws_no_legend_at_all() raises:
     var y: List[Float64] = [1.0, 2.0, 3.0]
     var a = Plot().mark_line().encode(x=x, y=y).size(400, 300)
     var b = Plot().mark_point().encode(x=x, y=y).size(400, 300)
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     var s = render_layers_svg(plots).to_string()
     assert_equal(
         _drawn(s).count('<rect x="'), 1
@@ -753,7 +797,7 @@ def test_render_layers_svg_secondary_axis_layer_name_is_suffixed() raises:
         .secondary_axis()
         .size(400, 300)
     )
-    var plots: List[Plot] = [primary^, secondary^]
+    var plots: List[AnyChart] = [AnyChart(primary), AnyChart(secondary)]
     var s = render_layers_svg(plots).to_string()
     assert_true(">Primary<" in s, "the primary layer's plain name draws")
     assert_true(
@@ -785,7 +829,7 @@ def test_two_bar_layers_share_categories_and_split_each_band() raises:
         .theme(Theme(mark_color=RED))
         .size(400, 300)
     )
-    var plots: List[Plot] = [first^, second^]
+    var plots: List[AnyChart] = [AnyChart(first), AnyChart(second)]
     var s = render_layers_svg(plots).to_string()
     assert_true('x="77"' in s and 'width="64"' in s, "first A subband")
     assert_true('x="141"' in s and 'width="64"' in s, "second A subband")
@@ -808,7 +852,7 @@ def test_two_bar_layers_require_the_same_ordered_categories() raises:
         .encode_categorical(x=["B", "A"], y=[3.0, 4.0])
         .size(400, 300)
     )
-    var plots: List[Plot] = [first^, second^]
+    var plots: List[AnyChart] = [AnyChart(first), AnyChart(second)]
     with assert_raises(contains="same categories in the same order"):
         _ = render_layers_svg(plots)
 
@@ -833,7 +877,7 @@ def test_render_layers_svg_bar_combo_matches_hand_derived_positions() raises:
         .size(400, 300)
     )
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -884,7 +928,7 @@ def test_render_layers_bar_combo_honors_the_line_style() raises:
         .encode(x=idx, y=line_y)
         .size(400, 300)
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     var s = render_layers_svg(plots).to_string()
     assert_true(
         'stroke-dasharray="6.000 4.000"' in s,
@@ -902,7 +946,10 @@ def test_render_layers_bar_combo_honors_the_line_style() raises:
         .size(400, 300)
     )
     var solid_line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var solid_plots: List[Plot] = [solid_bars^, solid_line^]
+    var solid_plots: List[AnyChart] = [
+        AnyChart(solid_bars),
+        AnyChart(solid_line),
+    ]
     assert_true(
         "stroke-dasharray" not in render_layers_svg(solid_plots).to_string(),
         "the same chart with the default style emits no dash pattern",
@@ -925,7 +972,7 @@ def test_render_layers_svg_bar_combo_draws_the_bar_layer_first() raises:
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots: List[Plot] = [line^, bars^]
+    var plots: List[AnyChart] = [AnyChart(line), AnyChart(bars)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     var rect_index = s.find('<rect x="77" y="141"')
@@ -949,7 +996,7 @@ def test_render_layers_svg_bar_combo_supports_a_point_layer() raises:
         .size(400, 300)
     )
     var points = Plot().mark_point().encode(x=idx, y=point_y).size(400, 300)
-    var plots: List[Plot] = [bars^, points^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(points)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -972,7 +1019,7 @@ def test_render_layers_svg_bar_combo_supports_an_area_layer() raises:
         .size(400, 300)
     )
     var area = Plot().mark_area().encode(x=idx, y=area_y).size(400, 300)
-    var plots: List[Plot] = [bars^, area^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(area)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     # Closed down to the zero baseline (pixel 250), pulled 1px to 249 since
@@ -1014,7 +1061,7 @@ def test_render_layers_svg_bar_combo_honors_line_step() raises:
         .encode(x=idx, y=line_y)
         .size(400, 300)
     )
-    var plots: List[Plot] = [bars^, stepped^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(stepped)]
     var s = render_layers_svg(plots).to_string()
     assert_true(
         '<path d="M113.333,85.714 L220.000,85.714 L220.000,195.238'
@@ -1058,7 +1105,7 @@ def test_render_layers_svg_bar_combo_honors_area_step() raises:
         .encode(x=idx, y=area_y)
         .size(400, 300)
     )
-    var plots: List[Plot] = [bars^, stepped^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(stepped)]
     var s = render_layers_svg(plots).to_string()
     assert_true(
         '<path d="M113.333,85.714 L220.000,85.714 L220.000,195.238'
@@ -1086,7 +1133,7 @@ def test_render_layers_svg_bar_combo_supports_show_data_labels() raises:
         .size(400, 300)
     )
     var line = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -1117,7 +1164,11 @@ def test_two_bar_layers_keep_a_line_at_category_centers() raises:
         Plot().mark_bar().encode_categorical(x=cats, y=vals).size(400, 300)
     )
     var trend = Plot().mark_line().encode(x=idx, y=line_y).size(400, 300)
-    var plots: List[Plot] = [bars1^, trend^, bars2^]
+    var plots: List[AnyChart] = [
+        AnyChart(bars1),
+        AnyChart(trend),
+        AnyChart(bars2),
+    ]
     var s = render_layers_svg(plots).to_string()
     assert_true('x="77"' in s and 'x="141"' in s, "bar subbands")
     assert_true(
@@ -1135,7 +1186,7 @@ def test_render_layers_raises_on_a_non_bar_layer_length_mismatch() raises:
         Plot().mark_bar().encode_categorical(x=cats, y=bar_y).size(400, 300)
     )
     var line = Plot().mark_line().encode(x=bad_idx, y=bad_y).size(400, 300)
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1155,7 +1206,7 @@ def test_render_layers_raises_on_secondary_axis_in_a_bar_combo() raises:
         .size(400, 300)
         .secondary_axis()
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1171,7 +1222,7 @@ def test_render_layers_raises_on_scale_y_log_in_a_bar_combo() raises:
     var line = (
         Plot().mark_line().encode(x=idx, y=line_y).size(400, 300).scale_y_log()
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1191,7 +1242,7 @@ def test_render_layers_raises_on_color_categories_on_a_non_bar_layer() raises:
         .encode(x=idx, y=line_y, color_categories=color_cats)
         .size(400, 300)
     )
-    var plots: List[Plot] = [bars^, points^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(points)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1211,7 +1262,7 @@ def test_render_layers_raises_on_annotate_line_in_a_bar_combo() raises:
         .size(400, 300)
         .annotate_line(15.0)
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1239,7 +1290,7 @@ def test_render_layers_raises_on_annotate_band_in_a_bar_combo() raises:
         .size(400, 300)
         .annotate_band(x=band_x, y_lower=band_lo, y_upper=band_hi)
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1260,7 +1311,7 @@ def test_render_layers_raises_on_annotate_best_fit_in_a_bar_combo() raises:
         .size(400, 300)
         .annotate_best_fit()
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     with assert_raises():
         _ = render_layers_svg(plots)
 
@@ -1288,7 +1339,7 @@ def test_render_layers_svg_bar_combo_named_layers_get_a_legend_row_each() raises
         .series_name("Trend")
         .size(400, 300)
     )
-    var plots: List[Plot] = [bars^, line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(line)]
     var s = render_layers_svg(plots).to_string()
     assert_true(">Sales<" in s, "the bar layer's own legend row draws")
     assert_true(">Trend<" in s, "the line layer's own legend row draws")
@@ -1321,9 +1372,9 @@ def test_render_facets_lays_out_independent_plots_side_by_side() raises:
         .theme(Theme(mark_color=RED))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(plot0^)
-    plots.append(plot1^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plot0))
+    plots.append(AnyChart(plot1))
 
     var c = render_facets(plots, cols=2)
 
@@ -1368,7 +1419,7 @@ def test_render_facets_svg_draws_annotate_vline_and_best_fit_in_different_cells(
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots: List[Plot] = [cell_a^, cell_b^]
+    var plots: List[AnyChart] = [AnyChart(cell_a), AnyChart(cell_b)]
     var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
     assert_true(
@@ -1407,10 +1458,10 @@ def test_render_facets_leaves_trailing_cells_blank_when_plots_dont_fill_the_grid
     var plot2 = (
         Plot().mark_point().encode(x=xy, y=xy).theme(theme).size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(plot0^)
-    plots.append(plot1^)
-    plots.append(plot2^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plot0))
+    plots.append(AnyChart(plot1))
+    plots.append(AnyChart(plot2))
 
     var c = render_facets(plots, cols=2)
 
@@ -1460,8 +1511,10 @@ def test_render_facets_raises_on_non_positive_cols() raises:
     # A non-empty, uniformly sized list, so cols<=0 is what raises, not the
     # empty-list guard.
     var xy: List[Float64] = [5.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
+    var plots = List[AnyChart]()
+    plots.append(
+        AnyChart(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
+    )
     with assert_raises():
         _ = render_facets(plots, cols=0)
     with assert_raises():
@@ -1471,7 +1524,7 @@ def test_render_facets_raises_on_non_positive_cols() raises:
 def test_render_facets_with_empty_list_raises() raises:
     # render_facets() builds its own canvas from the plots list, so an
     # empty list has no size to derive and raises.
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     with assert_raises():
         _ = render_facets(plots, cols=2)
 
@@ -1489,9 +1542,9 @@ def test_render_facets_svg_lays_out_independent_plots_side_by_side() raises:
         .theme(Theme(mark_color=RED))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(plot0^)
-    plots.append(plot1^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plot0))
+    plots.append(AnyChart(plot1))
 
     var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
@@ -1527,9 +1580,9 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
         .theme(Theme(mark_color=RED))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(plot0^)
-    plots.append(plot1^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plot0))
+    plots.append(AnyChart(plot1))
 
     var svg = render_facets_svg(plots, cols=2)
     var s = svg.to_string()
@@ -1553,8 +1606,10 @@ def test_render_facets_svg_each_cell_gets_its_own_independent_title() raises:
 
 def test_render_facets_svg_raises_on_non_positive_cols() raises:
     var xy: List[Float64] = [5.0]
-    var plots = List[Plot]()
-    plots.append(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
+    var plots = List[AnyChart]()
+    plots.append(
+        AnyChart(Plot().mark_point().encode(x=xy, y=xy).size(400, 300))
+    )
     with assert_raises():
         _ = render_facets_svg(plots, cols=0)
 
@@ -1566,14 +1621,16 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
     # (2,2); with cols=1, title_font_size=18.0 and label_gap=4,
     # extra_top=22, so y=2 is inside the reserved strip.
     var xy: List[Float64] = [5.0]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot()
-        .mark_point()
-        .encode(x=xy, y=xy)
-        .labels(title="Titled")
-        .theme(Theme(background=MAGENTA))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_point()
+            .encode(x=xy, y=xy)
+            .labels(title="Titled")
+            .theme(Theme(background=MAGENTA))
+            .size(400, 300)
+        )
     )
 
     var c = render_facets(plots, 1)
@@ -1581,13 +1638,15 @@ def test_render_facets_paints_each_cells_full_rect_including_a_titles_margin() r
 
     # ...and the same for an untitled cell, where the corner is still
     # outside the plot area.
-    var untitled = List[Plot]()
+    var untitled = List[AnyChart]()
     untitled.append(
-        Plot()
-        .mark_point()
-        .encode(x=xy, y=xy)
-        .theme(Theme(background=MAGENTA))
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_point()
+            .encode(x=xy, y=xy)
+            .theme(Theme(background=MAGENTA))
+            .size(400, 300)
+        )
     )
     var c2 = render_facets(untitled, 1)
     _assert_color(c2, 2, 2, MAGENTA, "an untitled cell's top-left corner")
@@ -1616,7 +1675,7 @@ def test_render_facets_svg_shared_y_scale_matches_hand_derived_positions() raise
     var y1: List[Float64] = [110.0]
     var p0 = Plot().size(400, 300).mark_point().encode(x=x, y=y0)
     var p1 = Plot().size(400, 300).mark_point().encode(x=x, y=y1)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
     assert_true(
         'cy="239.545"' in s,
@@ -1633,7 +1692,7 @@ def test_render_facets_raises_on_an_incompatible_mark_with_shared_y_scale() rais
     var vals: List[Float64] = [1.0, 2.0]
     var p0 = Plot().size(300, 220).mark_bar().encode_categorical(x=cats, y=vals)
     var p1 = Plot().size(300, 220).mark_bar().encode_categorical(x=cats, y=vals)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     with assert_raises():
         _ = render_facets(plots, 2, shared_y_scale=True)
 
@@ -1666,7 +1725,7 @@ def test_render_facets_shared_y_scale_puts_one_value_on_one_row_across_area_cell
     var y1: List[Float64] = [20.0, 70.0]
     var p0 = Plot().size(400, 300).mark_area().encode(x=x, y=y0)
     var p1 = Plot().size(400, 300).mark_area().encode(x=x, y=y1)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
     assert_equal(_occurrences(s, "187.415"), 2)
     assert_equal(_occurrences(s, "30.952"), 1)
@@ -1697,7 +1756,7 @@ def test_render_facets_svg_shared_y_scale_supports_log_when_every_cell_agrees() 
         .scale_y_log()
         .theme(Theme(show_gridlines=False))
     )
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_facets_svg(plots, 2, shared_y_scale=True).to_string()
     for row in ["163", "125", "87", "37"]:
         assert_true(
@@ -1713,13 +1772,13 @@ def test_render_facets_raises_on_a_scale_y_log_mix_with_shared_y_scale() raises:
     var y1: List[Float64] = [50.0, 60.0]
     var p0 = Plot().size(300, 220).mark_line().encode(x=x, y=y0).scale_y_log()
     var p1 = Plot().size(300, 220).mark_line().encode(x=x, y=y1)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     with assert_raises():
         _ = render_facets(plots, 2, shared_y_scale=True)
 
 
 def test_render_facets_raises_on_y_err_with_shared_y_scale() raises:
-    # The shared union is computed over plain plot._continuous.y, not widened for
+    # The shared union is computed over plain plot.mark.continuous.y, not widened for
     # whisker endpoints, so this combination raises. Mark.POINT, since
     # Mark.LINE doesn't support y_err in this context.
     var x: List[Float64] = [1.0, 2.0]
@@ -1728,7 +1787,7 @@ def test_render_facets_raises_on_y_err_with_shared_y_scale() raises:
     var err: List[Float64] = [1.0, 1.0]
     var p0 = Plot().size(300, 220).mark_point().encode(x=x, y=y0, y_err=err)
     var p1 = Plot().size(300, 220).mark_point().encode(x=x, y=y1)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     with assert_raises():
         _ = render_facets(plots, 2, shared_y_scale=True)
 
@@ -1741,7 +1800,7 @@ def test_render_facets_svg_default_keeps_each_cells_independent_scale() raises:
     var y1: List[Float64] = [110.0]
     var p0 = Plot().size(400, 300).mark_point().encode(x=x, y=y0)
     var p1 = Plot().size(400, 300).mark_point().encode(x=x, y=y1)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_facets_svg(plots, 2).to_string()
     # domain [9, 11], range [250, 20] -> to_pixel(10) = 135.0 exactly, the
     # same middle row for both cells.
@@ -1781,9 +1840,9 @@ def test_render_layers_svg_secondary_axis_matches_hand_derived_position() raises
     var secondary = (
         Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
 
@@ -1839,9 +1898,9 @@ def test_render_layers_svg_secondary_axis_draws_no_gridlines_of_its_own() raises
     var secondary = (
         Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     var count = 0
@@ -1872,9 +1931,9 @@ def test_render_layers_secondary_axis_raster_draws_ink_at_the_hand_derived_row()
     var secondary = (
         Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var c = render_layers(plots)
     _assert_color(
         c,
@@ -1904,9 +1963,9 @@ def test_render_layers_svg_secondary_axis_coexists_with_a_legend_without_overlap
     var secondary = (
         Plot().mark_line().encode(x=x, y=y2).secondary_axis().size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -1947,9 +2006,9 @@ def test_render_layers_raises_when_every_layer_is_secondary() raises:
     var y2: List[Float64] = [50.0, 10.0]
     var a = Plot().mark_line().encode(x=x, y=y1).secondary_axis()
     var b = Plot().mark_line().encode(x=x, y=y2).secondary_axis()
-    var plots = List[Plot]()
-    plots.append(a^)
-    plots.append(b^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(a))
+    plots.append(AnyChart(b))
     with assert_raises():
         _ = render_layers(plots)
 
@@ -1984,9 +2043,9 @@ def test_render_layers_svg_secondary_axis_caption_matches_hand_derived_position(
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -2031,9 +2090,9 @@ def test_render_layers_svg_no_caption_when_secondary_axis_has_no_y_title() raise
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -2073,9 +2132,9 @@ def test_render_layers_svg_primary_layers_own_y_title_is_not_mistaken_for_a_capt
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -2136,7 +2195,7 @@ def test_arc_layers_draw_concentric_rings_on_all_backends() raises:
         width=400,
         height=300,
     )
-    var plots: List[Plot] = [outer^, inner^]
+    var plots: List[AnyChart] = [AnyChart(outer), AnyChart(inner)]
     var svg = render_layers_svg(plots).to_string()
     var paths = _attr_values(svg, "path", "d")
     assert_equal(len(paths), 4, "two wedges in each of two rings")
@@ -2159,7 +2218,7 @@ def test_one_arc_layer_matches_standalone_donut() raises:
     var donut = pie(
         categories, values, inner_radius_fraction=0.5, width=400, height=300
     )
-    var plots: List[Plot] = [donut.copy()]
+    var plots: List[AnyChart] = [AnyChart(donut.copy())]
     assert_equal(
         render_layers_svg(plots).to_string(),
         render_svg(donut).to_string(),
@@ -2172,14 +2231,14 @@ def test_arc_layer_legend_names_each_ring_and_invalid_mix_raises() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var outer = pie(cats, vals, width=400, height=300)
     var inner = pie(cats, vals, width=400, height=300)
-    var plots: List[Plot] = [outer^, inner^]
+    var plots: List[AnyChart] = [AnyChart(outer), AnyChart(inner)]
     var svg = render_layers_svg(plots).to_string()
     assert_true("Ring 1: a" in svg, "outer ring legend entry")
     assert_true("Ring 2: b" in svg, "inner ring legend entry")
     var donut = pie(
         cats, vals, inner_radius_fraction=0.5, width=400, height=300
     )
-    var invalid: List[Plot] = [plots[0].copy(), donut^]
+    var invalid: List[AnyChart] = [plots[0].copy(), AnyChart(donut)]
     with assert_raises(contains="inner_radius_fraction"):
         _ = render_layers_svg(invalid)
 
@@ -2190,10 +2249,12 @@ def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() r
     var vals: List[Float64] = [1.0, 2.0]
     var lx: List[Float64] = [0.0, 10.0]
     var ly: List[Float64] = [0.0, 10.0]
-    var plots = List[Plot]()
-    plots.append(line(lx, ly, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(lx, ly, width=400, height=300)))
     plots.append(
-        Plot().mark_arc().encode_categorical(x=cats, y=vals).size(400, 300)
+        AnyChart(
+            Plot().mark_arc().encode_categorical(x=cats, y=vals).size(400, 300)
+        )
     )
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
@@ -2205,13 +2266,15 @@ def test_render_layers_names_the_rejected_layer_and_where_the_gap_is_tracked() r
     var ids: List[String] = ["root", "a", "b"]
     var parents: List[String] = ["", "root", "root"]
     var sizes: List[Float64] = [0.0, 3.0, 2.0]
-    var hier = List[Plot]()
-    hier.append(line(lx, ly, width=400, height=300))
+    var hier = List[AnyChart]()
+    hier.append(AnyChart(line(lx, ly, width=400, height=300)))
     hier.append(
-        Plot()
-        .mark_treemap()
-        .encode_hierarchy(ids=ids, parent_ids=parents, values=sizes)
-        .size(400, 300)
+        AnyChart(
+            Plot()
+            .mark_treemap()
+            .encode_hierarchy(ids=ids, parent_ids=parents, values=sizes)
+            .size(400, 300)
+        )
     )
     with assert_raises(contains="Mark.TREEMAP"):
         _ = render_layers(hier)
@@ -2236,9 +2299,9 @@ def test_layering_a_tricontour_over_a_tricontourf_draws_both() raises:
     is that column's extent.
     """
     var s = _scattered_samples()
-    var plots = List[Plot]()
-    plots.append(tricontourf(s[0], s[1], s[2], width=400, height=300))
-    plots.append(tricontour(s[0], s[1], s[2], width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(tricontourf(s[0], s[1], s[2], width=400, height=300)))
+    plots.append(AnyChart(tricontour(s[0], s[1], s[2], width=400, height=300)))
     var combo = render_layers_svg(plots).to_string()
     var solo = render_svg(
         tricontour(s[0], s[1], s[2], width=400, height=300)
@@ -2284,9 +2347,9 @@ def test_layering_two_kde_curves_puts_both_on_one_shared_density_axis() raises:
     """
     var a: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
     var b: List[Float64] = [3.0, 3.05, 3.1, 3.0, 3.02, 3.08, 3.01]
-    var plots = List[Plot]()
-    plots.append(kdeplot(a, width=400, height=300))
-    plots.append(kdeplot(b, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(kdeplot(a, width=400, height=300)))
+    plots.append(AnyChart(kdeplot(b, width=400, height=300)))
     var combo = render_layers_svg(plots).to_string()
 
     var combo_paths = _elements_of(combo, "<path")
@@ -2454,9 +2517,9 @@ def _x_axis_row(svg: String) raises -> Float64:
 
 
 def _lone_layer_matches_standalone(
-    name: String, var plot: Plot, solo: String
+    name: String, var plot: AnyChart, solo: String
 ) raises:
-    """`render_layers_svg([plot])` produces byte-identical output to
+    """`render_layers_svg([AnyChart(plot)])` produces byte-identical output to
     `render_svg()` of the same plot.
 
     The strongest domain-correctness assertion available for a newly
@@ -2471,7 +2534,7 @@ def _lone_layer_matches_standalone(
     "It rendered without raising" is what this replaces, and it would
     pass for every one of those bugs.
     """
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(plot^)
     var layered = render_layers_svg(plots).to_string()
     assert_true(
@@ -2499,7 +2562,7 @@ def test_a_lone_kde_layer_draws_the_standalone_kde() raises:
     var v: List[Float64] = [12.0, 14.0, 15.0, 16.0, 17.0, 24.0, 25.0, 28.0]
     _lone_layer_matches_standalone(
         "Mark.KDE",
-        kdeplot(v, width=400, height=300),
+        AnyChart(kdeplot(v, width=400, height=300)),
         render_svg(kdeplot(v, width=400, height=300)).to_string(),
     )
 
@@ -2517,7 +2580,7 @@ def test_a_lone_rug_layer_draws_the_standalone_rug_including_no_y_axis() raises:
     var v: List[Float64] = [12.0, 14.0, 15.0, 16.0, 17.0, 24.0, 25.0, 28.0]
     _lone_layer_matches_standalone(
         "Mark.RUG",
-        rugplot(v, width=400, height=300),
+        AnyChart(rugplot(v, width=400, height=300)),
         render_svg(rugplot(v, width=400, height=300)).to_string(),
     )
 
@@ -2540,31 +2603,31 @@ def test_a_lone_layer_of_each_field_mark_draws_the_standalone_chart() raises:
 
     _lone_layer_matches_standalone(
         "Mark.BARBS",
-        barbs(bx, by, bu, bv, width=400, height=300),
+        AnyChart(barbs(bx, by, bu, bv, width=400, height=300)),
         render_svg(barbs(bx, by, bu, bv, width=400, height=300)).to_string(),
     )
     _lone_layer_matches_standalone(
         "Mark.TRICONTOUR",
-        tricontour(s[0], s[1], s[2], width=400, height=300),
+        AnyChart(tricontour(s[0], s[1], s[2], width=400, height=300)),
         render_svg(
             tricontour(s[0], s[1], s[2], width=400, height=300)
         ).to_string(),
     )
     _lone_layer_matches_standalone(
         "Mark.TRICONTOURF",
-        tricontourf(s[0], s[1], s[2], width=400, height=300),
+        AnyChart(tricontourf(s[0], s[1], s[2], width=400, height=300)),
         render_svg(
             tricontourf(s[0], s[1], s[2], width=400, height=300)
         ).to_string(),
     )
     _lone_layer_matches_standalone(
         "Mark.TRIPLOT",
-        triplot(s[0], s[1], width=400, height=300),
+        AnyChart(triplot(s[0], s[1], width=400, height=300)),
         render_svg(triplot(s[0], s[1], width=400, height=300)).to_string(),
     )
     _lone_layer_matches_standalone(
         "Mark.TRIPCOLOR",
-        tripcolor(s[0], s[1], s[2], width=400, height=300),
+        AnyChart(tripcolor(s[0], s[1], s[2], width=400, height=300)),
         render_svg(
             tripcolor(s[0], s[1], s[2], width=400, height=300)
         ).to_string(),
@@ -2594,13 +2657,13 @@ def test_a_lone_effect_scatter_layer_draws_its_halo() raises:
     )
     _lone_layer_matches_standalone(
         "Mark.EFFECT_SCATTER",
-        effect_scatter(ex, ey, width=400, height=300),
+        AnyChart(effect_scatter(ex, ey, width=400, height=300)),
         solo,
     )
 
 
 def test_layering_a_rug_under_a_kde_draws_what_kdeplot_rug_true_draws() raises:
-    """Verify the layered composition: `render_layers([kdeplot(v), rugplot(v)])` is
+    """Verify the layered composition: `render_layers([AnyChart(kdeplot(v)), AnyChart(rugplot(v))])` is
     **byte-identical** to `render(kdeplot(v, rug=True))`.
 
     `mark_kde(rug=True)` is the built-in alternative. The composed
@@ -2617,9 +2680,9 @@ def test_layering_a_rug_under_a_kde_draws_what_kdeplot_rug_true_draws() raises:
     rules out.
     """
     var v: List[Float64] = [12.0, 14.0, 15.0, 15.0, 16.0, 17.0, 24.0, 28.0]
-    var plots = List[Plot]()
-    plots.append(kdeplot(v, width=400, height=300))
-    plots.append(rugplot(v, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(kdeplot(v, width=400, height=300)))
+    plots.append(AnyChart(rugplot(v, width=400, height=300)))
     var layered = render_layers_svg(plots).to_string()
     var built_in = render_svg(
         kdeplot(v, rug=True, width=400, height=300)
@@ -2655,9 +2718,9 @@ def test_a_rug_layer_rides_the_shared_x_domain_not_its_own() raises:
     """
     var v: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
     var wide: List[Float64] = [-20.0, 40.0]
-    var plots = List[Plot]()
-    plots.append(kdeplot(v, width=400, height=300))
-    plots.append(rugplot(wide, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(kdeplot(v, width=400, height=300)))
+    plots.append(AnyChart(rugplot(wide, width=400, height=300)))
     var layered = render_layers_svg(plots).to_string()
 
     var solo_x = _first_vertex(
@@ -2713,9 +2776,9 @@ def test_a_kde_layer_anchors_a_shared_domain_at_zero() raises:
     var v: List[Float64] = [1.0, 2.0, 2.5, 3.0, 4.0, 4.5, 5.0]
     var sx: List[Float64] = [2.0, 3.0]
     var sy: List[Float64] = [5.0, 6.0]
-    var plots = List[Plot]()
-    plots.append(kdeplot(v, fill=True, width=400, height=300))
-    plots.append(scatter(sx, sy, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(kdeplot(v, fill=True, width=400, height=300)))
+    plots.append(AnyChart(scatter(sx, sy, width=400, height=300)))
     var layered = render_layers_svg(plots).to_string()
 
     var axis_y = _x_axis_row(layered)
@@ -2775,9 +2838,9 @@ def test_render_layers_rejects_a_log_scale_on_a_newly_layerable_mark() raises:
     var lx: List[Float64] = [1.0, 10.0]
     var ly: List[Float64] = [1.0, 10.0]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
-    var plots = List[Plot]()
-    plots.append(line(lx, ly, width=400, height=300).scale_y_log())
-    plots.append(kdeplot(v, width=400, height=300).scale_y_log())
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(lx, ly, width=400, height=300).scale_y_log()))
+    plots.append(AnyChart(kdeplot(v, width=400, height=300).scale_y_log()))
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
     with assert_raises(contains="scale_y_log"):
@@ -2796,9 +2859,9 @@ def test_render_layers_rejects_secondary_axis_on_a_rug_layer() raises:
     var lx: List[Float64] = [1.0, 10.0]
     var ly: List[Float64] = [1.0, 10.0]
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
-    var plots = List[Plot]()
-    plots.append(line(lx, ly, width=400, height=300))
-    plots.append(rugplot(v, width=400, height=300).secondary_axis())
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(lx, ly, width=400, height=300)))
+    plots.append(AnyChart(rugplot(v, width=400, height=300).secondary_axis()))
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
     with assert_raises(contains="secondary_axis"):
@@ -2821,12 +2884,14 @@ def test_an_annotation_on_an_empty_secondary_layer_raises_instead_of_drawing() r
     var lx: List[Float64] = [0.0, 10.0]
     var ly: List[Float64] = [0.0, 10.0]
     var empty = List[Float64]()
-    var plots = List[Plot]()
-    plots.append(line(lx, ly, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(lx, ly, width=400, height=300)))
     plots.append(
-        scatter(empty, empty, width=400, height=300)
-        .secondary_axis()
-        .annotate_line(5.0, label="target")
+        AnyChart(
+            scatter(empty, empty, width=400, height=300)
+            .secondary_axis()
+            .annotate_line(5.0, label="target")
+        )
     )
     with assert_raises(contains="no continuous y-axis"):
         _ = render_layers(plots)
@@ -2856,11 +2921,11 @@ def test_a_grid_index_contour_cannot_share_an_axis_with_a_coordinate_mark() rais
 
     The error must say which layers disagree and how to fix it.
     """
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var lx: List[Float64] = [0.0, 2.0]
     var ly: List[Float64] = [0.0, 2.0]
-    plots.append(line(lx, ly, width=400, height=300))
-    plots.append(contour(_contour_grid(), width=400, height=300))
+    plots.append(AnyChart(line(lx, ly, width=400, height=300)))
+    plots.append(AnyChart(contour(_contour_grid(), width=400, height=300)))
     with assert_raises(contains="grid-index units"):
         _ = render_layers(plots)
     with assert_raises(contains="encode_contour(x=..., y=...)"):
@@ -2874,9 +2939,11 @@ def test_a_contour_with_coordinates_layers_over_a_line() raises:
     var ys: List[Float64] = [0.0, 1.0, 2.0]
     var lx: List[Float64] = [0.0, 2.0]
     var ly: List[Float64] = [0.0, 2.0]
-    var plots = List[Plot]()
-    plots.append(line(lx, ly, width=400, height=300))
-    plots.append(contour(_contour_grid(), x=xs, y=ys, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(lx, ly, width=400, height=300)))
+    plots.append(
+        AnyChart(contour(_contour_grid(), x=xs, y=ys, width=400, height=300))
+    )
     var c = render_layers(plots)
     assert_equal(c.width, 400, "the stack rendered at the shared size")
 
@@ -2909,9 +2976,13 @@ def test_a_contour_over_a_contourf_reproduces_the_standalone_isolines() raises:
     var alone = render(
         contour(z, levels=levels, theme=bare, width=400, height=300)
     )
-    var plots = List[Plot]()
-    plots.append(contourf(z, levels=levels, theme=grey, width=400, height=300))
-    plots.append(contour(z, levels=levels, theme=bare, width=400, height=300))
+    var plots = List[AnyChart]()
+    plots.append(
+        AnyChart(contourf(z, levels=levels, theme=grey, width=400, height=300))
+    )
+    plots.append(
+        AnyChart(contour(z, levels=levels, theme=bare, width=400, height=300))
+    )
     var stacked = render_layers(plots)
 
     # The isoline's own color, which the grey bands underneath cannot
@@ -2944,22 +3015,24 @@ def _columns_with(c: Canvas, ink: Color) raises -> List[Int]:
 # ---------------------------------------------------------------
 
 
-def _titled_facet_grid(x_title: String) raises -> List[Plot]:
+def _titled_facet_grid(x_title: String) raises -> List[AnyChart]:
     """Four 320x240 cells, each with a chart title and optionally an
     x-axis title -- the combination whose ink used to collide across the
     row boundary."""
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0]
     var names: List[String] = ["PRE", "MID", "POST", "NONE"]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     for i in range(4):
         plots.append(
-            Plot()
-            .size(320, 240)
-            .mark_line()
-            .encode(x=x, y=y)
-            .labels(title=names[i], x_title=x_title, y_title="Rate (%)")
-            .theme(Theme(show_gridlines=False))
+            AnyChart(
+                Plot()
+                .size(320, 240)
+                .mark_line()
+                .encode(x=x, y=y)
+                .labels(title=names[i], x_title=x_title, y_title="Rate (%)")
+                .theme(Theme(show_gridlines=False))
+            )
         )
     return plots^
 
@@ -3041,15 +3114,17 @@ def test_a_facet_grid_without_x_titles_is_unchanged() raises:
     var x: List[Float64] = [1.0, 2.0, 3.0, 4.0, 5.0]
     var y: List[Float64] = [12.0, 19.0, 14.0, 25.0, 18.0]
     var names: List[String] = ["PRE", "MID", "POST", "NONE"]
-    var reference = List[Plot]()
+    var reference = List[AnyChart]()
     for i in range(4):
         reference.append(
-            Plot()
-            .size(320, 240)
-            .mark_line()
-            .encode(x=x, y=y)
-            .labels(title=names[i], y_title="Rate (%)")
-            .theme(Theme(show_gridlines=False))
+            AnyChart(
+                Plot()
+                .size(320, 240)
+                .mark_line()
+                .encode(x=x, y=y)
+                .labels(title=names[i], y_title="Rate (%)")
+                .theme(Theme(show_gridlines=False))
+            )
         )
     assert_equal(
         without,
@@ -3095,7 +3170,7 @@ def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
         .theme(t)
         .size(400, 300)
     )
-    var solo: List[Plot] = [bars_only^]
+    var solo: List[AnyChart] = [AnyChart(bars_only)]
     var bars_alone = _title_count(render_layers_svg(solo).to_string())
 
     var b2 = (
@@ -3106,7 +3181,7 @@ def test_bar_combo_point_layer_emits_its_own_tooltips() raises:
         .size(400, 300)
     )
     var p2 = Plot().mark_point().encode(x=idx, y=pt_y).theme(t).size(400, 300)
-    var combo: List[Plot] = [b2^, p2^]
+    var combo: List[AnyChart] = [AnyChart(b2), AnyChart(p2)]
     var with_points = _title_count(render_layers_svg(combo).to_string())
 
     assert_equal(
@@ -3176,7 +3251,7 @@ def test_bar_combo_line_layer_is_styled_like_a_standalone_line() raises:
         .theme(t)
         .size(400, 300)
     )
-    var combo: List[Plot] = [b^, l^]
+    var combo: List[AnyChart] = [AnyChart(b), AnyChart(l)]
     var combo_svg = render_layers_svg(combo).to_string()
 
     assert_equal(
@@ -3200,10 +3275,12 @@ def test_a_partial_last_row_takes_the_figure_background() raises:
     var theme = Theme(background=dark, show_gridlines=False, show_legend=False)
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     for _ in range(5):
         plots.append(
-            Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+            AnyChart(
+                Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+            )
         )
     var c = render_facets(plots, 3)
     assert_equal(c.width, 360, "three columns of 120")
@@ -3232,10 +3309,12 @@ def test_a_partial_last_row_takes_the_figure_background_in_svg() raises:
     var theme = Theme(background=dark, show_gridlines=False, show_legend=False)
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     for _ in range(5):
         plots.append(
-            Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+            AnyChart(
+                Plot().mark_line().encode(x=x, y=y).theme(theme).size(120, 90)
+            )
         )
     var s = render_facets_svg(plots, 3).to_string()
     assert_true(
@@ -3295,7 +3374,7 @@ def test_render_layers_takes_two_ecdfs_and_pins_the_proportion_axis() raises:
 
     var p0 = ecdf(a, width=400, height=300)
     var p1 = ecdf(b, width=400, height=300)
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_layers_svg(plots).to_string()
     assert_equal(_count_tag(s, "path"), 2)
     # 400x300, default theme -> plot_y0=20. Pinned to [0, 1], the
@@ -3334,7 +3413,7 @@ def test_render_layers_uses_agreeing_domain_overrides() raises:
         .encode(x=x1, y=y1)
         .scale_x_domain(0.0, 200.0)
     )
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_layers_svg(plots).to_string()
     assert_true("200" in s, "the shared x-axis runs to the overridden 200")
 
@@ -3356,7 +3435,7 @@ def test_render_layers_raises_on_disagreeing_domain_overrides() raises:
         .encode(x=x, y=y)
         .scale_x_domain(0.0, 300.0)
     )
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     with assert_raises(contains="must agree"):
         _ = render_layers_svg(plots)
 
@@ -3376,7 +3455,7 @@ def test_render_layers_overlays_two_histograms_on_shared_bins() raises:
     var h1 = histogram(
         b, edges=edges, stat=HistStat.PROBABILITY, width=400, height=300
     )
-    var plots: List[Plot] = [h0^, h1^]
+    var plots: List[AnyChart] = [AnyChart(h0), AnyChart(h1)]
     var s = render_layers_svg(plots).to_string()
     # Mark.HISTOGRAM draws one <rect> per nonempty bin (plus the
     # background rect and the separators); six bins each, both drawn.

@@ -2,6 +2,7 @@
 """Index each series to its own first value so two series on different
 scales become directly comparable.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN
 from dataviz.core.theme import Theme
@@ -46,5 +47,5 @@ def main() raises:
         .encode(x=months, y=index_b)
         .theme(Theme(mark_color=SEAGREEN, line_width=3.0))
     )
-    var plots: List[Plot] = [layer_a^, layer_b^]
+    var plots: List[AnyChart] = [AnyChart(layer_a), AnyChart(layer_b)]
     save_layers(plots, "docs/src/examples/out_layers_indexed.svg")

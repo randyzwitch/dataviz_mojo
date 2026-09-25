@@ -6,6 +6,7 @@ compilation, so the suite is organized by family (#605).
 
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
+from dataviz.chart import AnyChart
 from dataviz.core.tooltips import Tooltips
 from dataviz.binned.hexbin import _HexBins, _hexbin_bins, hexbin
 from dataviz.binned.hist2d import _hist2d_counts, hist2d
@@ -25,6 +26,7 @@ from dataviz import (
     render_layers_svg,
     render_svg,
     histogram,
+    stepped_histogram,
     kdeplot,
 )
 from _test_helpers import (
@@ -40,7 +42,7 @@ from _test_helpers import (
 # ==== from test_histogram_mark.mojo ====
 # Tests for `Mark.HISTOGRAM` (#435): one rectangle per bin at numeric
 # x positions, with a separator between adjacent nonempty bins, and the
-# `stepfilled` form that keeps the staircase.
+# `stepped_histogram()` form that keeps the staircase.
 
 
 def _theme() -> Theme:
@@ -51,10 +53,13 @@ def _is(p: Color, c: Color) -> Bool:
     return p.r == c.r and p.g == c.g and p.b == c.b
 
 
-def test_histogram_is_the_rect_mark_by_default_and_area_when_stepfilled() raises:
+def test_histogram_is_the_rect_mark_and_stepped_histogram_the_area() raises:
     var data: List[Float64] = [0.5, 1.5, 1.5, 2.5]
-    assert_true(histogram(data, bins=3)._mark == Mark.HISTOGRAM)
-    assert_true(histogram(data, bins=3, stepfilled=True)._mark == Mark.AREA)
+    assert_true(histogram(data, bins=3).id() == Mark.HISTOGRAM)
+    assert_true(
+        stepped_histogram(data, uniform_bin_edges(0.0, 3.0, 3)).id()
+        == Mark.AREA
+    )
 
 
 def test_svg_draws_one_rect_per_nonempty_bin_plus_separators() raises:
@@ -128,13 +133,12 @@ def test_separator_stops_at_the_shorter_neighbor() raises:
     assert_true(_is(c.get_pixel(220, 150), t.mark_color), "tall bin beside it")
 
 
-def test_stepfilled_keeps_the_staircase() raises:
+def test_stepped_histogram_keeps_the_staircase() raises:
     var data: List[Float64] = [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0]
     var s = render_svg(
-        histogram(
+        stepped_histogram(
             data,
-            edges=uniform_bin_edges(0.0, 3.0, 3),
-            stepfilled=True,
+            uniform_bin_edges(0.0, 3.0, 3),
             theme=_theme(),
             width=400,
             height=300,
@@ -176,13 +180,13 @@ def test_encode_histogram_bins_keeps_the_staircase_columns_for_the_domains() rai
         .mark_histogram()
         .encode_histogram_bins(HistogramBins(edges.copy(), values.copy()))
     )
-    assert_equal(len(p._continuous.x), 3, "step_x(): every edge")
+    assert_equal(len(p.mark.continuous.x), 3, "step_x(): every edge")
     assert_equal(
-        len(p._continuous.y), 3, "step_y(): values plus the last repeated"
+        len(p.mark.continuous.y), 3, "step_y(): values plus the last repeated"
     )
-    assert_equal(p._continuous.y[2], 1.0)
-    assert_equal(len(p._histogram.edges), 3)
-    assert_equal(p._histogram.values[0], 3.0)
+    assert_equal(p.mark.continuous.y[2], 1.0)
+    assert_equal(len(p.mark.histogram.edges), 3)
+    assert_equal(p.mark.histogram.values[0], 3.0)
 
 
 def test_dtype_overload_matches_the_float64_path() raises:
@@ -291,12 +295,12 @@ def test_horizontal_separators_are_rows_between_equal_bins() raises:
     )
 
 
-def test_horizontal_refuses_stepfilled_and_layers() raises:
+def test_horizontal_refuses_layers() raises:
     var data: List[Float64] = [0.5, 1.5, 2.5]
-    with assert_raises(contains="stepfilled=True and horizontal=True"):
-        _ = histogram(data, bins=3, horizontal=True, stepfilled=True)
-    var plots: List[Plot] = [
-        histogram(data, bins=3, horizontal=True, width=300, height=220)
+    var plots: List[AnyChart] = [
+        AnyChart(
+            histogram(data, bins=3, horizontal=True, width=300, height=220)
+        )
     ]
     with assert_raises(contains="horizontal Mark.HISTOGRAM layer"):
         _ = render_layers_svg(plots)
@@ -309,9 +313,13 @@ def test_horizontal_histograms_facet_without_a_forced_y_baseline() raises:
     var a: List[Float64] = [0.5, 1.2, 1.8, 2.1, 2.3, 2.7, 3.0]
     var b: List[Float64] = [0.6, 0.9, 1.1, 2.9, 3.0, 3.0, 3.0]
     var edges = uniform_bin_edges(0.5, 3.0, 5)
-    var plots: List[Plot] = [
-        histogram(a, edges=edges, horizontal=True, width=300, height=220),
-        histogram(b, edges=edges, horizontal=True, width=300, height=220),
+    var plots: List[AnyChart] = [
+        AnyChart(
+            histogram(a, edges=edges, horizontal=True, width=300, height=220)
+        ),
+        AnyChart(
+            histogram(b, edges=edges, horizontal=True, width=300, height=220)
+        ),
     ]
     var c = render_facets(plots, 2, shared_y_scale=True)
     assert_true(c.width > 0, "renders")
@@ -337,7 +345,7 @@ def test_histogram_and_kde_peak_in_the_same_pixel_column() raises:
         height=300,
     )
     var k = kdeplot(data, theme=_theme(), width=400, height=300)
-    var plots: List[Plot] = [h^, k^]
+    var plots: List[AnyChart] = [AnyChart(h), AnyChart(k)]
     var s = render_layers_svg(plots).to_string()
     var rects = _bin_rects(s)
     var tallest = 0
@@ -430,12 +438,12 @@ def test_hist2d_bins_each_axis_over_its_own_range() raises:
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0, 4.0]
     var y: List[Float64] = [10.0, 10.0, 10.0, 10.0, 30.0]
     var p = hist2d(x, y, bins=2)
-    assert_equal(len(p._image.x_edges), 3)
-    assert_equal(p._image.x_edges[1], 2.0)
-    assert_equal(p._image.y_edges[1], 20.0)
-    assert_equal(p._image.z[0][0], 2.0)
-    assert_equal(p._image.z[1][1], 1.0)
-    assert_true(p._image.blank_zero, "empty bins are left undrawn")
+    assert_equal(len(p.mark.image.x_edges), 3)
+    assert_equal(p.mark.image.x_edges[1], 2.0)
+    assert_equal(p.mark.image.y_edges[1], 20.0)
+    assert_equal(p.mark.image.z[0][0], 2.0)
+    assert_equal(p.mark.image.z[1][1], 1.0)
+    assert_true(p.mark.image.blank_zero, "empty bins are left undrawn")
 
 
 def test_empty_bins_draw_as_background_not_the_bottom_of_the_ramp() raises:
@@ -487,14 +495,14 @@ def test_rule_overload_bins_each_axis_by_the_rule() raises:
     var p = hist2d(x, y)
     var ex = bin_edges(x, BinRule.AUTO)
     var ey = bin_edges(y, BinRule.AUTO)
-    assert_equal(len(p._image.x_edges), len(ex))
-    assert_equal(len(p._image.y_edges), len(ey))
-    assert_equal(p._image.x_edges[1], ex[1])
-    assert_equal(p._image.y_edges[1], ey[1])
+    assert_equal(len(p.mark.image.x_edges), len(ex))
+    assert_equal(len(p.mark.image.y_edges), len(ey))
+    assert_equal(p.mark.image.x_edges[1], ex[1])
+    assert_equal(p.mark.image.y_edges[1], ey[1])
     var total = 0.0
-    for r in range(len(p._image.z)):
-        for c in range(len(p._image.z[r])):
-            total += p._image.z[r][c]
+    for r in range(len(p.mark.image.z)):
+        for c in range(len(p.mark.image.z[r])):
+            total += p.mark.image.z[r][c]
     assert_equal(total, 200.0, "every point lands in exactly one bin")
 
 
@@ -954,16 +962,20 @@ def test_builder_chain_histograms_layer_as_histogram_ones_do() raises:
     # for histogram() plots and chained ones alike).
     var a = _sample()
     var b: List[Float64] = [0.5, 1.5, 2.5, 3.5, 3.6, 4.9]
-    var chained = List[Plot]()
+    var chained = List[AnyChart]()
     chained.append(
-        Plot().mark_histogram().encode_histogram(a, bins=4).size(400, 300)
+        AnyChart(
+            Plot().mark_histogram().encode_histogram(a, bins=4).size(400, 300)
+        )
     )
     chained.append(
-        Plot().mark_histogram().encode_histogram(b, bins=4).size(400, 300)
+        AnyChart(
+            Plot().mark_histogram().encode_histogram(b, bins=4).size(400, 300)
+        )
     )
-    var one_call = List[Plot]()
-    one_call.append(histogram(a, bins=4, width=400, height=300))
-    one_call.append(histogram(b, bins=4, width=400, height=300))
+    var one_call = List[AnyChart]()
+    one_call.append(AnyChart(histogram(a, bins=4, width=400, height=300)))
+    one_call.append(AnyChart(histogram(b, bins=4, width=400, height=300)))
     assert_equal(
         render_layers_svg(chained).to_string(),
         render_layers_svg(one_call).to_string(),
@@ -1020,14 +1032,8 @@ def test_each_histogram_encoder_names_the_mark_it_needs() raises:
     # intervals. Each points at the other's mark rather than silently
     # drawing the wrong chart.
     var d = _sample()
-    with assert_raises(contains="mark_histogram()"):
-        _ = Plot().mark_bar().encode_histogram(d, bins=4)
-    with assert_raises(contains="mark_bar()"):
-        _ = Plot().mark_histogram().encode_binned_categories(d, bins=4)
-    with assert_raises(contains="mark_histogram()"):
-        _ = Plot().mark_point().encode_histogram(d, BinRule.AUTO)
     var bars = Plot().mark_bar().encode_binned_categories(d, bins=4)
-    assert_equal(len(bars._categorical.x), 4, "four labeled bars")
+    assert_equal(len(bars.mark.categorical.x), 4, "four labeled bars")
 
 
 def main() raises:

@@ -2,6 +2,8 @@
 whose single box and whiskers become nested boxes at successively finer
 quantiles, so a large sample's tail is drawn rather than discarded."""
 
+from dataviz.chart import Chart
+from dataviz.marks import Boxenplot
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -335,7 +337,7 @@ def boxenplot(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Boxenplot]:
     """`boxenplot()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per observation, with `category` naming each row's group and
     `value` holding the number.
@@ -358,7 +360,7 @@ def boxenplot(
         horizontal: Draw the categories down the y axis instead.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -399,7 +401,7 @@ def boxenplot[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Boxenplot]:
     """A letter-value plot: like `box()`, but the
     single box and two whiskers become nested boxes at successively
     finer quantiles -- the quartiles, then the eighths, the sixteenths
@@ -547,32 +549,4 @@ def _render_boxenplot_oriented[
         )
     return _render_boxenplot(
         target, boxen, categorical, settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
-def _render_boxenplot_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_boxenplot_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_boxenplot_oriented(
-        target,
-        plot._boxen,
-        plot._categorical,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
     )

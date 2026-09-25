@@ -6,6 +6,7 @@ chart, where the two series' units/scales are too different to share
 one axis without one of them going flat.
 """
 from canvas.color import Color
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.theme import Theme
 
@@ -32,8 +33,8 @@ def main() raises:
         .secondary_axis()
         .labels(y_title="Growth (%)")
     )
-    var plots = List[Plot]()
-    plots.append(revenue_layer^)
-    plots.append(growth_layer^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(revenue_layer))
+    plots.append(AnyChart(growth_layer))
 
     save_layers(plots, "docs/src/examples/out_dual_axis.svg")

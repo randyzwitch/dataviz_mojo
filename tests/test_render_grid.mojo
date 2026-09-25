@@ -24,6 +24,9 @@ from _test_helpers import _attr_values
 from canvas.buffer import Canvas
 from canvas.color import Color
 
+from dataviz.marks import Line, Point
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart
 from dataviz import (
     GridCell,
     Theme,
@@ -59,7 +62,7 @@ def _theme() -> Theme:
     return Theme(show_gridlines=False, show_legend=False)
 
 
-def _plot(scale: Float64) raises -> Plot:
+def _plot(scale: Float64) raises -> Chart[Line]:
     return (
         Plot()
         .mark_line()
@@ -69,10 +72,10 @@ def _plot(scale: Float64) raises -> Plot:
     )
 
 
-def _two_across() raises -> Tuple[List[Plot], List[GridCell]]:
-    var plots = List[Plot]()
-    plots.append(_plot(1.0))
-    plots.append(_plot(3.0))
+def _two_across() raises -> Tuple[List[AnyChart], List[GridCell]]:
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(_plot(1.0)))
+    plots.append(AnyChart(_plot(3.0)))
     var cells = List[GridCell]()
     cells.append(GridCell(0, 0))
     cells.append(GridCell(0, 1))
@@ -115,20 +118,24 @@ def test_a_two_to_one_split_puts_the_divider_where_the_weights_say() raises:
     var right_theme = Theme(
         show_gridlines=False, show_legend=False, background=Color(200, 210, 220)
     )
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=_xs(8), y=_ys(8, 1.0))
-        .theme(left_theme)
-        .size(200, 150)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=_xs(8), y=_ys(8, 1.0))
+            .theme(left_theme)
+            .size(200, 150)
+        )
     )
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=_xs(8), y=_ys(8, 3.0))
-        .theme(right_theme)
-        .size(200, 150)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=_xs(8), y=_ys(8, 3.0))
+            .theme(right_theme)
+            .size(200, 150)
+        )
     )
     var cells = List[GridCell]()
     cells.append(GridCell(0, 0))
@@ -160,10 +167,10 @@ def test_a_two_to_one_split_puts_the_divider_where_the_weights_say() raises:
 def test_tracks_always_add_up_to_the_canvas() raises:
     # Rounding a running sum rather than accumulating rounded widths:
     # three columns across 100 pixels must not lose or gain one.
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     for i in range(3):
-        plots.append(_plot(1.0))
+        plots.append(AnyChart(_plot(1.0)))
         cells.append(GridCell(0, i))
     var c = render_grid(plots, cells, 100, 80)
     assert_equal(c.width, 100, "three columns across 100 pixels")
@@ -171,13 +178,13 @@ def test_tracks_always_add_up_to_the_canvas() raises:
 
 def test_a_span_covers_the_tracks_it_names() raises:
     # A wide panel above two narrow ones: the layout #347 opens with.
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
-    plots.append(_plot(1.0))
+    plots.append(AnyChart(_plot(1.0)))
     cells.append(GridCell(0, 0, col_span=2))
-    plots.append(_plot(2.0))
+    plots.append(AnyChart(_plot(2.0)))
     cells.append(GridCell(1, 0))
-    plots.append(_plot(3.0))
+    plots.append(AnyChart(_plot(3.0)))
     cells.append(GridCell(1, 1))
     var c = render_grid(plots, cells, 400, 300)
     assert_equal(c.width, 400, "two columns")
@@ -200,11 +207,11 @@ def test_a_span_covers_the_tracks_it_names() raises:
 
 
 def test_overlapping_cells_raise_and_name_both_plots() raises:
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
-    plots.append(_plot(1.0))
+    plots.append(AnyChart(_plot(1.0)))
     cells.append(GridCell(0, 0, col_span=2))
-    plots.append(_plot(2.0))
+    plots.append(AnyChart(_plot(2.0)))
     cells.append(GridCell(0, 1))
     with assert_raises(contains="overlaps plot 0"):
         _ = render_grid(plots, cells, 400, 300)
@@ -213,11 +220,11 @@ def test_overlapping_cells_raise_and_name_both_plots() raises:
 def test_a_cell_outside_its_own_grid_raises() raises:
     # The grid is inferred from the cells, so "outside" can only happen
     # via a span that runs past what the other cells established.
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
-    plots.append(_plot(1.0))
+    plots.append(AnyChart(_plot(1.0)))
     cells.append(GridCell(0, 0))
-    plots.append(_plot(2.0))
+    plots.append(AnyChart(_plot(2.0)))
     cells.append(GridCell(0, 1, row_span=3))
     # Rows become 3 because of the span, so this is legal; the illegal
     # case is a negative coordinate.
@@ -231,8 +238,8 @@ def test_a_cell_outside_its_own_grid_raises() raises:
 
 
 def test_a_zero_span_raises() raises:
-    var plots = List[Plot]()
-    plots.append(_plot(1.0))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(_plot(1.0)))
     var cells = List[GridCell]()
     cells.append(GridCell(0, 0, col_span=0))
     with assert_raises(contains="at least 1"):
@@ -267,7 +274,7 @@ def test_mismatched_plots_and_cells_raise() raises:
 
 
 def test_an_empty_figure_raises() raises:
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     with assert_raises(contains="nothing to draw"):
         _ = render_grid(plots, cells, 400, 200)
@@ -280,20 +287,22 @@ def test_a_cell_draws_its_own_annotations() raises:
     every `annotate_*()` call, which no test caught because none asked.
     A plot with a horizontal rule at y = 3 must put ink there.
     """
-    var plain = List[Plot]()
-    var annotated = List[Plot]()
+    var plain = List[AnyChart]()
+    var annotated = List[AnyChart]()
     var cells = List[GridCell]()
     for i in range(2):
-        plain.append(_plot(Float64(i) + 1.0))
+        plain.append(AnyChart(_plot(Float64(i) + 1.0)))
         annotated.append(
-            Plot()
-            .mark_line()
-            .encode(x=_xs(8), y=_ys(8, Float64(i) + 1.0))
-            .annotate_line(3.0, label="target")
-            .annotate_vline(4.0, label="cutover")
-            .annotate_point(2.0, 3.0, label="peak")
-            .theme(_theme())
-            .size(200, 150)
+            AnyChart(
+                Plot()
+                .mark_line()
+                .encode(x=_xs(8), y=_ys(8, Float64(i) + 1.0))
+                .annotate_line(3.0, label="target")
+                .annotate_vline(4.0, label="cutover")
+                .annotate_point(2.0, 3.0, label="peak")
+                .theme(_theme())
+                .size(200, 150)
+            )
         )
         cells.append(GridCell(0, i))
     var without = render_grid(plain, cells, 400, 200)
@@ -386,15 +395,17 @@ def test_equal_tracks_land_on_the_pixels_facets_always_used() raises:
     themes.append(left)
     themes.append(mid)
     themes.append(right)
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     for i in range(3):
         plots.append(
-            Plot()
-            .mark_line()
-            .encode(x=_xs(8), y=_ys(8, 1.0))
-            .theme(themes[i])
-            .size(100, 80)
+            AnyChart(
+                Plot()
+                .mark_line()
+                .encode(x=_xs(8), y=_ys(8, 1.0))
+                .theme(themes[i])
+                .size(100, 80)
+            )
         )
         cells.append(GridCell(0, i))
     var c = render_grid(plots, cells, 100, 80)
@@ -421,7 +432,7 @@ def test_an_empty_square_takes_the_figure_background() raises:
     var dark = Theme(
         show_gridlines=False, show_legend=False, background=Color(20, 20, 30)
     )
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     var coords = List[Int]()
     coords.append(0)
@@ -429,11 +440,13 @@ def test_an_empty_square_takes_the_figure_background() raises:
     coords.append(3)
     for i in range(3):
         plots.append(
-            Plot()
-            .mark_line()
-            .encode(x=_xs(8), y=_ys(8, 1.0))
-            .theme(dark)
-            .size(200, 150)
+            AnyChart(
+                Plot()
+                .mark_line()
+                .encode(x=_xs(8), y=_ys(8, 1.0))
+                .theme(dark)
+                .size(200, 150)
+            )
         )
         cells.append(GridCell(coords[i] // 2, coords[i] % 2))
     var c = render_grid(plots, cells, 400, 300)
@@ -459,16 +472,18 @@ def test_a_uniform_grid_is_a_facet_grid() raises:
     This is what folding the two implementations together bought: a
     uniform `render_grid()` is `render_facets()`, not a near-copy of it.
     """
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var cells = List[GridCell]()
     for i in range(4):
         plots.append(
-            Plot()
-            .mark_line()
-            .encode(x=_xs(9), y=_ys(9, Float64(i) + 1.0))
-            .labels(title="Panel", x_title="quarter", y_title="value")
-            .theme(_theme())
-            .size(200, 150)
+            AnyChart(
+                Plot()
+                .mark_line()
+                .encode(x=_xs(9), y=_ys(9, Float64(i) + 1.0))
+                .labels(title="Panel", x_title="quarter", y_title="value")
+                .theme(_theme())
+                .size(200, 150)
+            )
         )
         cells.append(GridCell(i // 2, i % 2))
     var faceted = render_facets(plots, 2)
@@ -521,7 +536,7 @@ def _axis_bottom(c: Canvas, x0: Int, x1: Int) -> Int:
     return -1
 
 
-def _wide_and_narrow_labels() raises -> Tuple[List[Plot], List[GridCell]]:
+def _wide_and_narrow_labels() raises -> Tuple[List[AnyChart], List[GridCell]]:
     """Two cells stacked in one column, whose y-labels differ a lot in
     width: values near 1 above, values in the millions below.
 
@@ -534,25 +549,29 @@ def _wide_and_narrow_labels() raises -> Tuple[List[Plot], List[GridCell]]:
     for i in range(8):
         small.append(Float64(i) * 0.1 + 1.0)
         large.append(Float64(i) * 1000000.0 + 5000000.0)
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     var wide_label_theme = Theme(
         show_gridlines=False,
         show_legend=False,
         y_tick_format=TickFormat.FIXED(0),
     )
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=_xs(8), y=small)
-        .theme(wide_label_theme)
-        .size(300, 200)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=_xs(8), y=small)
+            .theme(wide_label_theme)
+            .size(300, 200)
+        )
     )
     plots.append(
-        Plot()
-        .mark_line()
-        .encode(x=_xs(8), y=large)
-        .theme(wide_label_theme)
-        .size(300, 200)
+        AnyChart(
+            Plot()
+            .mark_line()
+            .encode(x=_xs(8), y=large)
+            .theme(wide_label_theme)
+            .size(300, 200)
+        )
     )
     var cells = List[GridCell]()
     cells.append(GridCell(0, 0))
@@ -620,9 +639,9 @@ def test_align_axes_shares_a_row_s_bottom_edge() raises:
         .theme(_theme())
         .size(200, 200)
     )
-    var plots = List[Plot]()
-    plots.append(plain^)
-    plots.append(titled^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(plain))
+    plots.append(AnyChart(titled))
     var cells = List[GridCell]()
     cells.append(GridCell(0, 0))
     cells.append(GridCell(0, 1))
@@ -720,9 +739,9 @@ def test_a_facet_title_grows_the_figure_and_leaves_the_cells_alone() raises:
     # render_facets sizes the figure from the plots, so a title adds its
     # band on top rather than shrinking the cells: everything below the
     # band is the untitled figure, pixel for pixel.
-    var plots = List[Plot]()
-    plots.append(_plot(1.0))
-    plots.append(_plot(3.0))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(_plot(1.0)))
+    plots.append(AnyChart(_plot(3.0)))
     var plain = render_facets(plots, 2)
     var titled = render_facets(plots, 2, title="Two across")
     var band = _title_band(_theme())
@@ -748,9 +767,9 @@ def test_a_facet_title_grows_the_figure_and_leaves_the_cells_alone() raises:
 
 
 def test_a_facet_title_reaches_the_svg_backend_too() raises:
-    var plots = List[Plot]()
-    plots.append(_plot(1.0))
-    plots.append(_plot(3.0))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(_plot(1.0)))
+    plots.append(AnyChart(_plot(3.0)))
     var svg = render_facets_svg(plots, 2, title="Two across").to_string()
     assert_true(svg.find(">Two across<") != -1)
     assert_equal(
@@ -766,7 +785,7 @@ comptime _BLUE = Color(0, 0, 200)
 comptime _INSET_BG = Color(230, 230, 255)
 
 
-def _base_plot() raises -> Plot:
+def _base_plot() raises -> Chart[Point]:
     # Points rather than a line so the mark leaves solid, exactly colored
     # pixels to count; they climb to the top right, which is where the
     # tests put the inset.
@@ -779,7 +798,7 @@ def _base_plot() raises -> Plot:
     )
 
 
-def _inset_plot() raises -> Plot:
+def _inset_plot() raises -> Chart[Point]:
     return (
         Plot()
         .mark_point()

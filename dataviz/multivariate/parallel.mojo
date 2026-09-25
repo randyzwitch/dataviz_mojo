@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Parallel
 from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
 
@@ -175,26 +177,6 @@ def _render_parallel[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_parallel_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_parallel` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_parallel(
-        target, plot._parallel, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def parallel[
     dtype: DType
 ](
@@ -208,7 +190,7 @@ def parallel[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Parallel]:
     """A parallel-coordinates chart, Alfred Inselberg's format for
     visualizing many dimensions at once: one vertical axis per variable,
     connected by a line per row, for spotting clusters and correlations
@@ -239,7 +221,7 @@ def parallel[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -296,7 +278,7 @@ def parallel(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Parallel]:
     """Parallel coordinates from named DataFrame columns (#743).
 
     `dims` names the numeric columns, in axis order; `row_name` names

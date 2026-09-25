@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Tricontour, Tricontourf
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -355,33 +357,6 @@ def _render_tricontour[
     return frame.result()
 
 
-def _render_tricontour_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_tricontour` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_tricontour(
-        target,
-        plot._tricontour,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def _validate_tricontour(
     tricontour: _TriContourData, mark_context: String
 ) raises:
@@ -564,33 +539,6 @@ def _render_tricontourf[
     return frame.result()
 
 
-def _render_tricontourf_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_tricontourf` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_tricontourf(
-        target,
-        plot._tricontour,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def _draw_tricontourf_layer[
     T: DrawTarget
 ](
@@ -687,7 +635,7 @@ def tricontourf(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tricontourf]:
     """Filled contour bands over scattered samples: `tricontour()`'s
     regions rather than its lines, Delaunay-triangulated the same way --
     the reading for a field measured at stations, boreholes or any other
@@ -703,7 +651,7 @@ def tricontourf(
     higher, and the fill is what carries the color scale.
 
     To draw both at once,
-    `render_layers([tricontourf(...), tricontour(...)])` is how to say it
+    `render_layers(tricontourf(...), tricontour(...))` is how to say it
     -- filled bands underneath, isolines on top. Both marks
     lay out through the same `_draw_continuous_axis_frame` over the same
     `_data_extent` of the same samples, so the combined domain is each
@@ -801,7 +749,7 @@ def tricontourf(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tricontourf]:
     """`tricontourf()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). `x`, `y`, and `z` name columns; `levels`
     supplies contour thresholds independently of the rows.
@@ -828,7 +776,7 @@ def tricontourf(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -867,7 +815,7 @@ def tricontour(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tricontour]:
     """`tricontour()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). `x`, `y`, and `z` name columns; `levels`
     supplies contour thresholds independently of the rows.
@@ -891,7 +839,7 @@ def tricontour(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -931,7 +879,7 @@ def tricontour[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tricontour]:
     """A contour plot of scattered samples: isolines over `(x, y, z)`
     points that sit on no grid, Delaunay-triangulated first -- the
     reading for a field measured at stations, boreholes or any other
@@ -961,7 +909,7 @@ def tricontour[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

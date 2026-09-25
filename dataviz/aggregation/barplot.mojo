@@ -4,6 +4,8 @@ the first chart here that computes an aggregate rather than draws one
 
 from dataframe import DataFrame
 
+from dataviz.chart import Chart
+from dataviz.marks import Bar
 from dataviz.core.frame_input import _frame_floats, _frame_strings
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -26,7 +28,7 @@ def barplot(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Bar]:
     """`barplot()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `categories` and `values` column names.
@@ -51,7 +53,7 @@ def barplot(
         horizontal: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -94,7 +96,7 @@ def barplot[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Bar]:
     """One bar per distinct category holding an *estimate* of that
     category's values -- the mean by default -- with a whisker for its
     uncertainty. Unlike `bar()`, which draws the

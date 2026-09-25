@@ -2,6 +2,7 @@
 """Layer two series that share one y-axis and one set of units --
 render_layers()'s default, no secondary_axis() needed.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.core.theme import Theme
@@ -29,5 +30,8 @@ def main() raises:
         .encode(x=months, y=target)
         .theme(Theme(mark_color=TOMATO, line_width=3.0))
     )
-    var plots: List[Plot] = [actual_layer^, target_layer^]
+    var plots: List[AnyChart] = [
+        AnyChart(actual_layer),
+        AnyChart(target_layer),
+    ]
     save_layers(plots, "docs/src/examples/out_layers_combo.svg")

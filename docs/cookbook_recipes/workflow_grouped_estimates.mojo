@@ -22,6 +22,7 @@ drawn in both panels, that the counts shown are the counts of present
 observations, and that the group with no readings at all is absent from
 both rather than drawn as a zero.
 """
+from dataviz.chart import AnyChart
 from dataviz import GridCell, Plot, barplot
 from dataviz.core.theme import Theme
 from dataviz.core.stats import ErrorBar, Estimator
@@ -78,7 +79,7 @@ def main() raises:
     )
 
     var path = "docs/src/examples/out_workflow_grouped_estimates.svg"
-    var panels: List[Plot] = [estimates^, counts^]
+    var panels: List[AnyChart] = [AnyChart(estimates), AnyChart(counts)]
     var cells: List[GridCell] = [GridCell(0, 0), GridCell(1, 0)]
     # The counts panel is shorter: it carries one number per group, and
     # the estimates are what a reader spends time on.

@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Gauge
 from dataviz.core.plot_fields import _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import isnan, pi
@@ -182,34 +184,6 @@ def _render_gauge[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_gauge_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_gauge` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_gauge(
-        target,
-        plot._gauge,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def gauge(
     value: Float64,
     min_value: Float64 = 0.0,
@@ -227,7 +201,7 @@ def gauge(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Gauge]:
     """A gauge chart: a single value shown as a needle or arc against a
     min/max range, mimicking an analog dial. Reaches for the familiar
     speedometer metaphor for one KPI, though `bullet()` packs the same
@@ -271,7 +245,7 @@ def gauge(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -327,7 +301,7 @@ def gauge(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Gauge]:
     """Draw a gauge from one row in a named numeric DataFrame column.
 
     A gauge shows one reading, so the selected column must contain
@@ -355,7 +329,7 @@ def gauge(
         y_title: See the scalar overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: The column is absent, nonnumeric, missing a reading,

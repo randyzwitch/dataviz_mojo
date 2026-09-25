@@ -47,6 +47,9 @@ from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.path import PathOp
+from dataviz.marks import GroupedBar, Point
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart, ChartLike
 from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.colors import RED
@@ -55,7 +58,6 @@ from dataviz.relationships.edges import _edge_node_index
 from dataviz.plot import Plot
 from dataviz.core.render_result import _RenderResult
 from dataviz.rendering import (
-    _render_generic,
     accessible_svg_string,
     _resolve_description,
     _svg_output_string,
@@ -116,8 +118,8 @@ def test_render_raises_on_mismatched_x_y_lengths() raises:
 
 def test_render_raises_on_no_data() raises:
     with assert_raises():
-        var plot = Plot().size(
-            50, 40
+        var plot = (
+            Plot().mark_point().size(50, 40)
         )  # no encode() call -- x_data/y_data both empty
         _ = render(plot)
 
@@ -248,8 +250,8 @@ def test_plot_copy_produces_an_independent_render_unaffected_by_further_mutation
 
     # The original base plot was never .encode()'d itself -- copying it
     # doesn't retroactively give it either copy's data.
-    assert_equal(len(base._continuous.x), 0)
-    assert_equal(len(base._continuous.y), 0)
+    assert_equal(len(base.mark.continuous.x), 0)
+    assert_equal(len(base.mark.continuous.y), 0)
 
 
 def test_render_and_save_accept_an_unbound_temporary_plot() raises:
@@ -268,8 +270,12 @@ def test_render_and_save_accept_an_unbound_temporary_plot() raises:
     # (test_render_facets_lays_out_independent_plots_side_by_side).
     var c2 = render_facets(
         [
-            scatter(x, x, width=400, height=300),
-            scatter(x, x, theme=Theme(mark_color=RED), width=400, height=300),
+            AnyChart(scatter(x, x, width=400, height=300)),
+            AnyChart(
+                scatter(
+                    x, x, theme=Theme(mark_color=RED), width=400, height=300
+                )
+            ),
         ],
         cols=2,
     )
@@ -288,8 +294,8 @@ def test_render_and_save_accept_an_unbound_temporary_plot() raises:
     # the POINT layer still lands at (220, 135), drawn last (on top).
     var c3 = render_layers(
         [
-            line(x, x, width=400, height=300),
-            scatter(x, x, width=400, height=300),
+            AnyChart(line(x, x, width=400, height=300)),
+            AnyChart(scatter(x, x, width=400, height=300)),
         ]
     )
     _assert_color(
@@ -1745,19 +1751,31 @@ def test_render_facets_and_layers_take_the_largest_raster_supersample() raises:
     # way render() does for an invalid value.
     var x: List[Float64] = [1.0, 2.0]
     with assert_raises():
-        var plots: List[Plot] = [
-            scatter(
-                x, x, theme=Theme(raster_supersample=-1), width=100, height=80
+        var plots: List[AnyChart] = [
+            AnyChart(
+                scatter(
+                    x,
+                    x,
+                    theme=Theme(raster_supersample=-1),
+                    width=100,
+                    height=80,
+                )
             ),
-            scatter(x, x, width=100, height=80),
+            AnyChart(scatter(x, x, width=100, height=80)),
         ]
         _ = render_facets(plots, cols=2)
     with assert_raises():
-        var plots2: List[Plot] = [
-            scatter(
-                x, x, theme=Theme(raster_supersample=-1), width=100, height=80
+        var plots2: List[AnyChart] = [
+            AnyChart(
+                scatter(
+                    x,
+                    x,
+                    theme=Theme(raster_supersample=-1),
+                    width=100,
+                    height=80,
+                )
             ),
-            line(x, x, width=100, height=80),
+            AnyChart(line(x, x, width=100, height=80)),
         ]
         _ = render_layers(plots2)
 
@@ -2427,7 +2445,7 @@ def test_svg_output_string_adds_accessible_markup_when_a_title_is_set() raises:
         .labels(title="Widget Sales", subtitle="By category")
         .size(400, 300)
     )
-    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
+    var s = _svg_output_string(render_svg(plot), plot.settings.labels)
     assert_true('role="img"' in s, "accessible markup added for a titled plot")
     assert_true(
         "<title>Widget Sales</title>" in s, "the title becomes the SVG <title>"
@@ -2446,7 +2464,7 @@ def test_svg_output_string_leaves_an_untitled_plot_unchanged() raises:
     )
     var svg = render_svg(plot)
     var plain = svg.to_string()
-    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
+    var s = _svg_output_string(render_svg(plot), plot.settings.labels)
     assert_equal(s, plain, "an untitled plot's SVG output is byte-identical")
 
 
@@ -2464,7 +2482,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         )
     )
     assert_equal(
-        _resolve_description(with_both._settings.labels),
+        _resolve_description(with_both.settings.labels),
         "A longer screen-reader-only description.",
         "an explicit description wins over subtitle",
     )
@@ -2476,7 +2494,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         .labels(title="Widget Sales", subtitle="By category")
     )
     assert_equal(
-        _resolve_description(subtitle_only._settings.labels),
+        _resolve_description(subtitle_only.settings.labels),
         "By category",
         "falls back to subtitle when description is left unset",
     )
@@ -2488,7 +2506,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         .labels(title="Widget Sales")
     )
     assert_equal(
-        _resolve_description(neither._settings.labels),
+        _resolve_description(neither.settings.labels),
         "",
         "empty when neither description nor subtitle is set",
     )
@@ -2508,7 +2526,7 @@ def test_svg_output_string_explicit_description_wins_over_subtitle() raises:
         )
         .size(400, 300)
     )
-    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
+    var s = _svg_output_string(render_svg(plot), plot.settings.labels)
     assert_true(
         "<desc>A longer screen-reader-only description.</desc>" in s,
         "the explicit description wins over subtitle",
@@ -2647,7 +2665,7 @@ def test_svg_tooltip_for_a_box_is_its_five_number_summary() raises:
     )
 
 
-def _scatter_of(n: Int) raises -> Plot:
+def _scatter_of(n: Int) raises -> Chart[Point]:
     """`n` distinct points, for the tooltip-count tests."""
     var xs = List[Float64](capacity=n)
     var ys = List[Float64](capacity=n)
@@ -3112,7 +3130,7 @@ def test_sweep_decimation_declines_on_any_non_monotonic_x() raises:
 
 def _grouped_series_plot(
     position: LegendPosition, names: List[String]
-) raises -> Plot:
+) raises -> Chart[GroupedBar]:
     """A four-series grouped bar with the legend on `position`. Grouped
     bar has several series, so the legend is
     wide enough that where it sits changes the plot's shape.
@@ -3134,10 +3152,22 @@ def _grouped_series_plot(
     )
 
 
-def _laid_out(plot: Plot) raises -> _RenderResult:
+def _laid_out[C: ChartLike](plot: C) raises -> _RenderResult:
     var cache = FontCache()
     var canvas = Canvas(560, 360, BG)
-    return _render_generic(canvas, plot, 0, 0, 560, 360, cache=cache)
+    return plot.render_mark(
+        canvas,
+        0,
+        0,
+        560,
+        360,
+        False,
+        0.0,
+        0.0,
+        False,
+        cache=cache,
+        vector_target=False,
+    )
 
 
 def _four_series() -> List[String]:
@@ -3314,7 +3344,7 @@ def test_legend_position_left_moves_the_swatches_left_of_the_plot() raises:
     )
 
 
-def _continuous_point_plot(position: LegendPosition) raises -> Plot:
+def _continuous_point_plot(position: LegendPosition) raises -> Chart[Point]:
     """A point plot with both continuous channels encoded, so its legend
     carries a color bar and a size section -- the two that had no row
     form.
@@ -3408,10 +3438,22 @@ def test_continuous_legend_row_runs_low_to_high_left_to_right() raises:
     )
 
 
-def _laid_out_at(plot: Plot) raises -> _RenderResult:
+def _laid_out_at[C: ChartLike](plot: C) raises -> _RenderResult:
     var cache = FontCache()
     var canvas = Canvas(560, 380, BG)
-    return _render_generic(canvas, plot, 0, 0, 560, 380, cache=cache)
+    return plot.render_mark(
+        canvas,
+        0,
+        0,
+        560,
+        380,
+        False,
+        0.0,
+        0.0,
+        False,
+        cache=cache,
+        vector_target=False,
+    )
 
 
 def test_a_fresh_font_cache_does_not_scan_until_something_needs_a_font() raises:
@@ -3422,14 +3464,18 @@ def test_a_fresh_font_cache_does_not_scan_until_something_needs_a_font() raises:
     var cats: List[String] = ["a", "b", "c"]
     var vals: List[Float64] = [3.0, 1.0, 2.0]
     var canvas = Canvas(400, 300, BG)
-    _ = _render_generic(
+    _ = bar(cats, vals, width=400, height=300).render_mark(
         canvas,
-        bar(cats, vals, width=400, height=300),
         0,
         0,
         400,
         300,
+        False,
+        0.0,
+        0.0,
+        False,
         cache=cache,
+        vector_target=False,
     )
     assert_true(
         cache.has_scanned(),
@@ -3449,14 +3495,18 @@ def test_a_render_that_measures_no_text_never_scans() raises:
     var to: List[String] = ["b", "c"]
     var v: List[Float64] = [1.0, 2.0]
     var canvas = Canvas(400, 300, BG)
-    _ = _render_generic(
+    _ = sankey(f, to, v, width=400, height=300).render_mark(
         canvas,
-        sankey(f, to, v, width=400, height=300),
         0,
         0,
         400,
         300,
+        False,
+        0.0,
+        0.0,
+        False,
         cache=cache,
+        vector_target=False,
     )
     assert_true(
         not cache.has_scanned(),

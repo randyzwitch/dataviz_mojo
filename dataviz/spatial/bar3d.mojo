@@ -27,6 +27,8 @@ test against at all, so it emits all six faces and lets the depth sort
 cover the ones facing away.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Bar3d, Voxels
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
@@ -461,26 +463,6 @@ def _render_bar3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_bar3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_bar3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_bar3d(
-        target, plot._bars3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _voxel_shape(voxels: _Voxels) raises -> Tuple[Int, Int, Int]:
     """`(layers, rows, cols)`, raising unless the grid is a full box.
 
@@ -651,26 +633,6 @@ def _render_voxels[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_voxels_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_voxels` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_voxels(
-        target, plot._voxels, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def bar3d(
     df: DataFrame,
     x: String,
@@ -685,7 +647,7 @@ def bar3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Bar3d]:
     """`bar3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -709,7 +671,7 @@ def bar3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -749,7 +711,7 @@ def bar3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Bar3d]:
     """Bars standing on a plane: a value over two axes, drawn as a
     solid rising from each (x, y).
 
@@ -782,7 +744,7 @@ def bar3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The three columns disagree in length, are empty, or a
@@ -834,7 +796,7 @@ def voxels(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Voxels]:
     """A solid built out of unit cubes: which cells of a 3D grid are
     filled.
 
@@ -864,7 +826,7 @@ def voxels(
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The grid is empty, or a layer or row is the wrong size.
@@ -919,7 +881,7 @@ def voxels(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Voxels]:
     """Draw occupied voxels from a sparse DataFrame of coordinates.
 
     Each row marks one filled unit cube. `x`, `y`, and `z` must be
@@ -940,7 +902,7 @@ def voxels(
         subtitle: See the grid overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: There are no occupied cells, a column is invalid, a

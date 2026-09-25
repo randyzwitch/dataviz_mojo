@@ -2,6 +2,8 @@
 point with its interval as a whisker, joined across categories:
 `barplot()`'s estimate with a lighter glyph."""
 
+from dataviz.chart import Chart
+from dataviz.marks import Pointplot
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -290,7 +292,7 @@ def pointplot(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Pointplot]:
     """`pointplot()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `categories` and `values` column names.
@@ -315,7 +317,7 @@ def pointplot(
         horizontal: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -362,7 +364,7 @@ def pointplot[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Pointplot]:
     """One point per distinct category at an *estimate* of that category's
     values -- the mean by default -- with a whisker for its uncertainty
     and a line joining the points. The same
@@ -523,36 +525,6 @@ def _render_pointplot_oriented[
         categorical,
         y_err,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_pointplot_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_pointplot_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_pointplot_oriented(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._categorical,
-        plot._y_err,
-        plot._settings,
         ox0,
         oy0,
         ox1,

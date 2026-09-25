@@ -27,7 +27,7 @@ you export with `save()`.
 | `pairplot` / `jointplot` | `pairplot` / `jointplot` |
 | `residplot` | `residplot` |
 | `regplot` | `scatter(x, y).annotate_best_fit()` -- the line and its confidence band |
-| `FacetGrid` | `render_facets(plots, cols=...)`, one `Plot` per facet |
+| `FacetGrid` | `render_facets(a, b, cols=...)`, one chart per facet |
 | `despine()` | nothing to do: the top and right axis lines are off by default |
 
 ## Estimates and error bars

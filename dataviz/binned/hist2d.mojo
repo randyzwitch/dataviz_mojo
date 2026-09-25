@@ -5,6 +5,8 @@ concentrates."""
 
 from dataframe import DataFrame
 
+from dataviz.chart import Chart
+from dataviz.marks import Hist2d
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from std.math import log10
@@ -130,13 +132,13 @@ def _hist2d_plot(
     subtitle: String,
     x_title: String,
     y_title: String,
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     var plot = Plot().mark_hist2d().encode_hist2d(x, y, x_edges, y_edges)
     # Which axes this function binned evenly in linear units, so that a
     # later .scale_x_log() on one of them raises instead of drawing
     # bins that are wildly unequal on screen (#718).
-    plot._image.linear_auto_x = not log_x
-    plot._image.linear_auto_y = not log_y
+    plot.mark.image.linear_auto_x = not log_x
+    plot.mark.image.linear_auto_y = not log_y
     if log_x:
         plot = plot^.scale_x_log()
     if log_y:
@@ -159,7 +161,7 @@ def hist2d(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     """A 2D histogram: `(x, y)` points binned
     into a `bins` by `bins` grid of equal-width cells over each axis's
     own range, each cell colored by how many points fell in it.
@@ -201,7 +203,7 @@ def hist2d(
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: `x` and `y` differ in length or are empty, `bins` is
@@ -288,7 +290,7 @@ def hist2d(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     """`hist2d()` with the bins per axis chosen by `rule` from that
     axis's own data, the way `histogram()`'s rule overload chooses them
     -- so the x and y bin counts can differ. `BinRule.AUTO` is the
@@ -310,7 +312,7 @@ def hist2d(
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: `x` and `y` differ in length or are empty, or an axis
@@ -355,7 +357,7 @@ def hist2d(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     """`hist2d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -379,7 +381,7 @@ def hist2d(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -418,7 +420,7 @@ def hist2d[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     """`hist2d()` generalized over numeric element type; see `scatter()`'s
     `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
@@ -442,7 +444,7 @@ def hist2d[
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: As the concrete overload.
@@ -478,7 +480,7 @@ def hist2d[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Hist2d]:
     """The `BinRule` form of `hist2d()` generalized over numeric element
     type. Delegates to the concrete overload above.
 
@@ -501,7 +503,7 @@ def hist2d[
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: As the concrete overload.

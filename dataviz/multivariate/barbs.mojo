@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Barbs
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import atan2, sqrt
@@ -245,26 +247,6 @@ def _render_barbs[
     return frame.result()
 
 
-def _render_barbs_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_barbs` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_barbs(
-        target, plot._barbs, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _validate_vector_field(barbs: _BarbsData, context: String) raises:
     """The checks every mark over `encode_barbs()`/`encode_quiver()`'s
     four channels shares: equal-length columns and at least one point.
@@ -409,7 +391,7 @@ def barbs(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Barbs]:
     """`barbs()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -434,7 +416,7 @@ def barbs(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -477,7 +459,7 @@ def barbs[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Barbs]:
     """A wind barb field: one station-model glyph per point, where the
     staff points upwind and the flags, barbs and half barb hanging off
     its end add up to the speed -- the meteorological reading of a vector
@@ -508,7 +490,7 @@ def barbs[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

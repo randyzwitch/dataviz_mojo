@@ -3,6 +3,7 @@
 row per layer -- a swatch in that layer's own Theme.mark_color plus its
 name, so a multi-line combo chart says which line is which.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
 from dataviz.core.theme import Theme
@@ -36,5 +37,5 @@ def main() raises:
         .theme(Theme(mark_color=SEAGREEN, line_width=3.0))
         .series_name("Product C")
     )
-    var plots: List[Plot] = [a^, b^, c^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b), AnyChart(c)]
     save_layers(plots, "docs/src/examples/out_layer_legend.svg")
