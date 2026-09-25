@@ -138,13 +138,13 @@ def _series_legend_reserve(
     bounds before the axis frame is built, the same
     shrink-the-rect-from-outside pattern `_apply_labels` uses.
     """
-    if not plot._theme.show_legend:
+    if not plot._settings.theme.show_legend:
         return _LegendLayout()
     return _legend_layout(
         plot._grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
-        plot._theme,
+        plot._settings.theme,
         available_width,
         cache=cache,
     )
@@ -239,7 +239,7 @@ def _draw_grouped_bars[
     sub-bar's own series color, the same "whisker first, mark on top"
     order `_draw_bar_rects` uses for `Mark.BAR`.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var n_series = len(plot._grouped_bar.series_names)
     var baseline = _axis_pixel_f(value_scale, 0.0)
@@ -247,7 +247,9 @@ def _draw_grouped_bars[
     var has_errors = len(plot._grouped_bar.errors) > 0
     var cap_half = sc.error_bar_cap_width
 
-    var tooltips_on = plot._tooltips_on(n_series * len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(
+        n_series * len(plot._categorical.x)
+    )
     for i in range(len(plot._categorical.x)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
@@ -350,7 +352,7 @@ def _render_grouped_bar[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var y_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
 
     var sc = _Scaled(theme)
@@ -429,7 +431,7 @@ def _render_horizontal_grouped_bar[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var x_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
 
     var sc = _Scaled(theme)
@@ -676,7 +678,7 @@ def _render_grouped_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.GROUPED_BAR`'s renderer, the one its setter binds: `_render_horizontal_grouped_bar`
     when the plot is horizontal, `_render_grouped_bar` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_grouped_bar(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

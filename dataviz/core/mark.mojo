@@ -699,7 +699,7 @@ def _marks_supporting(feature: Feature) -> List[Mark]:
             # Through its own `_dendrogram.horizontal`, set by
             # `mark_dendrogram(horizontal=True)`. The table said no for as
             # long as the feature-support test flipped only
-            # `Plot._horizontal`, which a dendrogram never reads (#676).
+            # `Plot._settings.horizontal`, which a dendrogram never reads (#676).
             Mark.DENDROGRAM,
         ]
     elif feature == Feature.ANNOTATIONS_Y:

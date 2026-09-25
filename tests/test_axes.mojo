@@ -486,7 +486,7 @@ def test_encode_time_puts_posix_seconds_on_the_axis() raises:
         days.append(Morrow.get(2026, 1, 1).shift(days=i))
         vals.append(Float64(i))
     var p = Plot().mark_line().encode_time(days, vals)
-    assert_true(p._x_time, "the axis is marked temporal")
+    assert_true(p._settings.x_time, "the axis is marked temporal")
     assert_equal(len(p._continuous.x), 5)
     assert_equal(p._continuous.x[0], Morrow.get(2026, 1, 1).timestamp())
     assert_equal(
@@ -511,7 +511,7 @@ def test_time_bars_leave_a_weekend_gap() raises:
         width=400,
         height=300,
     )
-    assert_true(plot._x_time, "bars use a time axis")
+    assert_true(plot._settings.x_time, "bars use a time axis")
     assert_equal(plot._continuous.x[1] - plot._continuous.x[0], 3.0 * 86400.0)
     var s = render_svg(plot).to_string()
     assert_true(">Mar" in s, "x ticks show dates")
@@ -576,7 +576,9 @@ def test_time_gantt_spans_real_days_and_labels_dates() raises:
         width=400,
         height=300,
     )
-    assert_true(plot._x_time, "Gantt marks its continuous axis as time")
+    assert_true(
+        plot._settings.x_time, "Gantt marks its continuous axis as time"
+    )
     assert_equal(plot._gantt.end[0] - plot._gantt.start[0], 3.0 * 86400.0)
     var s = render_svg(plot).to_string()
     assert_true(
@@ -622,7 +624,7 @@ def test_time_candles_leave_a_weekend_gap() raises:
         width=400,
         height=300,
     )
-    assert_true(plot._x_time, "candlestick uses a temporal axis")
+    assert_true(plot._settings.x_time, "candlestick uses a temporal axis")
     assert_equal(
         plot._continuous.x[1] - plot._continuous.x[0],
         3.0 * 86400.0,

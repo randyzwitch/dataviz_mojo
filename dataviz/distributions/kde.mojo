@@ -163,7 +163,7 @@ def _render_kde[
     var values = _kde_observations(plot)
 
     var curve = _kde_curve_for_axis(plot, values)
-    var theme = plot._theme
+    var theme = plot._settings.theme
 
     var y_max = 0.0
     for d in curve[1]:
@@ -175,7 +175,9 @@ def _render_kde[
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _log_data_extent(curve[0]) if plot._x_log else _data_extent(curve[0]),
+        _log_data_extent(curve[0]) if plot._settings.x_log else _data_extent(
+            curve[0]
+        ),
         y_scale,
         theme,
         _LegendLayout(),
@@ -233,14 +235,14 @@ def _kde_curve_for_axis(
             a density has a meaning for, or a value at or below zero
             under `scale_x_log()`.
     """
-    if plot._x_symlog or plot._y_symlog:
+    if plot._settings.x_symlog or plot._settings.y_symlog:
         raise Error(
             "Plot.scale_x_symlog()/scale_y_symlog(): Mark.KDE takes"
             " scale_x_log() only. A density is estimated in one space, and"
             " symlog is two spaces joined at a threshold"
         )
     var bandwidth = plot._distribution.kde_bandwidth_override
-    if not plot._x_log:
+    if not plot._settings.x_log:
         return _kde_curve(values, bandwidth)
     var logged = List[Float64](capacity=len(values))
     for v in values:
@@ -326,7 +328,7 @@ def _draw_kde_layer[
         sc: This layer's scaled theme metrics.
         baseline_py: The plot rect's bottom edge, where rug ticks sit.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var path = Path()
     path.move_to(x_scale.to_pixel(curve_x[0]), y_scale.to_pixel(curve_y[0]))
     for i in range(1, len(curve_x)):
@@ -424,17 +426,17 @@ def _render_rug[
         Error: No values were given.
     """
     var values = _kde_observations(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
 
     var frame = _draw_continuous_axis_frame(
         target,
         _position_x_extent(
             values,
             mark=plot._mark,
-            x_log=plot._x_log,
-            x_symlog=plot._x_symlog,
-            x_symlog_linthresh=plot._x_symlog_linthresh,
-            y_symlog=plot._y_symlog,
+            x_log=plot._settings.x_log,
+            x_symlog=plot._settings.x_symlog,
+            x_symlog_linthresh=plot._settings.x_symlog_linthresh,
+            y_symlog=plot._settings.y_symlog,
         ),
         LinearScale(0.0, 1.0, 0.0, 1.0),
         theme,

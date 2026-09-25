@@ -343,11 +343,11 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
     """
     if not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
         return False
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var has_shapes = (
         len(plot._channels.color_categories) > 0 and theme.shape_by_category
     )
-    var tooltips_on = plot._tooltips_on(len(plot._continuous.y))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._continuous.y))
     var has_error_bars = (
         len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     )
@@ -447,7 +447,7 @@ def _draw_point_layer[
     # Markers only: the legend sections below sit outside the plot
     # rect by construction, so the clip is popped before them (#369).
     _push_plot_clip(target, x_scale, y_scale)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
 
     # The plain scatter -- nothing per point but a disk -- can hand every
@@ -509,7 +509,7 @@ def _draw_point_layer[
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
-        var tooltip = plot._tooltips_on(len(plot._continuous.y))
+        var tooltip = plot._settings.tooltips_on(len(plot._continuous.y))
         if tooltip:
             target.begin_annotated_group(
                 _point_tooltip_label(
@@ -782,7 +782,7 @@ def _draw_line_layer[
     not move a whisker: it belongs to a sample, not to the segment
     between two of them.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step)
@@ -872,7 +872,7 @@ def _draw_area_layer[
     samples, with no sliver at either end and nothing for the path to
     cross back over.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, plot._mark_style.step, Mark.AREA)
     _push_plot_clip(target, x_scale, y_scale)
@@ -1656,9 +1656,9 @@ def _encode_time(
     plot._categorical.x = List[String]()
     plot._continuous.x = seconds^
     plot._continuous.y = y.copy()
-    plot._x_time = True
+    plot._settings.x_time = True
     if len(x) > 0:
-        plot._x_tz_offset = x[0].tz.offset
+        plot._settings.x_tz_offset = x[0].tz.offset
 
 
 def _encode_frame(
@@ -1675,8 +1675,8 @@ def _encode_frame(
     plot by value because it finishes by chaining to `encode()` or
     `encode_categorical()`."""
     comptime caller = "Plot.encode_frame()"
-    var policy = plot._theme.missing
-    var label = plot._theme.missing_category_label
+    var policy = plot._settings.theme.missing
+    var label = plot._settings.theme.missing_category_label
     var y_values = _frame_floats(df, y, caller, policy)
     var color_values = List[Float64]()
     var color_categories = List[String]()
@@ -1692,10 +1692,10 @@ def _encode_frame(
     if labels.byte_length() > 0:
         label_values = _frame_strings(df, labels, caller, policy, label)
 
-    if plot._labels.x_title.byte_length() == 0:
-        plot._labels.x_title = x
-    if plot._labels.y_title.byte_length() == 0:
-        plot._labels.y_title = y
+    if plot._settings.labels.x_title.byte_length() == 0:
+        plot._settings.labels.x_title = x
+    if plot._settings.labels.y_title.byte_length() == 0:
+        plot._settings.labels.y_title = y
 
     if _is_string_column(df, x):
         if len(size_values) > 0 or len(label_values) > 0:

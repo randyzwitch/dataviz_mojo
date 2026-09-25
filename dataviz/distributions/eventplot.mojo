@@ -152,7 +152,7 @@ def _render_eventplot[
             pooled.append(v)
     _require_non_empty(len(pooled), "Plot.encode_eventplot()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
         labels,
@@ -166,7 +166,7 @@ def _render_eventplot[
     )
 
     var half = frame.y_scale.bandwidth() * line_length / 2.0
-    var tooltips_on = plot._tooltips_on(len(pooled))
+    var tooltips_on = plot._settings.tooltips_on(len(pooled))
     for i in range(len(rows)):
         var center = frame.y_scale.center(i)
         if tooltips_on:

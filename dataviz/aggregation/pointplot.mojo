@@ -85,12 +85,12 @@ def _draw_pointplot_marks[
     snap -- the vertical render is byte-identical to the one before
     this split.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var n = len(plot._categorical.x)
     var has_err = len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
     # Each point is titled, and so is each error bar.
-    var tooltips_on = plot._tooltips_on(2 * n if has_err else n)
+    var tooltips_on = plot._settings.tooltips_on(2 * n if has_err else n)
     var cap_half = sc.error_bar_cap_width
 
     var bands = List[Float64](capacity=n)
@@ -191,7 +191,7 @@ def _render_pointplot[
         target,
         plot._categorical.x,
         _pointplot_value_extent(plot),
-        plot._theme,
+        plot._settings.theme,
         ox0,
         oy0,
         ox1,
@@ -230,7 +230,7 @@ def _render_horizontal_pointplot[
         target,
         plot._categorical.x,
         _pointplot_value_extent(plot),
-        plot._theme,
+        plot._settings.theme,
         ox0,
         oy0,
         ox1,
@@ -466,7 +466,7 @@ def _render_pointplot_oriented[
 ) raises -> _RenderResult:
     """`Mark.POINTPLOT`'s renderer, the one its setter binds: `_render_horizontal_pointplot`
     when the plot is horizontal, `_render_pointplot` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_pointplot(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

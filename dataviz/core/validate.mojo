@@ -782,7 +782,7 @@ def _check_unsupported_flags(
     `Tooltips.AUTO`. `AUTO` and `OFF` promise nothing a mark without
     tooltips breaks, so they never raise.
 
-    Only `Plot._horizontal` is read. HISTOGRAM and DENDROGRAM carry
+    Only `Plot._settings.horizontal` is read. HISTOGRAM and DENDROGRAM carry
     orientation in their own encoders' data, and both support it.
 
     Args:

@@ -96,7 +96,7 @@ def _render_chord[
     """
     _validate_edge_encoding(plot, "Mark.CHORD")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var edges = _edge_node_index(
         plot._edges.from_categories, plot._edges.to_categories
     )
@@ -150,7 +150,9 @@ def _render_chord[
 
     var palette = categorical_palette_for(theme)
 
-    var tooltips_on = plot._tooltips_on(len(plot._edges.from_categories))
+    var tooltips_on = plot._settings.tooltips_on(
+        len(plot._edges.from_categories)
+    )
     for i in range(len(plot._edges.from_categories)):
         var fi = from_idx[i]
         var ti = to_idx[i]

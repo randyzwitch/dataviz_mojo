@@ -144,7 +144,7 @@ def _render_tree[
             + " values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_negative(plot._hierarchy.values, "Mark.TREE")
 
     var idx = _build_hierarchy_index(
@@ -210,7 +210,7 @@ def _render_tree[
         var py1 = _tree_node_y(idx.depth[row], idx.max_depth, plot_y0, plot_y1)
         target.draw_line_aa(px0, py0, px1, py1, color, sc.line_width)
 
-    var tooltips_on = plot._tooltips_on(n)
+    var tooltips_on = plot._settings.tooltips_on(n)
     for row in range(n):
         var color = (
             palette[branch[row] % len(palette)] if branch[row]

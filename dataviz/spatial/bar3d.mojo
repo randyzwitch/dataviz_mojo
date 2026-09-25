@@ -419,7 +419,7 @@ def _render_bar3d[
     one entire bar over the other.
     """
     _validate_bars3d(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -599,7 +599,7 @@ def _render_voxels[
     var layers = shape[0]
     var rows = shape[1]
     var cols = shape[2]
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top

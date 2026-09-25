@@ -49,7 +49,7 @@ def _render_span_chart[
             + " end values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._categorical.x), "Plot.encode_gantt()")
     var domain_data = List[Float64]()
     for v in plot._gantt.start:
@@ -71,7 +71,7 @@ def _render_span_chart[
     )
 
     var bandwidth = frame.x_scale.bandwidth()
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var band_start = frame.x_scale.band_start(i)
         var low_py = _axis_pixel_f(frame.y_scale, plot._gantt.start[i])

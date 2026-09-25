@@ -113,7 +113,7 @@ def _auto_supersample(plot: Plot) -> Int:
     """Return the mark-specific supersample factor for `AUTO`."""
     # A smoothed line or area is a curve whatever its mark says, so it
     # is classified by what it draws rather than by its name.
-    if plot._theme.line_smoothing > 0.0:
+    if plot._settings.theme.line_smoothing > 0.0:
         return _CURVED_SUPERSAMPLE
 
     var m = plot._mark
@@ -160,7 +160,7 @@ def _resolve_supersample(plot: Plot, context: String) raises -> Int:
     Raises:
         Error: The theme's factor is negative.
     """
-    var configured = plot._theme.raster_supersample
+    var configured = plot._settings.theme.raster_supersample
     if configured == _AUTO_SUPERSAMPLE:
         return _auto_supersample(plot)
     _require_positive_supersample(configured, context)
@@ -169,7 +169,7 @@ def _resolve_supersample(plot: Plot, context: String) raises -> Int:
 
 def render(plot: Plot) raises -> Canvas:
     """Render `plot` into a fresh `Canvas` sized `plot.width` x `plot.height`
-    and return it, supersampled by `plot._theme.raster_supersample`
+    and return it, supersampled by `plot._settings.theme.raster_supersample`
     (default automatic, resolved per mark by `_auto_supersample()`):
     the drawing is recorded once at logical coordinates and replayed
     into the canvas one output band at a time, each band rendered at
@@ -185,7 +185,7 @@ def render(plot: Plot) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(plot, "render")
-    var out = Canvas(plot.width, plot.height, plot._theme.background)
+    var out = Canvas(plot.width, plot.height, plot._settings.theme.background)
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output
     # band at a time, so the enlarged buffer never exists whole. Byte
@@ -196,7 +196,7 @@ def render(plot: Plot) raises -> Canvas:
     # two-step recipe and `render()` chose per plot; canvas_mojo v0.33.3
     # records the whole call as one op and that was the last primitive
     # that did so (benchmarks/METHODOLOGY.md).
-    out.begin_supersampled(factor, plot._theme.background)
+    out.begin_supersampled(factor, plot._settings.theme.background)
     _ = _render_into(out, plot, 0, 0, plot.width, plot.height)
     out.end_supersampled()
     return out^
@@ -285,9 +285,18 @@ def _draw_figure_into[
         Error: Whatever the mark's render raises.
     """
     if fill_background:
-        target.fill_rect(ox0, oy0, ox1 - ox0, oy1 - oy0, plot._theme.background)
+        target.fill_rect(
+            ox0, oy0, ox1 - ox0, oy1 - oy0, plot._settings.theme.background
+        )
     var frame = _apply_labels(
-        plot._labels, plot._mark, plot._theme, ox0, oy0, ox1, oy1, cache=cache
+        plot._settings.labels,
+        plot._mark,
+        plot._settings.theme,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
     )
     var result = _render_generic(
         target,
@@ -300,8 +309,8 @@ def _draw_figure_into[
         vector_target=vector_target,
     )
     var text = _label_text_requests(
-        plot._labels,
-        plot._theme,
+        plot._settings.labels,
+        plot._settings.theme,
         ox0,
         oy0,
         ox1,
@@ -317,37 +326,45 @@ def _draw_figure_into[
         _extend_text_requests(
             text,
             _draw_annotation_areas(
-                target, plot._annotations, result, plot._theme, cache=cache
+                target,
+                plot._annotations,
+                result,
+                plot._settings.theme,
+                cache=cache,
             ),
         )
         _extend_text_requests(
             text,
             _draw_annotation_bands(
-                target, plot._annotations, result, plot._theme, cache=cache
+                target,
+                plot._annotations,
+                result,
+                plot._settings.theme,
+                cache=cache,
             ),
         )
     _extend_text_requests(
         text,
         _draw_annotation_vlines(
-            target, plot._annotations, result, plot._theme, cache=cache
+            target, plot._annotations, result, plot._settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_lines(
-            target, plot._annotations, result, plot._theme, cache=cache
+            target, plot._annotations, result, plot._settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_points(
-            target, plot._annotations, result, plot._theme, cache=cache
+            target, plot._annotations, result, plot._settings.theme, cache=cache
         ),
     )
     _extend_text_requests(
         text,
         _draw_annotation_arrows(
-            target, plot._annotations, result, plot._theme, cache=cache
+            target, plot._annotations, result, plot._settings.theme, cache=cache
         ),
     )
     _draw_annotation_smooth(
@@ -356,7 +373,7 @@ def _draw_figure_into[
         plot._continuous.x,
         plot._continuous.y,
         result,
-        plot._theme,
+        plot._settings.theme,
     )
     _extend_text_requests(
         text,
@@ -366,7 +383,7 @@ def _draw_figure_into[
             plot._continuous.x,
             plot._continuous.y,
             result,
-            plot._theme,
+            plot._settings.theme,
             cache=cache,
         ),
     )
@@ -403,8 +420,8 @@ def render_tight(plot: Plot) raises -> Canvas:
     """
     var box = _tight_box(plot, False)
     var factor = _resolve_supersample(plot, "render_tight")
-    var out = Canvas(box[2], box[3], plot._theme.background)
-    out.begin_supersampled(factor, plot._theme.background)
+    var out = Canvas(box[2], box[3], plot._settings.theme.background)
+    out.begin_supersampled(factor, plot._settings.theme.background)
     # Draw the figure at its full size into a smaller canvas, shifted so
     # the ink's top-left lands at the origin. Everything outside the
     # canvas is clipped, which is exactly the crop.
@@ -528,7 +545,7 @@ def _render_into(
     annotation passes, then draws every `_TextRequest` via
     `canvas.text.draw_text`.
 
-    Scales only by `plot._theme.scale` as given; `render()` applies
+    Scales only by `plot._settings.theme.scale` as given; `render()` applies
     `Theme.raster_supersample` by bumping that value on a copy before
     this call. Hand-verified pixel tests go through `render()` and so see
     supersampled output, exact for any solid-color interior point.
@@ -824,7 +841,7 @@ def _at_dpi(plot: Plot, dpi: Float64, caller: String = "save") raises -> Plot:
         return out^
     out.width = Int(Float64(plot.width) * factor + 0.5)
     out.height = Int(Float64(plot.height) * factor + 0.5)
-    out._theme.scale = plot._theme.scale * factor
+    out._settings.theme.scale = plot._settings.theme.scale * factor
     return out^
 
 
@@ -884,7 +901,7 @@ def save(
 ) raises:
     """Render `plot` and write it to `path` in one call. The format
     comes from the path's extension -- `.svg`, `.png`, `.bmp` or `.pdf`
-    -- or from `plot._theme.output_format` when `path` has no extension
+    -- or from `plot._settings.theme.output_format` when `path` has no extension
     at all; `PNG`/`BMP` both go through `render()` and differ only in
     the writer.
 
@@ -922,7 +939,9 @@ def save(
     for callers who don't need a title that differs from the visible one.
     An untitled plot's SVG is unaffected.
     """
-    var format = _resolve_output_format(plot._theme.output_format, path)
+    var format = _resolve_output_format(
+        plot._settings.theme.output_format, path
+    )
     # Each arm binds its canvas with `^` rather than through a ternary:
     # none of the three canvas types is `ImplicitlyCopyable`, so a
     # ternary would have to copy one to choose between the branches.
@@ -930,10 +949,10 @@ def save(
         var f = open(path, "w")
         if tight:
             var vector = render_tight_svg(plot)
-            f.write(_svg_output_string(vector^, plot._labels))
+            f.write(_svg_output_string(vector^, plot._settings.labels))
         else:
             var vector = render_svg(plot)
-            f.write(_svg_output_string(vector^, plot._labels))
+            f.write(_svg_output_string(vector^, plot._settings.labels))
         f.close()
     elif format == OutputFormat.PDF:
         if tight:
@@ -1329,34 +1348,42 @@ def _render_generic[
     `shared_y_is_log` is `_render_facets_generic`'s own decision,
     already validated there (every cell agrees, `shared_y_min`/
     `shared_y_max` already computed in log10-space via `_log_data_extent`)
-    -- this only requires `plot._y_log` to match it, a defensive check
+    -- this only requires `plot._settings.y_log` to match it, a defensive check
     against calling this directly with an inconsistent combination rather
     than a real per-cell decision point.
     """
     _check_unsupported_flags(
-        plot._mark, plot._theme, plot._horizontal, plot._tooltip_policy()
+        plot._mark,
+        plot._settings.theme,
+        plot._settings.horizontal,
+        plot._settings.tooltip_policy(),
     )
-    _check_missing_policy(plot._theme, plot._continuous, plot._channels)
-    if plot._secondary_axis:
+    _check_missing_policy(
+        plot._settings.theme, plot._continuous, plot._channels
+    )
+    if plot._settings.secondary_axis:
         raise Error(
             "Plot.secondary_axis() only applies inside render_layers()/"
             "render_layers_svg() -- a standalone plot has only one"
             " series, nothing for a second y-axis to pair against"
         )
-    if plot._y_log and plot._y_symlog:
+    if plot._settings.y_log and plot._settings.y_symlog:
         raise Error(
             "Plot.scale_y_log()/scale_y_symlog(): an axis cannot be both."
             " A log axis has no zero to be linear around, which is the"
             " whole of what symlog adds -- choose one"
         )
-    if plot._x_log and plot._x_symlog:
+    if plot._settings.x_log and plot._settings.x_symlog:
         raise Error(
             "Plot.scale_x_log()/scale_x_symlog(): an axis cannot be both."
             " A log axis has no zero to be linear around, which is the"
             " whole of what symlog adds -- choose one"
         )
     if (
-        plot._y_log or plot._x_log or plot._y_symlog or plot._x_symlog
+        plot._settings.y_log
+        or plot._settings.x_log
+        or plot._settings.y_symlog
+        or plot._settings.x_symlog
     ) and not plot._mark.supports(Feature.LOG_X):
         raise Error(
             "Plot.scale_y_log()/scale_x_log() only apply to "
@@ -1364,7 +1391,7 @@ def _render_generic[
             + " -- a categorical-x-axis (or other non-continuous) mark has"
             " no continuous domain for a log scale to mean anything against"
         )
-    if plot._y_log and not plot._mark.supports(Feature.LOG_Y):
+    if plot._settings.y_log and not plot._mark.supports(Feature.LOG_Y):
         raise Error(
             "Plot.scale_y_log(): only "
             + _supporting_names(Feature.LOG_Y)
@@ -1372,7 +1399,7 @@ def _render_generic[
             " y-domain through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
-    if (plot._x_domain.has or plot._y_domain.has) and not (
+    if (plot._settings.x_domain.has or plot._settings.y_domain.has) and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
         or plot._mark == Mark.AREA
@@ -1386,17 +1413,17 @@ def _render_generic[
             " domain override yet"
         )
     _validate_domain_override(
-        plot._x_domain, plot._x_log, "Plot.scale_x_domain"
+        plot._settings.x_domain, plot._settings.x_log, "Plot.scale_x_domain"
     )
     _validate_domain_override(
-        plot._y_domain, plot._y_log, "Plot.scale_y_domain"
+        plot._settings.y_domain, plot._settings.y_log, "Plot.scale_y_domain"
     )
     if (
-        plot._x_tick_override.has
-        or plot._y_tick_override.has
-        or plot._x_reversed
-        or plot._y_reversed
-        or plot._equal_aspect
+        plot._settings.x_tick_override.has
+        or plot._settings.y_tick_override.has
+        or plot._settings.x_reversed
+        or plot._settings.y_reversed
+        or plot._settings.equal_aspect
     ) and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
@@ -1412,25 +1439,33 @@ def _render_generic[
             " renders, which do not carry these yet (#368)"
         )
     _validate_tick_override(
-        plot._x_tick_override, plot._x_log, "Plot.scale_x_ticks"
+        plot._settings.x_tick_override,
+        plot._settings.x_log,
+        "Plot.scale_x_ticks",
     )
     _validate_tick_override(
-        plot._y_tick_override, plot._y_log, "Plot.scale_y_ticks"
+        plot._settings.y_tick_override,
+        plot._settings.y_log,
+        "Plot.scale_y_ticks",
     )
-    if plot._equal_aspect and (plot._x_log or plot._y_log):
+    if plot._settings.equal_aspect and (
+        plot._settings.x_log or plot._settings.y_log
+    ):
         raise Error(
             "Plot.equal_aspect(): not supported on a log-scaled axis -- a"
             " data unit is a different length at each end of a log axis,"
             " so equal pixel lengths for equal data distances is not a"
             " property it can have"
         )
-    if plot._equal_aspect and plot._x_time:
+    if plot._settings.equal_aspect and plot._settings.x_time:
         raise Error(
             "Plot.equal_aspect(): not supported on a time axis -- a second"
             " and a unit of y are not comparable lengths, so there is no"
             " aspect to equalize"
         )
-    _validate_color_domain(plot._color_domain, plot._mark, plot._channels)
+    _validate_color_domain(
+        plot._settings.color_domain, plot._mark, plot._channels
+    )
     if has_shared_y_domain and not (
         plot._mark == Mark.POINT
         or plot._mark == Mark.LINE
@@ -1444,7 +1479,7 @@ def _render_generic[
             " today -- a categorical or polar mark has no continuous"
             " y-domain for a shared range to mean anything against"
         )
-    if has_shared_y_domain and plot._y_log != shared_y_is_log:
+    if has_shared_y_domain and plot._settings.y_log != shared_y_is_log:
         raise Error(
             "render_facets(shared_y_scale=True): every cell must agree on"
             " Plot.scale_y_log() -- got a mix of log and linear cells"
@@ -1462,7 +1497,9 @@ def _render_generic[
             " Plot.encode(y_err=...)/y_err_lower/y_err_upper -- the shared"
             " domain isn't widened for whisker endpoints yet"
         )
-    _validate_log_scale_annotations(plot._annotations, plot._x_log, plot._y_log)
+    _validate_log_scale_annotations(
+        plot._annotations, plot._settings.x_log, plot._settings.y_log
+    )
     var selected = _call_mark_renderer(
         target,
         plot,
@@ -1500,17 +1537,19 @@ def _render_generic[
     )
     _require_non_empty(len(plot._continuous.x), "Plot.encode()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
 
     # Scaled once by theme.scale; see _Scaled.
     var sc = _Scaled(theme)
 
     # Built once and handed to both _legend_reserve_for and
     # _draw_point_layer so the two agree; see _PointChannels.
-    var ch = _PointChannels(plot._channels, plot._theme, plot._color_domain, sc)
+    var ch = _PointChannels(
+        plot._channels, plot._settings.theme, plot._settings.color_domain, sc
+    )
 
     var legend_reserve = _legend_reserve_for(
-        plot._mark, plot._theme, ch, sc, cache=cache
+        plot._mark, plot._settings.theme, ch, sc, cache=cache
     )
 
     # Mark.AREA forces a zero baseline into the y-domain; every other
@@ -1536,15 +1575,15 @@ def _render_generic[
         for v in plot._continuous.y:
             y_domain_data.append(v)
     var y_scale = _domain_override_scale(
-        plot._y_domain, plot._y_log
-    ) if plot._y_domain.has else (
+        plot._settings.y_domain, plot._settings.y_log
+    ) if plot._settings.y_domain.has else (
         LinearScale(
             shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
         ) if has_shared_y_domain else (
-            _log_data_extent(y_domain_data) if plot._y_log else (
+            _log_data_extent(y_domain_data) if plot._settings.y_log else (
                 _symlog_data_extent(
-                    y_domain_data, plot._y_symlog_linthresh
-                ) if plot._y_symlog else (
+                    y_domain_data, plot._settings.y_symlog_linthresh
+                ) if plot._settings.y_symlog else (
                     _zero_baseline_y_extent(y_domain_data) if (
                         plot._mark == Mark.AREA
                         or (
@@ -1559,12 +1598,12 @@ def _render_generic[
     # A horizontal histogram's values run along x, so x takes the zero
     # baseline its y would have had.
     var x_scale = _domain_override_scale(
-        plot._x_domain, plot._x_log
-    ) if plot._x_domain.has else (
-        _log_data_extent(plot._continuous.x) if plot._x_log else (
+        plot._settings.x_domain, plot._settings.x_log
+    ) if plot._settings.x_domain.has else (
+        _log_data_extent(plot._continuous.x) if plot._settings.x_log else (
             _symlog_data_extent(
-                plot._continuous.x, plot._x_symlog_linthresh
-            ) if plot._x_symlog else (
+                plot._continuous.x, plot._settings.x_symlog_linthresh
+            ) if plot._settings.x_symlog else (
                 _zero_baseline_y_extent(plot._continuous.x) if (
                     plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
                 ) else _data_extent(plot._continuous.x)
@@ -1574,16 +1613,16 @@ def _render_generic[
     # A time axis is linear in seconds; only its labels differ, so the
     # domain is whatever the branches above computed and the flag simply
     # rides along to `LinearScale.ticks()`.
-    if plot._x_time:
+    if plot._settings.x_time:
         x_scale.is_time = True
-        x_scale.tz_offset = plot._x_tz_offset
+        x_scale.tz_offset = plot._settings.x_tz_offset
 
     var controls = _AxisControls()
-    controls.x_ticks = plot._x_tick_override.copy()
-    controls.y_ticks = plot._y_tick_override.copy()
-    controls.x_reversed = plot._x_reversed
-    controls.y_reversed = plot._y_reversed
-    controls.equal_aspect = plot._equal_aspect
+    controls.x_ticks = plot._settings.x_tick_override.copy()
+    controls.y_ticks = plot._settings.y_tick_override.copy()
+    controls.x_reversed = plot._settings.x_reversed
+    controls.y_reversed = plot._settings.y_reversed
+    controls.equal_aspect = plot._settings.equal_aspect
     var frame = _draw_continuous_axis_frame(
         target,
         x_scale,

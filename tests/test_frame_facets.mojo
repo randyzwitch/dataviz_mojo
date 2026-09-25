@@ -231,10 +231,10 @@ def test_grouped_scatter_facets_keep_colors_and_infer_labels() raises:
         height=220,
     )
     assert_equal(len(panels), 2)
-    assert_equal(panels[0]._labels.title, "south")
-    assert_equal(panels[1]._labels.title, "north")
-    assert_equal(panels[0]._labels.x_title, "spend")
-    assert_equal(panels[0]._labels.y_title, "revenue")
+    assert_equal(panels[0]._settings.labels.title, "south")
+    assert_equal(panels[1]._settings.labels.title, "north")
+    assert_equal(panels[0]._settings.labels.x_title, "spend")
+    assert_equal(panels[0]._settings.labels.y_title, "revenue")
     assert_equal(panels[0]._channels.color_categories[0], "B")
     assert_equal(panels[1]._channels.color_categories[0], "A")
     assert_equal(
@@ -258,7 +258,7 @@ def test_grouped_scatter_facets_keep_colors_and_infer_labels() raises:
         width=280,
         height=220,
     )
-    assert_equal(reordered[0]._labels.title, "south")
+    assert_equal(reordered[0]._settings.labels.title, "south")
     assert_equal(
         reordered[0]._channels.color_map["A"].r,
         panels[0]._channels.color_map["A"].r,

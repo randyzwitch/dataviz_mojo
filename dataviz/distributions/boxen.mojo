@@ -157,10 +157,10 @@ def _draw_boxen_glyphs[
     `ColorScale`, which is how the nesting is read when the widths
     alone are close.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var center = band_scale.center(i)
         var depth = len(plot._boxen.lower[i])
@@ -242,7 +242,7 @@ def _render_boxenplot[
 ) raises -> _RenderResult:
     """Render a `Mark.BOXENPLOT` plot: `Mark.BOX`'s categorical x-axis and
     `_data_extent` y-domain over what is drawn, then `_draw_boxen_glyphs`."""
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var y_scale = _data_extent(_boxen_domain_data(plot))
     var frame = _draw_categorical_axis_frame(
         target,
@@ -281,7 +281,7 @@ def _render_horizontal_boxenplot[
     """`_render_boxenplot`'s mirror image for
     `Plot.mark_boxenplot(horizontal=True)`, as `_render_horizontal_box`
     is for `Mark.BOX`."""
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var x_scale = _data_extent(_boxen_domain_data(plot))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
@@ -512,7 +512,7 @@ def _render_boxenplot_oriented[
 ) raises -> _RenderResult:
     """`Mark.BOXENPLOT`'s renderer, the one its setter binds: `_render_horizontal_boxenplot`
     when the plot is horizontal, `_render_boxenplot` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_boxenplot(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

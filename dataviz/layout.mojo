@@ -358,9 +358,9 @@ def _measure_alignment_insets(
         var cell_y0 = y_edges[c.row]
         var cell_y1 = y_edges[c.row + c.row_span] - gutter
         var frame = _apply_labels(
-            plots[i]._labels,
+            plots[i]._settings.labels,
             plots[i]._mark,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cell_x0,
             cell_y0,
             cell_x1,
@@ -507,13 +507,13 @@ def _render_cells_generic[
     _check_cells(cells, rows, cols)
     # A figure title takes a band off the top and the cells tile what
     # remains, so the tracks still add up to the canvas exactly.
-    var band = _figure_title_band(plots[0]._theme, title)
+    var band = _figure_title_band(plots[0]._settings.theme, title)
     var x_edges = _weighted_edges(width, col_weights, cols)
     var y_edges = _weighted_edges(height - band, row_weights, rows)
     if band > 0:
         for k in range(len(y_edges)):
             y_edges[k] += band
-        var theme = plots[0]._theme
+        var theme = plots[0]._settings.theme
         var sc = _Scaled(theme)
         text_requests.append(
             _TextRequest(
@@ -534,7 +534,7 @@ def _render_cells_generic[
     # names which cell disagrees.
     var shared_y_min = 0.0
     var shared_y_max = 0.0
-    var shared_y_is_log = shared_y_scale and plots[0]._y_log
+    var shared_y_is_log = shared_y_scale and plots[0]._settings.y_log
     if shared_y_scale:
         var combined_y = List[Float64]()
         for i in range(len(plots)):
@@ -568,13 +568,13 @@ def _render_cells_generic[
         var any_x_title = False
         var any_title = False
         for i in range(len(plots)):
-            if plots[i]._labels.x_title.byte_length() > 0:
+            if plots[i]._settings.labels.x_title.byte_length() > 0:
                 any_x_title = True
-            if plots[i]._labels.title.byte_length() > 0:
+            if plots[i]._settings.labels.title.byte_length() > 0:
                 any_title = True
         wants_gutter = any_x_title and any_title
     var gutter = Int(
-        _Scaled(plots[0]._theme).label_gap * 2
+        _Scaled(plots[0]._settings.theme).label_gap * 2
     ) if wants_gutter else 0
 
     # How far each cell's own rect is inset to bring its plot rect onto
@@ -625,7 +625,7 @@ def _render_cells_generic[
                 cell_y0,
                 cell_x1 - cell_x0,
                 cell_y1 - cell_y0,
-                plots[i]._theme.background,
+                plots[i]._settings.theme.background,
             )
         var cell_content_y1 = cell_y1 - gutter
         # The inset rect the cell actually lays out in. Identical to the
@@ -635,9 +635,9 @@ def _render_cells_generic[
         var laid_y0 = cell_y0 + inset_top[i]
         var laid_y1 = cell_content_y1 - inset_bottom[i]
         var frame = _apply_labels(
-            plots[i]._labels,
+            plots[i]._settings.labels,
             plots[i]._mark,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             laid_x0,
             laid_y0,
             laid_x1,
@@ -658,8 +658,8 @@ def _render_cells_generic[
             cache=cache,
         )
         var label_requests = _label_text_requests(
-            plots[i]._labels,
-            plots[i]._theme,
+            plots[i]._settings.labels,
+            plots[i]._settings.theme,
             cell_x0,
             cell_y0,
             cell_x1,
@@ -680,7 +680,7 @@ def _render_cells_generic[
             target,
             plots[i]._annotations,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         var cell_band_requests = List[
@@ -689,28 +689,28 @@ def _render_cells_generic[
             target,
             plots[i]._annotations,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         var cell_vline_requests = _draw_annotation_vlines(
             target,
             plots[i]._annotations,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         var cell_line_requests = _draw_annotation_lines(
             target,
             plots[i]._annotations,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         var cell_point_requests = _draw_annotation_points(
             target,
             plots[i]._annotations,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         _draw_annotation_smooth(
@@ -719,7 +719,7 @@ def _render_cells_generic[
             plots[i]._continuous.x,
             plots[i]._continuous.y,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
         )
         var cell_best_fit_requests = _draw_annotation_best_fit(
             target,
@@ -727,7 +727,7 @@ def _render_cells_generic[
             plots[i]._continuous.x,
             plots[i]._continuous.y,
             cell_result,
-            plots[i]._theme,
+            plots[i]._settings.theme,
             cache=cache,
         )
         _extend_text_requests(text_requests, label_requests)
@@ -938,7 +938,7 @@ def render_grid(
     # square is white, which is a hole in any theme that is not. Filled
     # before the cells so each cell's own fill still wins; with no gaps
     # this is entirely overdrawn.
-    canvas.fill_rect(0, 0, width, height, plots[0]._theme.background)
+    canvas.fill_rect(0, 0, width, height, plots[0]._settings.theme.background)
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         canvas,
@@ -991,7 +991,7 @@ def render_grid_svg(
     _check_grid_args(plots, cells, "render_grid_svg")
     var svg = SvgCanvas(width, height)
     # See render_grid(): an empty square is a hole without this.
-    svg.fill_rect(0, 0, width, height, plots[0]._theme.background)
+    svg.fill_rect(0, 0, width, height, plots[0]._settings.theme.background)
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         svg,
@@ -1044,7 +1044,7 @@ def render_grid_pdf(
     """
     _check_grid_args(plots, cells, "render_grid_pdf")
     var pdf = PdfCanvas(width, height)
-    pdf.fill_rect(0, 0, width, height, plots[0]._theme.background)
+    pdf.fill_rect(0, 0, width, height, plots[0]._settings.theme.background)
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         pdf,
@@ -1105,7 +1105,9 @@ def save_grid(
         Error: Whatever `render_grid()` raises, or a write failure.
     """
     _check_grid_args(plots, cells, "save_grid")
-    var format = _resolve_output_format(plots[0]._theme.output_format, path)
+    var format = _resolve_output_format(
+        plots[0]._settings.theme.output_format, path
+    )
     if format == OutputFormat.SVG:
         var f = open(path, "w")
         if tight:
@@ -1135,7 +1137,7 @@ def save_grid(
                 title,
                 True,
             )
-            f.write(_svg_output_string(svg^, plots[0]._labels))
+            f.write(_svg_output_string(svg^, plots[0]._settings.labels))
         else:
             f.write(
                 _svg_output_string(
@@ -1150,7 +1152,7 @@ def save_grid(
                         align_axes,
                         title,
                     ),
-                    plots[0]._labels,
+                    plots[0]._settings.labels,
                 )
             )
         f.close()
@@ -1249,7 +1251,9 @@ def _draw_grid_figure[
     be the whole page.
     """
     if fill_background:
-        target.fill_rect(0, 0, width, height, plots[0]._theme.background)
+        target.fill_rect(
+            0, 0, width, height, plots[0]._settings.theme.background
+        )
     var cache = FontCache()
     var text_requests = _render_cells_generic(
         target,
@@ -1328,8 +1332,8 @@ def _render_grid_tight(
         var f = _resolve_supersample(plots[i], "save_grid")
         if f > factor:
             factor = f
-    var canvas = Canvas(box[2], box[3], plots[0]._theme.background)
-    canvas.begin_supersampled(factor, plots[0]._theme.background)
+    var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
+    canvas.begin_supersampled(factor, plots[0]._settings.theme.background)
     canvas.translate(-Float64(box[0]), -Float64(box[1]))
     _draw_grid_figure(
         canvas,
@@ -1457,7 +1461,7 @@ def _inset_outer_bounds(
     Raises:
         Error: Whatever rendering `inset` raises.
     """
-    var scratch = Canvas(width, height, inset._theme.background)
+    var scratch = Canvas(width, height, inset._settings.theme.background)
     var landed = _render_into(
         scratch, inset, rect[0], rect[1], rect[2], rect[3]
     )
@@ -1532,13 +1536,15 @@ def render_inset(
     var inset_factor = _resolve_supersample(inset, "render_inset")
     if inset_factor > factor:
         factor = inset_factor
-    var canvas = Canvas(base.width, base.height, base._theme.background)
-    canvas.begin_supersampled(factor, base._theme.background)
+    var canvas = Canvas(
+        base.width, base.height, base._settings.theme.background
+    )
+    canvas.begin_supersampled(factor, base._settings.theme.background)
     var plot_rect = _render_into(canvas, base, 0, 0, base.width, base.height)
     var r = _inset_rect(plot_rect, x, y, width, height, "render_inset")
     var outer = _inset_outer_bounds(inset, r, base.width, base.height)
     canvas.fill_rect(
-        r[0], r[1], r[2] - r[0], r[3] - r[1], inset._theme.background
+        r[0], r[1], r[2] - r[0], r[3] - r[1], inset._settings.theme.background
     )
     _ = _render_into(
         canvas,
@@ -1583,7 +1589,9 @@ def render_inset_svg(
     var plot_rect = _render_svg_into(svg, base, 0, 0, base.width, base.height)
     var r = _inset_rect(plot_rect, x, y, width, height, "render_inset_svg")
     var outer = _inset_outer_bounds(inset, r, base.width, base.height)
-    svg.fill_rect(r[0], r[1], r[2] - r[0], r[3] - r[1], inset._theme.background)
+    svg.fill_rect(
+        r[0], r[1], r[2] - r[0], r[3] - r[1], inset._settings.theme.background
+    )
     _ = _render_svg_into(
         svg,
         inset,

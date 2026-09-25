@@ -91,11 +91,11 @@ def _draw_arc_wedges[
     mut text_requests: List[_TextRequest],
 ) raises:
     """The same wedge geometry for standalone arcs and concentric layers."""
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var palette = categorical_palette_for(theme)
     var start = -pi / 2.0
-    var tooltips_on = plot._tooltips_on(len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var span = (plot._continuous.y[i] / total) * 2.0 * pi
         var end = start + span
@@ -145,7 +145,7 @@ def _render_arc[
     sectors. Values must have a positive total.
     """
     var total = _arc_total(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
     if (
         plot._mark_style.donut_inner_radius_fraction < 0.0

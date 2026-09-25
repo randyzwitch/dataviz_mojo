@@ -83,7 +83,7 @@ def _render_population_pyramid[
             + " right_values)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(
         len(plot._categorical.x), "Plot.encode_population_pyramid()"
     )
@@ -129,7 +129,7 @@ def _render_population_pyramid[
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
-    var tooltips_on = plot._tooltips_on(2 * len(plot._categorical.x))
+    var tooltips_on = plot._settings.tooltips_on(2 * len(plot._categorical.x))
     for i in range(len(plot._categorical.x)):
         var row_y = frame.y_scale.band_start(i)
 

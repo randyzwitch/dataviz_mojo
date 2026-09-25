@@ -137,12 +137,12 @@ def _draw_beeswarm_points[
     onto x/y. Spacing is one point diameter, so neighbors in the same row
     just touch.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var spacing = 2 * radius
     var n_points = 0
     for series in plot._distribution.values:
         n_points += len(series)
-    var tooltip = plot._tooltips_on(n_points)
+    var tooltip = plot._settings.tooltips_on(n_points)
     for i in range(len(plot._categorical.x)):
         var center = round_to_int(band_scale.center(i))
         var value_pixels = List[Int]()
@@ -186,7 +186,7 @@ def _render_beeswarm[
     `_zero_baseline_y_extent`) over every value across every category,
     the same domain choice `Mark.BOX` makes.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var value_scale = _distribution_domain(plot)
 
     var frame = _draw_categorical_axis_frame(
@@ -234,7 +234,7 @@ def _render_horizontal_beeswarm[
     within their row. Its own function rather than an orientation flag,
     for the reasons in `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var value_scale = _distribution_domain(plot)
 
     var frame = _draw_horizontal_categorical_axis_frame(
@@ -419,7 +419,7 @@ def _render_beeswarm_oriented[
 ) raises -> _RenderResult:
     """`Mark.BEESWARM`'s renderer, the one its setter binds: `_render_horizontal_beeswarm`
     when the plot is horizontal, `_render_beeswarm` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_beeswarm(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

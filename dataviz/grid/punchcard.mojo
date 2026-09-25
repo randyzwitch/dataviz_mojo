@@ -66,7 +66,7 @@ def _render_punchcard[
             + " sizes)"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._punchcard.x), "Plot.encode_punchcard()")
     for s in plot._punchcard.sizes:
         if s < 0.0:
@@ -91,7 +91,7 @@ def _render_punchcard[
         cache=cache,
     )
 
-    var tooltips_on = plot._tooltips_on(len(plot._punchcard.x))
+    var tooltips_on = plot._settings.tooltips_on(len(plot._punchcard.x))
     for i in range(len(plot._punchcard.x)):
         # Same rule as corrplot: a disk has no crisp position to snap
         # to, and the radius is the encoding -- rounding it to whole

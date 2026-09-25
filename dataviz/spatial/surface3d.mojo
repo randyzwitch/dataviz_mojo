@@ -202,7 +202,7 @@ def _render_surface3d[
     var shape = _surface_shape(plot)
     var rows = shape[0]
     var cols = shape[1]
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var extent = _surface_extent(plot, rows, cols)
     var frame = _fit_frame3d(
@@ -234,7 +234,7 @@ def _render_surface3d[
             points.append(FPoint(at[0], at[1]))
 
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, extent.z.min, extent.z.max
+        theme, plot._settings.color_domain, extent.z.min, extent.z.max
     )
     var faces = List[Int]()
     var colors = List[Color]()
@@ -322,7 +322,7 @@ def _render_wire3d[
     var shape = _surface_shape(plot)
     var rows = shape[0]
     var cols = shape[1]
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var frame = _fit_frame3d(
         Camera3D(plot._surface.elev, plot._surface.azim),
@@ -397,7 +397,7 @@ def _render_trisurf3d[
     triangulation silently picks one of them.
     """
     _validate_xyz(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -417,7 +417,7 @@ def _render_trisurf3d[
 
     var z_span = _min_max(plot._xyz.z)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, z_span.min, z_span.max
+        theme, plot._settings.color_domain, z_span.min, z_span.max
     )
     var face_count = len(tri.triangles) // 3
     var colors = List[Color](capacity=face_count)

@@ -150,7 +150,7 @@ def _render_streamgraph[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var step = plot._mark_style.step
     # Range check first, then the conflict, the order _draw_line_layer
     # and _draw_area_layer use: an out-of-range line_smoothing should
@@ -218,7 +218,7 @@ def _render_streamgraph[
         running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._tooltips_on(n_series)
+    var tooltips_on = plot._settings.tooltips_on(n_series)
     for j in range(n_series):
         var top = List[Float64](capacity=n_categories)
         var bottom = List[Float64](capacity=n_categories)

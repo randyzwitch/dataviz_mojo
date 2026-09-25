@@ -468,7 +468,9 @@ def _two_step(plot: Plot) raises -> Canvas:
     """
     var factor = _resolve_supersample(plot, "render")
     var scratch = Canvas(
-        plot.width * factor, plot.height * factor, plot._theme.background
+        plot.width * factor,
+        plot.height * factor,
+        plot._settings.theme.background,
     )
     scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
     scratch.scale(Float64(factor), Float64(factor))
@@ -489,7 +491,7 @@ def _ink(c: Canvas, plot: Plot) -> Int:
     Returns:
         The count of non-background pixels.
     """
-    var bg = plot._theme.background
+    var bg = plot._settings.theme.background
     var n = 0
     for y in range(c.height):
         for x in range(c.width):
@@ -684,7 +686,7 @@ def test_every_mark_draws_ink_on_raster() raises:
     """
     for value in range(Mark.COUNT):
         var plot = _representative_plot(Mark(value))
-        plot._theme = _chrome_free_theme()
+        plot._settings.theme = _chrome_free_theme()
         # Render small. Raster cost is per device pixel and this sweep
         # renders every mark, so the default size made this the slowest
         # module in the suite for no extra coverage -- presence of ink
@@ -1242,7 +1244,7 @@ def test_the_measured_box_agrees_with_the_ink_it_crops_to() raises:
     # would crop away ink -- so erring outward is the safe direction and
     # the only one allowed here.
     var plot = _roomy_plot()
-    var bg = plot._theme.background
+    var bg = plot._settings.theme.background
     var full = render(plot)
     var scanned = _ink_box_by_scanning(full, bg)
     var tight = render_tight(_roomy_plot())
@@ -1281,7 +1283,7 @@ def test_a_tight_render_keeps_the_ink() raises:
     # Cropping must not shave the thing it cropped to. Every cropped
     # figure still has ink on it, and as much of it as before.
     var plot = _roomy_plot()
-    var bg = plot._theme.background
+    var bg = plot._settings.theme.background
     var full = render(plot)
     var tight = render_tight(_roomy_plot())
     var full_ink = 0
@@ -1606,7 +1608,7 @@ def test_dpi_keeps_a_composite_figure_the_same_figure() raises:
     # makes for one plot: more pixels, the same share of them inked --
     # which only holds if the text, strokes and title band scaled too.
     var plots = _roomy_pair()
-    var bg = plots[0]._theme.background
+    var bg = plots[0]._settings.theme.background
     var low = render_facets(plots, 2)
     var high = render_facets(_all_at_dpi(plots, 288.0, "test"), 2)
     assert_equal(high.width, 4 * low.width)
@@ -1669,7 +1671,7 @@ def test_a_tight_composite_keeps_all_of_its_ink() raises:
     # Cropping must not shave what it cropped to -- the figure title a
     # grid draws above its cells, each cell's title and axis titles.
     var plots = _roomy_pair()
-    var bg = plots[0]._theme.background
+    var bg = plots[0]._settings.theme.background
     var full_l = render_layers(plots)
     var tight_l = _render_layers_tight(plots)
     assert_true(_inked(tight_l, bg) >= _inked(full_l, bg), "layers lost ink")

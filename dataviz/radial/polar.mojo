@@ -216,7 +216,7 @@ def _render_polar[
                     + ")"
                 )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(
         len(plot._polar.angle), "Plot.encode_polar()/encode_polar_series()"
     )
@@ -255,7 +255,7 @@ def _render_polar[
 
     # One title per drawn point: every series' points when there are
     # several, the one series' otherwise.
-    var tooltips_on = plot._tooltips_on(
+    var tooltips_on = plot._settings.tooltips_on(
         len(plot._polar.angle) * max(1, len(plot._polar.series_radius))
     )
     if is_multi:

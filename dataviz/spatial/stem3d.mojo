@@ -230,7 +230,7 @@ def _render_stem3d[
     color or size.
     """
     _validate_xyz(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -287,7 +287,7 @@ def _render_quiver3d[
     visibly either way, and that is what two crossing arrows look like.
     """
     _validate_vectors3d(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -427,7 +427,7 @@ def _render_fill_between3d[
     read the digest entry as covering it.
     """
     _validate_ribbon3d(plot)
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top

@@ -885,7 +885,7 @@ def _draw_contour_layer[
         return
     var span = _level_span(levels)
     var color_scale = _color_scale_for(
-        plot._theme, plot._color_domain, span[0], span[1]
+        plot._settings.theme, plot._settings.color_domain, span[0], span[1]
     )
     var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
     var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
@@ -940,7 +940,7 @@ def _draw_contourf_layer[
         return
     var span = _level_span(levels)
     var color_scale = _color_scale_for(
-        plot._theme, plot._color_domain, span[0], span[1]
+        plot._settings.theme, plot._settings.color_domain, span[0], span[1]
     )
     var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
     var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
@@ -1012,7 +1012,7 @@ def _render_contour[
         plot._contour.levels
     ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     # Every level is a band or a line of its own, so the key is one
     # swatch per level rather than a gradient bar: a smooth ramp would
     # imply intermediate colors this mark never paints (#525). Built
@@ -1032,7 +1032,9 @@ def _render_contour[
         # Through the resolver, so a `scale_color_domain()` override
         # shows in the key. A legend built from the data's own limits
         # would quietly contradict the bands beside it (#370).
-        var legend_scale = _color_scale_for(theme, plot._color_domain, llo, lhi)
+        var legend_scale = _color_scale_for(
+            theme, plot._settings.color_domain, llo, lhi
+        )
         var sc0 = _Scaled(theme)
         for v in _levels_descending(levels):
             level_labels.append(_format_tick(v, 1, theme.y_tick_format))
@@ -1121,7 +1123,7 @@ def _render_contourf[
         plot._contour.levels
     ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     # Every level is a band or a line of its own, so the key is one
     # swatch per level rather than a gradient bar: a smooth ramp would
     # imply intermediate colors this mark never paints (#525). Built
@@ -1141,7 +1143,9 @@ def _render_contourf[
         # Through the resolver, so a `scale_color_domain()` override
         # shows in the key. A legend built from the data's own limits
         # would quietly contradict the bands beside it (#370).
-        var legend_scale = _color_scale_for(theme, plot._color_domain, llo, lhi)
+        var legend_scale = _color_scale_for(
+            theme, plot._settings.color_domain, llo, lhi
+        )
         var sc0 = _Scaled(theme)
         for v in _levels_descending(levels):
             level_labels.append(_format_tick(v, 1, theme.y_tick_format))

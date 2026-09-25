@@ -260,7 +260,7 @@ struct _DomainOverride(Copyable, Movable):
     `.scale_y_domain()`, overriding the padded/zero-baselined
     domain `_data_extent()`/`_zero_baseline_y_extent()` would otherwise
     compute. `has` is `False` (the default -- no override) until one of
-    those builder methods sets it. Stored on `Plot._x_domain`/`_y_domain`.
+    those builder methods sets it. Stored on `Plot._settings.x_domain`/`_y_domain`.
     """
 
     var has: Bool
@@ -280,7 +280,7 @@ struct _DomainOverride(Copyable, Movable):
 
 struct _LabelData(Copyable, Movable):
     """Chart/axis title text set via `.labels()`; an empty string means not
-    set. Stored on `Plot._labels`.
+    set. Stored on `Plot._settings.labels`.
     """
 
     var title: String

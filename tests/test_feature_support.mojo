@@ -170,9 +170,9 @@ def test_auto_tooltips_switch_off_exactly_past_each_mark_s_own_count() raises:
         var plot = _representative_plot(mark)
         var drawn = _count(_svg(plot.copy().tooltips(Tooltips.ON)), "<title>")
         var at = plot.copy()
-        at._theme.auto_tooltip_limit = drawn
+        at._settings.theme.auto_tooltip_limit = drawn
         var below = plot.copy()
-        below._theme.auto_tooltip_limit = drawn - 1
+        below._settings.theme.auto_tooltip_limit = drawn - 1
         var at_count = _count(_svg(at^), "<title>")
         var below_count = _count(_svg(below^), "<title>")
         if at_count != drawn or below_count != 0:
@@ -233,12 +233,12 @@ def test_every_mark_matches_the_table() raises:
             # Its own flag: the histogram encoder carries orientation.
             turned._histogram.horizontal = True
         elif mark == Mark.DENDROGRAM:
-            # Likewise. Flipping Plot._horizontal alone could not see a
+            # Likewise. Flipping Plot._settings.horizontal alone could not see a
             # dendrogram turn, which is how the table came to say it
             # could not.
             turned._dendrogram.horizontal = True
         else:
-            turned._horizontal = True
+            turned._settings.horizontal = True
         _check_raises_or_changes(
             mismatches, mark, Feature.HORIZONTAL, turned^, base, ""
         )

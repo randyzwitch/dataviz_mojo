@@ -85,7 +85,7 @@ def _render_corrplot[
                 + ")"
             )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._corrplot.variables), "Plot.encode_corrplot()")
     for row in plot._corrplot.matrix:
         for v in row:
@@ -97,7 +97,9 @@ def _render_corrplot[
                 )
 
     var sc = _Scaled(theme)
-    var color_scale = _color_scale_for(theme, plot._color_domain, -1.0, 1.0)
+    var color_scale = _color_scale_for(
+        theme, plot._settings.color_domain, -1.0, 1.0
+    )
 
     # Reuse the cache for legend and axis-label measurement.
 
@@ -126,7 +128,7 @@ def _render_corrplot[
     )
     var n = len(plot._corrplot.variables)
 
-    var tooltips_on = plot._tooltips_on(n * n)
+    var tooltips_on = plot._settings.tooltips_on(n * n)
     for row in range(n):
         for col in range(n):
             if row == col and not plot._corrplot.diag:

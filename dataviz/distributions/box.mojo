@@ -148,12 +148,12 @@ def _draw_box_glyphs[
     `to_pixel` (not `_axis_pixel`) for the five box statistics, since
     these are already-computed positions; outliers use `_axis_pixel`.
     """
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
     var cap_half = band_size / 4.0
 
-    var tooltips_on = plot._tooltips_on(
+    var tooltips_on = plot._settings.tooltips_on(
         len(plot._categorical.x) + len(plot._box.outlier_value)
     )
     for i in range(len(plot._categorical.x)):
@@ -300,7 +300,7 @@ def _render_box[
             + ")"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var domain_data = List[Float64]()
     for v in plot._box.low:
         domain_data.append(v)
@@ -366,7 +366,7 @@ def _render_horizontal_box[
             + ")"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var domain_data = List[Float64]()
     for v in plot._box.low:
         domain_data.append(v)
@@ -617,7 +617,7 @@ def _render_box_oriented[
 ) raises -> _RenderResult:
     """`Mark.BOX`'s renderer, the one its setter binds: `_render_horizontal_box`
     when the plot is horizontal, `_render_box` otherwise."""
-    if plot._horizontal:
+    if plot._settings.horizontal:
         return _render_horizontal_box(
             target, plot, ox0, oy0, ox1, oy1, cache=cache
         )

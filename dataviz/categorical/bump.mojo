@@ -222,7 +222,7 @@ def _render_bump[
     """
     _validate_grouped_bar_series(plot)
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _check_line_smoothing(theme)
 
     var n_series = len(plot._grouped_bar.series_names)
@@ -273,7 +273,7 @@ def _render_bump[
             rank[j].append(rank_at_i[j])
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._tooltips_on(n_series)
+    var tooltips_on = plot._settings.tooltips_on(n_series)
     for j in range(n_series):
         var px = List[Float64](capacity=n_categories)
         var py = List[Float64](capacity=n_categories)

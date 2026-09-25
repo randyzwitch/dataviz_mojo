@@ -194,7 +194,7 @@ def _render_calendar_heatmap[
             + ")"
         )
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     _require_non_empty(len(plot._calendar.dates), "Plot.encode_calendar()")
 
     var parsed = List[_Date]()
@@ -235,7 +235,7 @@ def _render_calendar_heatmap[
 
     var value_mm = _min_max(plot._calendar.values)
     var color_scale = _color_scale_for(
-        theme, plot._color_domain, value_mm.min, value_mm.max
+        theme, plot._settings.color_domain, value_mm.min, value_mm.max
     )
 
     var legend = _continuous_color_legend_layout(
@@ -300,7 +300,7 @@ def _render_calendar_heatmap[
         )
         month += stride
 
-    var tooltips_on = plot._tooltips_on(len(parsed))
+    var tooltips_on = plot._settings.tooltips_on(len(parsed))
     for i in range(len(parsed)):
         var days = _days_from_civil(parsed[i]) - jan1_days
         var col = (days + jan1_dow) // 7

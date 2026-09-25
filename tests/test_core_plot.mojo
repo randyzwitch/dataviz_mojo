@@ -2427,7 +2427,7 @@ def test_svg_output_string_adds_accessible_markup_when_a_title_is_set() raises:
         .labels(title="Widget Sales", subtitle="By category")
         .size(400, 300)
     )
-    var s = _svg_output_string(render_svg(plot), plot._labels)
+    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
     assert_true('role="img"' in s, "accessible markup added for a titled plot")
     assert_true(
         "<title>Widget Sales</title>" in s, "the title becomes the SVG <title>"
@@ -2446,7 +2446,7 @@ def test_svg_output_string_leaves_an_untitled_plot_unchanged() raises:
     )
     var svg = render_svg(plot)
     var plain = svg.to_string()
-    var s = _svg_output_string(render_svg(plot), plot._labels)
+    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
     assert_equal(s, plain, "an untitled plot's SVG output is byte-identical")
 
 
@@ -2464,7 +2464,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         )
     )
     assert_equal(
-        _resolve_description(with_both._labels),
+        _resolve_description(with_both._settings.labels),
         "A longer screen-reader-only description.",
         "an explicit description wins over subtitle",
     )
@@ -2476,7 +2476,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         .labels(title="Widget Sales", subtitle="By category")
     )
     assert_equal(
-        _resolve_description(subtitle_only._labels),
+        _resolve_description(subtitle_only._settings.labels),
         "By category",
         "falls back to subtitle when description is left unset",
     )
@@ -2488,7 +2488,7 @@ def test_resolve_description_prefers_explicit_description_over_subtitle() raises
         .labels(title="Widget Sales")
     )
     assert_equal(
-        _resolve_description(neither._labels),
+        _resolve_description(neither._settings.labels),
         "",
         "empty when neither description nor subtitle is set",
     )
@@ -2508,7 +2508,7 @@ def test_svg_output_string_explicit_description_wins_over_subtitle() raises:
         )
         .size(400, 300)
     )
-    var s = _svg_output_string(render_svg(plot), plot._labels)
+    var s = _svg_output_string(render_svg(plot), plot._settings.labels)
     assert_true(
         "<desc>A longer screen-reader-only description.</desc>" in s,
         "the explicit description wins over subtitle",

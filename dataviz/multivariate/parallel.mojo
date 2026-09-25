@@ -85,7 +85,7 @@ def _render_parallel[
     """
     _require_non_empty(len(plot._parallel.dims), "Plot.encode_parallel()")
 
-    var theme = plot._theme
+    var theme = plot._settings.theme
     var text_requests = List[_TextRequest]()
 
     var sc = _Scaled(theme)
