@@ -15,6 +15,7 @@ from dataviz.core.delaunay import Triangulation
 from dataviz.core.marker import PointShape
 from morrow import Morrow
 from dataviz.core.annotations import _AnnotationData
+from dataviz.core.capabilities import _Capabilities
 from dataviz.core.chart_settings import _ChartSettings
 from dataviz.core.mark import Mark
 from dataviz.core.plot_fields import _MarkStyle
@@ -25,6 +26,15 @@ trait MarkType(Copyable, Deinitable, Movable):
     """See the module docstring."""
 
     comptime id: Mark
+    comptime supports_tooltips: Bool
+    comptime supports_data_labels: Bool
+    comptime supports_horizontal: Bool
+    comptime supports_annotations_y: Bool
+    comptime supports_annotations_x: Bool
+    comptime supports_annotations_xy: Bool
+    comptime supports_log_x: Bool
+    comptime supports_log_y: Bool
+    comptime supports_color_size: Bool
 
     def render[
         T: DrawTarget
@@ -620,3 +630,18 @@ trait MarkType(Copyable, Deinitable, Movable):
         """Refused at compile time: this mark reads no `DataFrame` by
         column name."""
         comptime assert False, "encode_frame(): not an encoder of this mark"
+
+
+def _capabilities_of_type[M: MarkType]() -> _Capabilities:
+    """`M`'s `supports_*` constants as one value."""
+    var caps = _Capabilities()
+    caps.tooltips = M.supports_tooltips
+    caps.data_labels = M.supports_data_labels
+    caps.horizontal = M.supports_horizontal
+    caps.annotations_y = M.supports_annotations_y
+    caps.annotations_x = M.supports_annotations_x
+    caps.annotations_xy = M.supports_annotations_xy
+    caps.log_x = M.supports_log_x
+    caps.log_y = M.supports_log_y
+    caps.color_size = M.supports_color_size
+    return caps

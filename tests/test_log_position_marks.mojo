@@ -211,7 +211,11 @@ def test_symlog_y_on_a_position_mark_raises() raises:
     # scale_y_symlog() is gated by the same table entry as scale_x_log(),
     # so without this it would pass validation and do nothing.
     with assert_raises(contains="has no y axis to transform"):
-        _ = render(rugplot(_decades()).scale_y_symlog())
+        # Chosen before the mark, so the check runs at render time; on a
+        # typed chart the call would not compile.
+        _ = render(
+            Plot().scale_y_symlog().mark_rug().encode_kde(values=_decades())
+        )
 
 
 def test_the_marks_decided_against_still_refuse_a_log_axis() raises:

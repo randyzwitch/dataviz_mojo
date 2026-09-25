@@ -26,7 +26,7 @@ struct _RenderResult(Movable):
     `_HorizontalCategoricalFrame.result()`, whose continuous axis is the
     x one (#688); a vertical categorical frame sets neither, since its
     x-axis has no numeric domain. Which marks that leaves is
-    `Mark.supports(Feature.ANNOTATIONS_X)` and `ANNOTATIONS_XY`
+    `MarkType.supports_annotations_x` and `supports_annotations_xy`
     (mark.mojo), not a list restated here.
     """
 

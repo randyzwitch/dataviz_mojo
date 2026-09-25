@@ -398,7 +398,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     tooltip. `SvgCanvas` turns that into `<g><title>...</title>...</g>`;
     `Canvas` ignores both calls. Titles are XML-escaped by canvas_mojo.
 
-    Which marks honor it is `Mark.supports(Feature.TOOLTIPS)` (mark.mojo),
+    Which marks honor it is `MarkType.supports_tooltips` (mark_type.mojo),
     the one table the docs' feature-support page is generated from.
     Where a mark encodes more than one number, the title carries all
     of them rather than picking one -- a bullet row's measure and
@@ -430,7 +430,7 @@ struct Theme(ImplicitlyCopyable, Movable):
     var show_data_labels: Bool
     """Whether a mark draws each value as text, in `text_color` at
     `font_size`; defaults to `False`. Which marks honor it is
-    `Mark.supports(Feature.DATA_LABELS)` (mark.mojo); rendering any
+    `MarkType.supports_data_labels` (mark_type.mojo); rendering any
     other mark with it on raises, rather than drawing no labels and
     saying nothing (#676).
     Formatted via `_label_decimals()` (scale.mojo), the fewest decimal

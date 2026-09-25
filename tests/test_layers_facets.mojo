@@ -2840,7 +2840,11 @@ def test_render_layers_rejects_a_log_scale_on_a_newly_layerable_mark() raises:
     var v: List[Float64] = [1.0, 2.0, 3.0, 4.0]
     var plots = List[AnyChart]()
     plots.append(AnyChart(line(lx, ly, width=400, height=300).scale_y_log()))
-    plots.append(AnyChart(kdeplot(v, width=400, height=300).scale_y_log()))
+    plots.append(
+        AnyChart(
+            Plot().scale_y_log().mark_kde().encode_kde(values=v).size(400, 300)
+        )
+    )
     with assert_raises(contains="layer 1"):
         _ = render_layers(plots)
     with assert_raises(contains="scale_y_log"):

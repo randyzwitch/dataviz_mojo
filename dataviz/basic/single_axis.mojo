@@ -200,6 +200,7 @@ def _render_single_axis[
         channels,
         y_err,
         mark,
+        True,  # SingleAxis.supports_color_size: it reuses the point channels
         "Plot.encode_single_axis()",
     )
     _require_non_empty(len(continuous.x), "Plot.encode_single_axis()")

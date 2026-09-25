@@ -67,9 +67,10 @@ from dataviz.core.annotations import (
     _validate_log_scale_annotations,
     _AnnotationData,
 )
-from dataviz.core.mark import Feature, Mark, _supporting_names
+from dataviz.core.mark import Mark
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.render_result import _RenderResult
+from dataviz.core.capabilities import _Capabilities
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
 from dataviz.binned.histogram import _draw_histogram_layer, _HistogramData
@@ -1347,6 +1348,7 @@ def _filled_annotations_go_under(mark: Mark) raises -> Bool:
 
 def _check_render_settings(
     mark: Mark,
+    caps: _Capabilities,
     continuous: _ContinuousData,
     channels: _ChannelData,
     y_err: _ErrorBarData,
@@ -1363,6 +1365,7 @@ def _check_render_settings(
     same errors it always did."""
     _check_unsupported_flags(
         mark,
+        caps,
         settings.theme,
         settings.horizontal,
         settings.tooltip_policy(),
@@ -1391,17 +1394,17 @@ def _check_render_settings(
         or settings.x_log
         or settings.y_symlog
         or settings.x_symlog
-    ) and not mark.supports(Feature.LOG_X):
+    ) and not caps.log_x:
         raise Error(
             "Plot.scale_y_log()/scale_x_log() only apply to "
-            + _supporting_names(Feature.LOG_X)
+            + "marks with a continuous x axis"
             + " -- a categorical-x-axis (or other non-continuous) mark has"
             " no continuous domain for a log scale to mean anything against"
         )
-    if settings.y_log and not mark.supports(Feature.LOG_Y):
+    if settings.y_log and not caps.log_y:
         raise Error(
             "Plot.scale_y_log(): only "
-            + _supporting_names(Feature.LOG_Y)
+            + "marks whose continuous y axis is not forced through zero"
             + " -- the other marks with a continuous x axis force their"
             " y-domain through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
@@ -1506,6 +1509,7 @@ def _render_continuous[
 ](
     mut target: T,
     mark: Mark,
+    caps: _Capabilities,
     histogram: _HistogramData,
     continuous: _ContinuousData,
     channels: _ChannelData,
@@ -1534,6 +1538,7 @@ def _render_continuous[
         channels,
         y_err,
         mark,
+        caps.color_size,
         "Plot.encode()",
     )
     _require_non_empty(len(continuous.x), "Plot.encode()")

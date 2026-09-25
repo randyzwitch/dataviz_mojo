@@ -24,7 +24,7 @@ struct Tooltips(Copyable, ImplicitlyCopyable, Movable):
     individually. The count is per plot, so each layer of
     `render_layers()` and each panel of a facet grid decides on its own.
 
-    Which marks draw tooltips is `Mark.supports(Feature.TOOLTIPS)`
+    Which marks draw tooltips is `MarkType.supports_tooltips`
     (mark.mojo). `ON` on any other mark raises when the chart renders,
     as `Theme.show_data_labels` does (#676); `OFF` and `AUTO` never
     raise. The raster and PDF backends draw no tooltips whatever the
