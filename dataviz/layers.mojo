@@ -320,9 +320,9 @@ def _layers_supersample(plots: List[Plot], caller: String) raises -> Int:
     """The raster supersampling factor for a layered figure: the largest
     any layer asks for, since one canvas has one factor and a curved mark
     beside a bar chart must not be drawn at the bar's."""
-    var factor = _resolve_supersample(plots[0], caller)
+    var factor = _resolve_supersample(plots[0]._mark, plots[0]._settings.theme, caller)
     for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i], caller)
+        var f = _resolve_supersample(plots[i]._mark, plots[i]._settings.theme, caller)
         if f > factor:
             factor = f
     return factor

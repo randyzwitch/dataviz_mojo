@@ -98,6 +98,7 @@ check-version = "bash scripts/check_version.sh"
 # script for why the suite cannot see this.
 check-mark-isolation = "bash scripts/check_mark_isolation.sh"
 check-import-direction = "python3 scripts/check_import_direction.py"
+check-typed-misuse = "bash scripts/check_typed_misuse.sh"
 # Bump version fields, commit, and tag without pushing.
 release = "bash scripts/release.sh"
 

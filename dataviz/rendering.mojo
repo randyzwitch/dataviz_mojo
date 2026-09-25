@@ -8,6 +8,7 @@ Split out of plot.mojo, which imports from here what its methods use;
 see plot.mojo's header for the circular-import convention this
 follows."""
 
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.io.bmp import write_bmp
@@ -64,14 +65,22 @@ from dataviz.core.annotations import (
     _draw_annotation_smooth,
     _draw_annotation_vlines,
     _validate_log_scale_annotations,
+    _AnnotationData,
 )
 from dataviz.core.mark import Feature, Mark, _supporting_names
 from dataviz.core.output_format import OutputFormat
 from dataviz.core.render_result import _RenderResult
 from dataviz.core.scale import LinearScale
-from dataviz.binned.histogram import _draw_histogram_layer
+from dataviz.core.theme import Theme
+from dataviz.binned.histogram import _draw_histogram_layer, _HistogramData
 from dataviz.plot import Plot
-from dataviz.core.plot_fields import _LabelData
+from dataviz.core.plot_fields import (
+    _LabelData,
+    _ChannelData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
 from dataviz.core.extent import (
     _data_extent,
     _log_data_extent,
@@ -109,14 +118,14 @@ comptime _CURVED_SUPERSAMPLE = 3
 """Supersample factor for circles, arcs, and curved strokes."""
 
 
-def _auto_supersample(plot: Plot) -> Int:
+def _auto_supersample(mark: Mark, theme: Theme) -> Int:
     """Return the mark-specific supersample factor for `AUTO`."""
     # A smoothed line or area is a curve whatever its mark says, so it
     # is classified by what it draws rather than by its name.
-    if plot._settings.theme.line_smoothing > 0.0:
+    if theme.line_smoothing > 0.0:
         return _CURVED_SUPERSAMPLE
 
-    var m = plot._mark
+    var m = mark
     if (
         m == Mark.BAR
         or m == Mark.GROUPED_BAR
@@ -146,12 +155,15 @@ def _auto_supersample(plot: Plot) -> Int:
     return _CURVED_SUPERSAMPLE
 
 
-def _resolve_supersample(plot: Plot, context: String) raises -> Int:
+def _resolve_supersample(
+    mark: Mark, theme: Theme, context: String
+) raises -> Int:
     """`Theme.raster_supersample` if the caller set one, else the mark's
     own factor. Validated here so every entry point gets the same check.
 
     Args:
-        plot: The chart being rendered.
+        mark: The mark being rendered.
+        theme: Its theme.
         context: The caller's name, for the error message.
 
     Returns:
@@ -160,9 +172,9 @@ def _resolve_supersample(plot: Plot, context: String) raises -> Int:
     Raises:
         Error: The theme's factor is negative.
     """
-    var configured = plot._settings.theme.raster_supersample
+    var configured = theme.raster_supersample
     if configured == _AUTO_SUPERSAMPLE:
-        return _auto_supersample(plot)
+        return _auto_supersample(mark, theme)
     _require_positive_supersample(configured, context)
     return configured
 
@@ -184,7 +196,9 @@ def render(plot: Plot) raises -> Canvas:
     both compile inline, with no need to bind a temporary to a variable
     first.
     """
-    var factor = _resolve_supersample(plot, "render")
+    var factor = _resolve_supersample(
+        plot._mark, plot._settings.theme, "render"
+    )
     var out = Canvas(plot.width, plot.height, plot._settings.theme.background)
     # `begin_supersampled` owns the half-pixel shift box downsampling
     # costs and the scale, and replays the recorded shapes one output
@@ -419,7 +433,9 @@ def render_tight(plot: Plot) raises -> Canvas:
         Error: Whatever `render()` raises.
     """
     var box = _tight_box(plot, False)
-    var factor = _resolve_supersample(plot, "render_tight")
+    var factor = _resolve_supersample(
+        plot._mark, plot._settings.theme, "render_tight"
+    )
     var out = Canvas(box[2], box[3], plot._settings.theme.background)
     out.begin_supersampled(factor, plot._settings.theme.background)
     # Draw the figure at its full size into a smaller canvas, shifted so
@@ -1301,6 +1317,358 @@ def _filled_annotations_go_under(mark: Mark) raises -> Bool:
     )
 
 
+def _check_render_settings(
+    mark: Mark,
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    annotations: _AnnotationData,
+    settings: _ChartSettings,
+    has_shared_y_domain: Bool = False,
+    shared_y_is_log: Bool = False,
+) raises:
+    """Every check `_render_generic` makes before it draws, over the
+    fields it reads rather than the `Plot` (#828): the settings that
+    cannot apply to this mark, an unsupported log or symlog axis, a
+    domain, tick or aspect override on a mark that does not honor it,
+    and the annotation values a log axis cannot place. Raises the
+    same errors it always did."""
+    _check_unsupported_flags(
+        mark,
+        settings.theme,
+        settings.horizontal,
+        settings.tooltip_policy(),
+    )
+    _check_missing_policy(settings.theme, continuous, channels)
+    if settings.secondary_axis:
+        raise Error(
+            "Plot.secondary_axis() only applies inside render_layers()/"
+            "render_layers_svg() -- a standalone plot has only one"
+            " series, nothing for a second y-axis to pair against"
+        )
+    if settings.y_log and settings.y_symlog:
+        raise Error(
+            "Plot.scale_y_log()/scale_y_symlog(): an axis cannot be both."
+            " A log axis has no zero to be linear around, which is the"
+            " whole of what symlog adds -- choose one"
+        )
+    if settings.x_log and settings.x_symlog:
+        raise Error(
+            "Plot.scale_x_log()/scale_x_symlog(): an axis cannot be both."
+            " A log axis has no zero to be linear around, which is the"
+            " whole of what symlog adds -- choose one"
+        )
+    if (
+        settings.y_log
+        or settings.x_log
+        or settings.y_symlog
+        or settings.x_symlog
+    ) and not mark.supports(Feature.LOG_X):
+        raise Error(
+            "Plot.scale_y_log()/scale_x_log() only apply to "
+            + _supporting_names(Feature.LOG_X)
+            + " -- a categorical-x-axis (or other non-continuous) mark has"
+            " no continuous domain for a log scale to mean anything against"
+        )
+    if settings.y_log and not mark.supports(Feature.LOG_Y):
+        raise Error(
+            "Plot.scale_y_log(): only "
+            + _supporting_names(Feature.LOG_Y)
+            + " -- the other marks with a continuous x axis force their"
+            " y-domain through a zero baseline (see"
+            " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
+        )
+    if (settings.x_domain.has or settings.y_domain.has) and not (
+        mark == Mark.POINT
+        or mark == Mark.LINE
+        or mark == Mark.AREA
+        or mark == Mark.HISTOGRAM
+        or mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_x_domain()/scale_y_domain() only apply to"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER today -- a categorical-x-axis"
+            " (or other non-continuous) mark isn't wired up to an explicit"
+            " domain override yet"
+        )
+    _validate_domain_override(
+        settings.x_domain, settings.x_log, "Plot.scale_x_domain"
+    )
+    _validate_domain_override(
+        settings.y_domain, settings.y_log, "Plot.scale_y_domain"
+    )
+    if (
+        settings.x_tick_override.has
+        or settings.y_tick_override.has
+        or settings.x_reversed
+        or settings.y_reversed
+        or settings.equal_aspect
+    ) and not (
+        mark == Mark.POINT
+        or mark == Mark.LINE
+        or mark == Mark.AREA
+        or mark == Mark.HISTOGRAM
+        or mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "Plot.scale_x_ticks()/scale_y_ticks()/scale_x_reverse()/"
+            "scale_y_reverse()/equal_aspect() only apply to"
+            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER today -- the"
+            " other marks reach the continuous frame through their own"
+            " renders, which do not carry these yet (#368)"
+        )
+    _validate_tick_override(
+        settings.x_tick_override,
+        settings.x_log,
+        "Plot.scale_x_ticks",
+    )
+    _validate_tick_override(
+        settings.y_tick_override,
+        settings.y_log,
+        "Plot.scale_y_ticks",
+    )
+    if settings.equal_aspect and (settings.x_log or settings.y_log):
+        raise Error(
+            "Plot.equal_aspect(): not supported on a log-scaled axis -- a"
+            " data unit is a different length at each end of a log axis,"
+            " so equal pixel lengths for equal data distances is not a"
+            " property it can have"
+        )
+    if settings.equal_aspect and settings.x_time:
+        raise Error(
+            "Plot.equal_aspect(): not supported on a time axis -- a second"
+            " and a unit of y are not comparable lengths, so there is no"
+            " aspect to equalize"
+        )
+    _validate_color_domain(settings.color_domain, mark, channels)
+    if has_shared_y_domain and not (
+        mark == Mark.POINT
+        or mark == Mark.LINE
+        or mark == Mark.AREA
+        or mark == Mark.HISTOGRAM
+        or mark == Mark.EFFECT_SCATTER
+    ):
+        raise Error(
+            "render_facets(shared_y_scale=True): only"
+            " Mark.POINT/LINE/AREA/EFFECT_SCATTER support a shared y-scale"
+            " today -- a categorical or polar mark has no continuous"
+            " y-domain for a shared range to mean anything against"
+        )
+    if has_shared_y_domain and settings.y_log != shared_y_is_log:
+        raise Error(
+            "render_facets(shared_y_scale=True): every cell must agree on"
+            " Plot.scale_y_log() -- got a mix of log and linear cells"
+        )
+    if has_shared_y_domain and (
+        len(y_err.symmetric) > 0 or len(y_err.lower) > 0 or len(y_err.upper) > 0
+    ):
+        # The shared union is computed over plain continuous.y and isn't widened
+        # for whisker endpoints, so a whisker could extend past the shared
+        # axis.
+        raise Error(
+            "render_facets(shared_y_scale=True): not supported together with"
+            " Plot.encode(y_err=...)/y_err_lower/y_err_upper -- the shared"
+            " domain isn't widened for whisker endpoints yet"
+        )
+    _validate_log_scale_annotations(annotations, settings.x_log, settings.y_log)
+
+
+def _render_continuous[
+    T: DrawTarget
+](
+    mut target: T,
+    mark: Mark,
+    histogram: _HistogramData,
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    annotations: _AnnotationData,
+    settings: _ChartSettings,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    has_shared_y_domain: Bool = False,
+    shared_y_min: Float64 = 0.0,
+    shared_y_max: Float64 = 0.0,
+    shared_y_is_log: Bool = False,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """The continuous-axis path, `Mark.POINT`/`LINE`/`AREA`/
+    `EFFECT_SCATTER`/`HISTOGRAM`'s renderer: decide the two domains,
+    size the legend column, draw the axis frame, then the mark. Over
+    the fields it reads rather than the `Plot` (#828); `_render_generic`
+    hands them over after the mark callback declines."""
+    _validate_continuous_encoding(
+        continuous,
+        channels,
+        y_err,
+        mark,
+        "Plot.encode()",
+    )
+    _require_non_empty(len(continuous.x), "Plot.encode()")
+
+    var theme = settings.theme
+
+    # Scaled once by theme.scale; see _Scaled.
+    var sc = _Scaled(theme)
+
+    # Built once and handed to both _legend_reserve_for and
+    # _draw_point_layer so the two agree; see _PointChannels.
+    var ch = _PointChannels(channels, settings.theme, settings.color_domain, sc)
+
+    var legend_reserve = _legend_reserve_for(
+        mark, settings.theme, ch, sc, cache=cache
+    )
+
+    # Mark.AREA forces a zero baseline into the y-domain; every other
+    # continuous mark pads around its data. y_domain_data is continuous.y,
+    # or every whisker endpoint when y_err (or y_err_lower/y_err_upper) is
+    # set, so the domain spans everything drawn. has_shared_y_domain
+    # (render_facets(shared_y_scale=True)) short-circuits that with the
+    # caller's precomputed domain.
+    var y_domain_data = List[Float64]()
+    if len(y_err.symmetric) > 0:
+        for i in range(len(continuous.y)):
+            y_domain_data.append(continuous.y[i] - y_err.symmetric[i])
+            y_domain_data.append(continuous.y[i] + y_err.symmetric[i])
+    elif len(y_err.lower) > 0:
+        for i in range(len(continuous.y)):
+            y_domain_data.append(continuous.y[i] - y_err.lower[i])
+            y_domain_data.append(continuous.y[i] + y_err.upper[i])
+    else:
+        for v in continuous.y:
+            y_domain_data.append(v)
+    var y_scale = _domain_override_scale(
+        settings.y_domain, settings.y_log
+    ) if settings.y_domain.has else (
+        LinearScale(
+            shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
+        ) if has_shared_y_domain else (
+            _log_data_extent(y_domain_data) if settings.y_log else (
+                _symlog_data_extent(
+                    y_domain_data, settings.y_symlog_linthresh
+                ) if settings.y_symlog else (
+                    _zero_baseline_y_extent(y_domain_data) if (
+                        mark == Mark.AREA
+                        or (mark == Mark.HISTOGRAM and not histogram.horizontal)
+                    ) else _data_extent(y_domain_data)
+                )
+            )
+        )
+    )
+    # A horizontal histogram's values run along x, so x takes the zero
+    # baseline its y would have had.
+    var x_scale = _domain_override_scale(
+        settings.x_domain, settings.x_log
+    ) if settings.x_domain.has else (
+        _log_data_extent(continuous.x) if settings.x_log else (
+            _symlog_data_extent(
+                continuous.x, settings.x_symlog_linthresh
+            ) if settings.x_symlog else (
+                _zero_baseline_y_extent(continuous.x) if (
+                    mark == Mark.HISTOGRAM and histogram.horizontal
+                ) else _data_extent(continuous.x)
+            )
+        )
+    )
+    # A time axis is linear in seconds; only its labels differ, so the
+    # domain is whatever the branches above computed and the flag simply
+    # rides along to `LinearScale.ticks()`.
+    if settings.x_time:
+        x_scale.is_time = True
+        x_scale.tz_offset = settings.x_tz_offset
+
+    var controls = _AxisControls()
+    controls.x_ticks = settings.x_tick_override.copy()
+    controls.y_ticks = settings.y_tick_override.copy()
+    controls.x_reversed = settings.x_reversed
+    controls.y_reversed = settings.y_reversed
+    controls.equal_aspect = settings.equal_aspect
+    var frame = _draw_continuous_axis_frame(
+        target,
+        x_scale,
+        y_scale,
+        theme,
+        legend_reserve,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        controls=controls,
+        cache=cache,
+    )
+
+    # Filled annotations go under the mark (#501): the area bands and
+    # ribbons are drawn now, against the finished frame, so the mark is
+    # read through them rather than painted over by them. Their labels
+    # join the frame's text requests and are replayed with the rest.
+    # Stroked and text annotations still draw after the mark.
+    var under = frame.result()
+    var under_areas = _draw_annotation_areas(
+        target, annotations, under, theme, cache=cache
+    )
+    for k in range(len(under_areas)):
+        frame.text_requests.append(under_areas[k].copy())
+    var under_bands = _draw_annotation_bands(
+        target, annotations, under, theme, cache=cache
+    )
+    for k in range(len(under_bands)):
+        frame.text_requests.append(under_bands[k].copy())
+
+    if mark == Mark.POINT or mark == Mark.EFFECT_SCATTER:
+        _ = _draw_point_layer(
+            target,
+            frame.text_requests,
+            mark,
+            continuous,
+            channels,
+            y_err,
+            style,
+            settings,
+            ch,
+            frame.x_scale,
+            frame.y_scale,
+            _legend_origin_x(legend_reserve, frame.px0, frame.px1, sc),
+            _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
+            draw_halo=mark == Mark.EFFECT_SCATTER,
+            legend_horizontal=legend_reserve.position.is_horizontal(),
+            cache=cache,
+        )
+    elif mark == Mark.LINE:
+        _draw_line_layer(
+            target,
+            continuous,
+            y_err,
+            style,
+            settings,
+            frame.x_scale,
+            frame.y_scale,
+        )
+    elif mark == Mark.AREA:
+        _draw_area_layer(
+            target,
+            continuous,
+            style,
+            settings,
+            frame.x_scale,
+            frame.y_scale,
+        )
+    elif mark == Mark.HISTOGRAM:
+        _draw_histogram_layer(
+            target,
+            histogram,
+            settings,
+            frame.x_scale,
+            frame.y_scale,
+            frame.text_requests,
+        )
+
+    return frame.result()
+
+
 def _render_generic[
     T: DrawTarget
 ](
@@ -1352,153 +1720,15 @@ def _render_generic[
     against calling this directly with an inconsistent combination rather
     than a real per-cell decision point.
     """
-    _check_unsupported_flags(
+    _check_render_settings(
         plot._mark,
-        plot._settings.theme,
-        plot._settings.horizontal,
-        plot._settings.tooltip_policy(),
-    )
-    _check_missing_policy(
-        plot._settings.theme, plot._continuous, plot._channels
-    )
-    if plot._settings.secondary_axis:
-        raise Error(
-            "Plot.secondary_axis() only applies inside render_layers()/"
-            "render_layers_svg() -- a standalone plot has only one"
-            " series, nothing for a second y-axis to pair against"
-        )
-    if plot._settings.y_log and plot._settings.y_symlog:
-        raise Error(
-            "Plot.scale_y_log()/scale_y_symlog(): an axis cannot be both."
-            " A log axis has no zero to be linear around, which is the"
-            " whole of what symlog adds -- choose one"
-        )
-    if plot._settings.x_log and plot._settings.x_symlog:
-        raise Error(
-            "Plot.scale_x_log()/scale_x_symlog(): an axis cannot be both."
-            " A log axis has no zero to be linear around, which is the"
-            " whole of what symlog adds -- choose one"
-        )
-    if (
-        plot._settings.y_log
-        or plot._settings.x_log
-        or plot._settings.y_symlog
-        or plot._settings.x_symlog
-    ) and not plot._mark.supports(Feature.LOG_X):
-        raise Error(
-            "Plot.scale_y_log()/scale_x_log() only apply to "
-            + _supporting_names(Feature.LOG_X)
-            + " -- a categorical-x-axis (or other non-continuous) mark has"
-            " no continuous domain for a log scale to mean anything against"
-        )
-    if plot._settings.y_log and not plot._mark.supports(Feature.LOG_Y):
-        raise Error(
-            "Plot.scale_y_log(): only "
-            + _supporting_names(Feature.LOG_Y)
-            + " -- the other marks with a continuous x axis force their"
-            " y-domain through a zero baseline (see"
-            " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
-        )
-    if (plot._settings.x_domain.has or plot._settings.y_domain.has) and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.AREA
-        or plot._mark == Mark.HISTOGRAM
-        or plot._mark == Mark.EFFECT_SCATTER
-    ):
-        raise Error(
-            "Plot.scale_x_domain()/scale_y_domain() only apply to"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER today -- a categorical-x-axis"
-            " (or other non-continuous) mark isn't wired up to an explicit"
-            " domain override yet"
-        )
-    _validate_domain_override(
-        plot._settings.x_domain, plot._settings.x_log, "Plot.scale_x_domain"
-    )
-    _validate_domain_override(
-        plot._settings.y_domain, plot._settings.y_log, "Plot.scale_y_domain"
-    )
-    if (
-        plot._settings.x_tick_override.has
-        or plot._settings.y_tick_override.has
-        or plot._settings.x_reversed
-        or plot._settings.y_reversed
-        or plot._settings.equal_aspect
-    ) and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.AREA
-        or plot._mark == Mark.HISTOGRAM
-        or plot._mark == Mark.EFFECT_SCATTER
-    ):
-        raise Error(
-            "Plot.scale_x_ticks()/scale_y_ticks()/scale_x_reverse()/"
-            "scale_y_reverse()/equal_aspect() only apply to"
-            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER today -- the"
-            " other marks reach the continuous frame through their own"
-            " renders, which do not carry these yet (#368)"
-        )
-    _validate_tick_override(
-        plot._settings.x_tick_override,
-        plot._settings.x_log,
-        "Plot.scale_x_ticks",
-    )
-    _validate_tick_override(
-        plot._settings.y_tick_override,
-        plot._settings.y_log,
-        "Plot.scale_y_ticks",
-    )
-    if plot._settings.equal_aspect and (
-        plot._settings.x_log or plot._settings.y_log
-    ):
-        raise Error(
-            "Plot.equal_aspect(): not supported on a log-scaled axis -- a"
-            " data unit is a different length at each end of a log axis,"
-            " so equal pixel lengths for equal data distances is not a"
-            " property it can have"
-        )
-    if plot._settings.equal_aspect and plot._settings.x_time:
-        raise Error(
-            "Plot.equal_aspect(): not supported on a time axis -- a second"
-            " and a unit of y are not comparable lengths, so there is no"
-            " aspect to equalize"
-        )
-    _validate_color_domain(
-        plot._settings.color_domain, plot._mark, plot._channels
-    )
-    if has_shared_y_domain and not (
-        plot._mark == Mark.POINT
-        or plot._mark == Mark.LINE
-        or plot._mark == Mark.AREA
-        or plot._mark == Mark.HISTOGRAM
-        or plot._mark == Mark.EFFECT_SCATTER
-    ):
-        raise Error(
-            "render_facets(shared_y_scale=True): only"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER support a shared y-scale"
-            " today -- a categorical or polar mark has no continuous"
-            " y-domain for a shared range to mean anything against"
-        )
-    if has_shared_y_domain and plot._settings.y_log != shared_y_is_log:
-        raise Error(
-            "render_facets(shared_y_scale=True): every cell must agree on"
-            " Plot.scale_y_log() -- got a mix of log and linear cells"
-        )
-    if has_shared_y_domain and (
-        len(plot._y_err.symmetric) > 0
-        or len(plot._y_err.lower) > 0
-        or len(plot._y_err.upper) > 0
-    ):
-        # The shared union is computed over plain plot._continuous.y and isn't widened
-        # for whisker endpoints, so a whisker could extend past the shared
-        # axis.
-        raise Error(
-            "render_facets(shared_y_scale=True): not supported together with"
-            " Plot.encode(y_err=...)/y_err_lower/y_err_upper -- the shared"
-            " domain isn't widened for whisker endpoints yet"
-        )
-    _validate_log_scale_annotations(
-        plot._annotations, plot._settings.x_log, plot._settings.y_log
+        plot._continuous,
+        plot._channels,
+        plot._y_err,
+        plot._annotations,
+        plot._settings,
+        has_shared_y_domain,
+        shared_y_is_log,
     )
     var selected = _call_mark_renderer(
         target,
@@ -1528,181 +1758,26 @@ def _render_generic[
             " Plot._bind[<its _render_* function>]()"
         )
 
-    _validate_continuous_encoding(
+    return _render_continuous(
+        target,
+        plot._mark,
+        plot._histogram,
         plot._continuous,
         plot._channels,
         plot._y_err,
-        plot._mark,
-        "Plot.encode()",
-    )
-    _require_non_empty(len(plot._continuous.x), "Plot.encode()")
-
-    var theme = plot._settings.theme
-
-    # Scaled once by theme.scale; see _Scaled.
-    var sc = _Scaled(theme)
-
-    # Built once and handed to both _legend_reserve_for and
-    # _draw_point_layer so the two agree; see _PointChannels.
-    var ch = _PointChannels(
-        plot._channels, plot._settings.theme, plot._settings.color_domain, sc
-    )
-
-    var legend_reserve = _legend_reserve_for(
-        plot._mark, plot._settings.theme, ch, sc, cache=cache
-    )
-
-    # Mark.AREA forces a zero baseline into the y-domain; every other
-    # continuous mark pads around its data. y_domain_data is plot._continuous.y,
-    # or every whisker endpoint when y_err (or y_err_lower/y_err_upper) is
-    # set, so the domain spans everything drawn. has_shared_y_domain
-    # (render_facets(shared_y_scale=True)) short-circuits that with the
-    # caller's precomputed domain.
-    var y_domain_data = List[Float64]()
-    if len(plot._y_err.symmetric) > 0:
-        for i in range(len(plot._continuous.y)):
-            y_domain_data.append(
-                plot._continuous.y[i] - plot._y_err.symmetric[i]
-            )
-            y_domain_data.append(
-                plot._continuous.y[i] + plot._y_err.symmetric[i]
-            )
-    elif len(plot._y_err.lower) > 0:
-        for i in range(len(plot._continuous.y)):
-            y_domain_data.append(plot._continuous.y[i] - plot._y_err.lower[i])
-            y_domain_data.append(plot._continuous.y[i] + plot._y_err.upper[i])
-    else:
-        for v in plot._continuous.y:
-            y_domain_data.append(v)
-    var y_scale = _domain_override_scale(
-        plot._settings.y_domain, plot._settings.y_log
-    ) if plot._settings.y_domain.has else (
-        LinearScale(
-            shared_y_min, shared_y_max, 0.0, 1.0, is_log=shared_y_is_log
-        ) if has_shared_y_domain else (
-            _log_data_extent(y_domain_data) if plot._settings.y_log else (
-                _symlog_data_extent(
-                    y_domain_data, plot._settings.y_symlog_linthresh
-                ) if plot._settings.y_symlog else (
-                    _zero_baseline_y_extent(y_domain_data) if (
-                        plot._mark == Mark.AREA
-                        or (
-                            plot._mark == Mark.HISTOGRAM
-                            and not plot._histogram.horizontal
-                        )
-                    ) else _data_extent(y_domain_data)
-                )
-            )
-        )
-    )
-    # A horizontal histogram's values run along x, so x takes the zero
-    # baseline its y would have had.
-    var x_scale = _domain_override_scale(
-        plot._settings.x_domain, plot._settings.x_log
-    ) if plot._settings.x_domain.has else (
-        _log_data_extent(plot._continuous.x) if plot._settings.x_log else (
-            _symlog_data_extent(
-                plot._continuous.x, plot._settings.x_symlog_linthresh
-            ) if plot._settings.x_symlog else (
-                _zero_baseline_y_extent(plot._continuous.x) if (
-                    plot._mark == Mark.HISTOGRAM and plot._histogram.horizontal
-                ) else _data_extent(plot._continuous.x)
-            )
-        )
-    )
-    # A time axis is linear in seconds; only its labels differ, so the
-    # domain is whatever the branches above computed and the flag simply
-    # rides along to `LinearScale.ticks()`.
-    if plot._settings.x_time:
-        x_scale.is_time = True
-        x_scale.tz_offset = plot._settings.x_tz_offset
-
-    var controls = _AxisControls()
-    controls.x_ticks = plot._settings.x_tick_override.copy()
-    controls.y_ticks = plot._settings.y_tick_override.copy()
-    controls.x_reversed = plot._settings.x_reversed
-    controls.y_reversed = plot._settings.y_reversed
-    controls.equal_aspect = plot._settings.equal_aspect
-    var frame = _draw_continuous_axis_frame(
-        target,
-        x_scale,
-        y_scale,
-        theme,
-        legend_reserve,
+        plot._mark_style,
+        plot._annotations,
+        plot._settings,
         ox0,
         oy0,
         ox1,
         oy1,
-        controls=controls,
+        has_shared_y_domain,
+        shared_y_min,
+        shared_y_max,
+        shared_y_is_log,
         cache=cache,
     )
-
-    # Filled annotations go under the mark (#501): the area bands and
-    # ribbons are drawn now, against the finished frame, so the mark is
-    # read through them rather than painted over by them. Their labels
-    # join the frame's text requests and are replayed with the rest.
-    # Stroked and text annotations still draw after the mark.
-    var under = frame.result()
-    var under_areas = _draw_annotation_areas(
-        target, plot._annotations, under, theme, cache=cache
-    )
-    for k in range(len(under_areas)):
-        frame.text_requests.append(under_areas[k].copy())
-    var under_bands = _draw_annotation_bands(
-        target, plot._annotations, under, theme, cache=cache
-    )
-    for k in range(len(under_bands)):
-        frame.text_requests.append(under_bands[k].copy())
-
-    if plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER:
-        _ = _draw_point_layer(
-            target,
-            frame.text_requests,
-            plot._mark,
-            plot._continuous,
-            plot._channels,
-            plot._y_err,
-            plot._mark_style,
-            plot._settings,
-            ch,
-            frame.x_scale,
-            frame.y_scale,
-            _legend_origin_x(legend_reserve, frame.px0, frame.px1, sc),
-            _legend_origin_y(legend_reserve, frame.py0, frame.py1, sc),
-            draw_halo=plot._mark == Mark.EFFECT_SCATTER,
-            legend_horizontal=legend_reserve.position.is_horizontal(),
-            cache=cache,
-        )
-    elif plot._mark == Mark.LINE:
-        _draw_line_layer(
-            target,
-            plot._continuous,
-            plot._y_err,
-            plot._mark_style,
-            plot._settings,
-            frame.x_scale,
-            frame.y_scale,
-        )
-    elif plot._mark == Mark.AREA:
-        _draw_area_layer(
-            target,
-            plot._continuous,
-            plot._mark_style,
-            plot._settings,
-            frame.x_scale,
-            frame.y_scale,
-        )
-    elif plot._mark == Mark.HISTOGRAM:
-        _draw_histogram_layer(
-            target,
-            plot._histogram,
-            plot._settings,
-            frame.x_scale,
-            frame.y_scale,
-            frame.text_requests,
-        )
-
-    return frame.result()
 
 
 comptime _MarkRenderer = def[T: DrawTarget](

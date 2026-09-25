@@ -178,6 +178,9 @@ jobs:
       - name: Check a one-mark program compiles no other mark's renderer
         if: matrix.os == 'ubuntu-latest'
         run: pixi run check-mark-isolation
+      - name: A misplaced encoder is a compile error (#828)
+        if: matrix.os == 'ubuntu-latest'
+        run: pixi run check-typed-misuse
 
       - name: Report the consumer's dynamic dependencies
         working-directory: ${{ runner.temp }}/consumer

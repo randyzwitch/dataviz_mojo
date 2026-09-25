@@ -926,9 +926,9 @@ def render_grid(
     _check_grid_args(plots, cells, "render_grid")
     # One canvas, so one factor must serve every plot on it: take the
     # largest any of them asks for, as render_facets() does.
-    var factor = _resolve_supersample(plots[0], "render_grid")
+    var factor = _resolve_supersample(plots[0]._mark, plots[0]._settings.theme, "render_grid")
     for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i], "render_grid")
+        var f = _resolve_supersample(plots[i]._mark, plots[i]._settings.theme, "render_grid")
         if f > factor:
             factor = f
     var canvas = Canvas(width, height)
@@ -1327,9 +1327,9 @@ def _render_grid_tight(
         align_axes,
         title,
     )
-    var factor = _resolve_supersample(plots[0], "save_grid")
+    var factor = _resolve_supersample(plots[0]._mark, plots[0]._settings.theme, "save_grid")
     for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i], "save_grid")
+        var f = _resolve_supersample(plots[i]._mark, plots[i]._settings.theme, "save_grid")
         if f > factor:
             factor = f
     var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
@@ -1532,8 +1532,8 @@ def render_inset(
             inset that runs past the plot rect or rounds to nothing, or
             anything rendering either plot raises.
     """
-    var factor = _resolve_supersample(base, "render_inset")
-    var inset_factor = _resolve_supersample(inset, "render_inset")
+    var factor = _resolve_supersample(base._mark, base._settings.theme, "render_inset")
+    var inset_factor = _resolve_supersample(inset._mark, inset._settings.theme, "render_inset")
     if inset_factor > factor:
         factor = inset_factor
     var canvas = Canvas(
