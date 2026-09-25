@@ -221,9 +221,13 @@ def _render_facets_tight(
     """`render_facets()` cropped to the figure's ink, laid out at full
     size and then cropped, as `render_tight()` does for one plot."""
     var box = _facets_tight_box(plots, cols, shared_y_scale)
-    var factor = _resolve_supersample(plots[0]._mark, plots[0]._settings.theme, "save_facets")
+    var factor = _resolve_supersample(
+        plots[0]._mark, plots[0]._settings.theme, "save_facets"
+    )
     for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i]._mark, plots[i]._settings.theme, "save_facets")
+        var f = _resolve_supersample(
+            plots[i]._mark, plots[i]._settings.theme, "save_facets"
+        )
         if f > factor:
             factor = f
     var canvas = Canvas(box[2], box[3], plots[0]._settings.theme.background)
@@ -287,9 +291,13 @@ def render_facets(
     # One canvas, so one factor must serve every plot on it: take the
     # largest any of them asks for rather than the first plot's, or a
     # curved mark beside a bar chart would be drawn at the bar's factor.
-    var factor = _resolve_supersample(plots[0]._mark, plots[0]._settings.theme, "render_facets")
+    var factor = _resolve_supersample(
+        plots[0]._mark, plots[0]._settings.theme, "render_facets"
+    )
     for i in range(1, len(plots)):
-        var f = _resolve_supersample(plots[i]._mark, plots[i]._settings.theme, "render_facets")
+        var f = _resolve_supersample(
+            plots[i]._mark, plots[i]._settings.theme, "render_facets"
+        )
         if f > factor:
             factor = f
     var figure_height = rows * plots[0].height + _figure_title_band(
