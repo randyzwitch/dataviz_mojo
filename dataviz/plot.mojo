@@ -55,6 +55,12 @@ imported back here:
 - `plot_fields.mojo` -- the channel and settings structs `Plot` holds
 - `chart_settings.mojo` -- `_ChartSettings`, the settings every mark
   reads and none owns, held as `Plot._settings`
+- `mark_type.mojo`, `marks.mojo` and `chart.mojo` -- the mark as a
+  type (#828): the `MarkType` trait, one struct per `Mark`, and
+  `Chart[M]` with `Plot2`, the typed builder that replaces this one
+  once every entry point is generic over `M`. Generated from this
+  file's setters, `encode_*()` methods and the `_render_*_plot`
+  adapters, which stay the source of truth until then.
 
 This module exports only what it defines, `Plot` and `_finished`
 (#825). Every other name is imported from the module that defines it,

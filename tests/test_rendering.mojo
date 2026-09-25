@@ -466,7 +466,9 @@ def _two_step(plot: Plot) raises -> Canvas:
     Returns:
         The downsampled canvas.
     """
-    var factor = _resolve_supersample(plot, "render")
+    var factor = _resolve_supersample(
+        plot._mark, plot._settings.theme, "render"
+    )
     var scratch = Canvas(
         plot.width * factor,
         plot.height * factor,
@@ -512,7 +514,7 @@ def _check(plot: Plot, label: String, want_factor: Int) raises:
             move a test off the path it was written for.
     """
     assert_equal(
-        _resolve_supersample(plot, "render"),
+        _resolve_supersample(plot._mark, plot._settings.theme, "render"),
         want_factor,
         label + ": supersample factor",
     )
