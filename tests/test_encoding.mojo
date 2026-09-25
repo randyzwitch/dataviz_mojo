@@ -792,7 +792,7 @@ def test_render_raises_on_scale_y_log_with_mark_area() raises:
     # so the combination is rejected.
     var x: List[Float64] = [1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 10.0, 100.0]
-    var plot = Plot().mark_area().encode(x=x, y=y).scale_y_log()
+    var plot = Plot().scale_y_log().mark_area().encode(x=x, y=y)
     with assert_raises():
         _ = render(plot)
 
@@ -802,9 +802,9 @@ def test_render_raises_on_scale_y_log_with_an_incompatible_mark() raises:
     var values: List[Float64] = [1.0, 2.0, 3.0]
     var plot = (
         Plot()
+        .scale_y_log()
         .mark_bar()
         .encode_categorical(x=categories, y=values)
-        .scale_y_log()
     )
     with assert_raises():
         _ = render(plot)
@@ -1086,7 +1086,7 @@ def test_render_layers_raises_on_an_x_axis_log_mix() raises:
 def test_render_layers_raises_on_scale_y_log_with_a_mark_area_layer() raises:
     var x: List[Float64] = [1.0, 2.0]
     var y: List[Float64] = [1.0, 10.0]
-    var a = Plot().mark_area().encode(x=x, y=y).scale_y_log()
+    var a = Plot().scale_y_log().mark_area().encode(x=x, y=y)
     var b = Plot().mark_point().encode(x=x, y=y).scale_y_log()
     var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     with assert_raises():

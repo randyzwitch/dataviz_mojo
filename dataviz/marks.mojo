@@ -137,7 +137,8 @@ from dataviz.hierarchy_marks.hierarchy import _HierarchyData, _encode_hierarchy
 from dataviz.hierarchy_marks.sunburst import _render_sunburst
 from dataviz.hierarchy_marks.tree import _render_tree
 from dataviz.hierarchy_marks.treemap import _render_treemap
-from dataviz.mark_type import MarkType
+from dataviz.core.capabilities import _Capabilities
+from dataviz.mark_type import MarkType, _capabilities_of_type
 from dataviz.multivariate.barbs import _BarbsData, _encode_barbs, _render_barbs
 from dataviz.multivariate.contour import (
     _ContourData,
@@ -221,6 +222,15 @@ struct Point(MarkType):
     """`Mark.POINT` as a type. Built by `Plot.mark_point()`."""
 
     comptime id = Mark.POINT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = True
+    comptime supports_color_size = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -255,6 +265,7 @@ struct Point(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -266,6 +277,7 @@ struct Point(MarkType):
         return _render_continuous(
             target,
             Self.id,
+            _capabilities_of_type[Self](),
             _HistogramData(),
             self.continuous,
             self.channels,
@@ -356,6 +368,15 @@ struct Line(MarkType):
     """`Mark.LINE` as a type. Built by `Plot.mark_line()`."""
 
     comptime id = Mark.LINE
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = True
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -390,6 +411,7 @@ struct Line(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -401,6 +423,7 @@ struct Line(MarkType):
         return _render_continuous(
             target,
             Self.id,
+            _capabilities_of_type[Self](),
             _HistogramData(),
             self.continuous,
             self.channels,
@@ -491,6 +514,15 @@ struct Bar(MarkType):
     """`Mark.BAR` as a type. Built by `Plot.mark_bar()`."""
 
     comptime id = Mark.BAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -523,6 +555,7 @@ struct Bar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -638,6 +671,15 @@ struct Area(MarkType):
     """`Mark.AREA` as a type. Built by `Plot.mark_area()`."""
 
     comptime id = Mark.AREA
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -672,6 +714,7 @@ struct Area(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -683,6 +726,7 @@ struct Area(MarkType):
         return _render_continuous(
             target,
             Self.id,
+            _capabilities_of_type[Self](),
             _HistogramData(),
             self.continuous,
             self.channels,
@@ -773,6 +817,15 @@ struct Arc(MarkType):
     """`Mark.ARC` as a type. Built by `Plot.mark_arc()`."""
 
     comptime id = Mark.ARC
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -805,6 +858,7 @@ struct Arc(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -879,6 +933,15 @@ struct Lollipop(MarkType):
     """`Mark.LOLLIPOP` as a type. Built by `Plot.mark_lollipop()`."""
 
     comptime id = Mark.LOLLIPOP
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -911,6 +974,7 @@ struct Lollipop(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -984,6 +1048,15 @@ struct Waterfall(MarkType):
     """`Mark.WATERFALL` as a type. Built by `Plot.mark_waterfall()`."""
 
     comptime id = Mark.WATERFALL
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var waterfall: _WaterfallData
     var continuous: _ContinuousData
@@ -1016,6 +1089,7 @@ struct Waterfall(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1060,6 +1134,15 @@ struct Box(MarkType):
     """`Mark.BOX` as a type. Built by `Plot.mark_box()`."""
 
     comptime id = Mark.BOX
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var box: _BoxData
     var categorical: _CategoricalData
@@ -1092,6 +1175,7 @@ struct Box(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1132,6 +1216,15 @@ struct Candlestick(MarkType):
     """`Mark.CANDLESTICK` as a type. Built by `Plot.mark_candlestick()`."""
 
     comptime id = Mark.CANDLESTICK
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var candle: _CandleData
     var continuous: _ContinuousData
@@ -1164,6 +1257,7 @@ struct Candlestick(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1234,6 +1328,15 @@ struct Bullet(MarkType):
     """`Mark.BULLET` as a type. Built by `Plot.mark_bullet()`."""
 
     comptime id = Mark.BULLET
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var bullet: _BulletData
     var categorical: _CategoricalData
@@ -1266,6 +1369,7 @@ struct Bullet(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1311,6 +1415,15 @@ struct Gantt(MarkType):
     """`Mark.GANTT` as a type. Built by `Plot.mark_gantt()`."""
 
     comptime id = Mark.GANTT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var gantt: _GanttData
     var categorical: _CategoricalData
@@ -1343,6 +1456,7 @@ struct Gantt(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1404,6 +1518,15 @@ struct GroupedBar(MarkType):
     """`Mark.GROUPED_BAR` as a type. Built by `Plot.mark_grouped_bar()`."""
 
     comptime id = Mark.GROUPED_BAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -1436,6 +1559,7 @@ struct GroupedBar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1481,6 +1605,15 @@ struct StackedBar(MarkType):
     """`Mark.STACKED_BAR` as a type. Built by `Plot.mark_stacked_bar()`."""
 
     comptime id = Mark.STACKED_BAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -1513,6 +1646,7 @@ struct StackedBar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1559,6 +1693,15 @@ struct PopulationPyramid(MarkType):
     """
 
     comptime id = Mark.POPULATION_PYRAMID
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var pyramid: _PyramidData
     var categorical: _CategoricalData
@@ -1591,6 +1734,7 @@ struct PopulationPyramid(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1637,6 +1781,15 @@ struct Heatmap(MarkType):
     """`Mark.HEATMAP` as a type. Built by `Plot.mark_heatmap()`."""
 
     comptime id = Mark.HEATMAP
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var heatmap: _HeatmapData
     var continuous: _ContinuousData
@@ -1669,6 +1822,7 @@ struct Heatmap(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1703,6 +1857,15 @@ struct Chord(MarkType):
     """`Mark.CHORD` as a type. Built by `Plot.mark_chord()`."""
 
     comptime id = Mark.CHORD
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -1735,6 +1898,7 @@ struct Chord(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -1777,6 +1941,15 @@ struct SingleAxis(MarkType):
     """`Mark.SINGLE_AXIS` as a type. Built by `Plot.mark_single_axis()`."""
 
     comptime id = Mark.SINGLE_AXIS
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -1811,6 +1984,7 @@ struct SingleAxis(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -1859,6 +2033,15 @@ struct EffectScatter(MarkType):
     """
 
     comptime id = Mark.EFFECT_SCATTER
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = True
+    comptime supports_color_size = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -1893,6 +2076,7 @@ struct EffectScatter(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -1904,6 +2088,7 @@ struct EffectScatter(MarkType):
         return _render_continuous(
             target,
             Self.id,
+            _capabilities_of_type[Self](),
             _HistogramData(),
             self.continuous,
             self.channels,
@@ -1994,6 +2179,15 @@ struct Funnel(MarkType):
     """`Mark.FUNNEL` as a type. Built by `Plot.mark_funnel()`."""
 
     comptime id = Mark.FUNNEL
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -2026,6 +2220,7 @@ struct Funnel(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -2099,6 +2294,15 @@ struct Bump(MarkType):
     """`Mark.BUMP` as a type. Built by `Plot.mark_bump()`."""
 
     comptime id = Mark.BUMP
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -2131,6 +2335,7 @@ struct Bump(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -2176,6 +2381,15 @@ struct Streamgraph(MarkType):
     """`Mark.STREAMGRAPH` as a type. Built by `Plot.mark_streamgraph()`."""
 
     comptime id = Mark.STREAMGRAPH
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -2208,6 +2422,7 @@ struct Streamgraph(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -2254,6 +2469,15 @@ struct Beeswarm(MarkType):
     """`Mark.BEESWARM` as a type. Built by `Plot.mark_beeswarm()`."""
 
     comptime id = Mark.BEESWARM
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2286,6 +2510,7 @@ struct Beeswarm(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -2326,6 +2551,15 @@ struct Violin(MarkType):
     """`Mark.VIOLIN` as a type. Built by `Plot.mark_violin()`."""
 
     comptime id = Mark.VIOLIN
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2358,6 +2592,7 @@ struct Violin(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -2399,6 +2634,15 @@ struct Ridgeline(MarkType):
     """`Mark.RIDGELINE` as a type. Built by `Plot.mark_ridgeline()`."""
 
     comptime id = Mark.RIDGELINE
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2431,6 +2675,7 @@ struct Ridgeline(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -2472,6 +2717,15 @@ struct Nightingale(MarkType):
     """`Mark.NIGHTINGALE` as a type. Built by `Plot.mark_nightingale()`."""
 
     comptime id = Mark.NIGHTINGALE
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var nightingale: _NightingaleData
     var continuous: _ContinuousData
@@ -2506,6 +2760,7 @@ struct Nightingale(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -2580,6 +2835,15 @@ struct PolarBar(MarkType):
     """`Mark.POLAR_BAR` as a type. Built by `Plot.mark_polar_bar()`."""
 
     comptime id = Mark.POLAR_BAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -2612,6 +2876,7 @@ struct PolarBar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -2686,6 +2951,15 @@ struct Polar(MarkType):
     """`Mark.POLAR` as a type. Built by `Plot.mark_polar()`."""
 
     comptime id = Mark.POLAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var polar: _PolarData
 
@@ -2714,6 +2988,7 @@ struct Polar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -2750,6 +3025,15 @@ struct Radar(MarkType):
     """`Mark.RADAR` as a type. Built by `Plot.mark_radar()`."""
 
     comptime id = Mark.RADAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var radar: _RadarData
 
@@ -2778,6 +3062,7 @@ struct Radar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -2812,6 +3097,15 @@ struct Gauge(MarkType):
     """`Mark.GAUGE` as a type. Built by `Plot.mark_gauge()`."""
 
     comptime id = Mark.GAUGE
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var gauge: _GaugeData
 
@@ -2840,6 +3134,7 @@ struct Gauge(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -2876,6 +3171,15 @@ struct Parallel(MarkType):
     """`Mark.PARALLEL` as a type. Built by `Plot.mark_parallel()`."""
 
     comptime id = Mark.PARALLEL
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var parallel: _ParallelData
 
@@ -2904,6 +3208,7 @@ struct Parallel(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -2930,6 +3235,15 @@ struct SpanChart(MarkType):
     """`Mark.SPAN_CHART` as a type. Built by `Plot.mark_span_chart()`."""
 
     comptime id = Mark.SPAN_CHART
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var gantt: _GanttData
     var categorical: _CategoricalData
@@ -2962,6 +3276,7 @@ struct SpanChart(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3006,6 +3321,15 @@ struct CalendarHeatmap(MarkType):
     """
 
     comptime id = Mark.CALENDAR_HEATMAP
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var calendar: _CalendarData
     var continuous: _ContinuousData
@@ -3038,6 +3362,7 @@ struct CalendarHeatmap(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3070,6 +3395,15 @@ struct Corrplot(MarkType):
     """`Mark.CORRPLOT` as a type. Built by `Plot.mark_corrplot()`."""
 
     comptime id = Mark.CORRPLOT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var corrplot: _CorrplotData
 
@@ -3098,6 +3432,7 @@ struct Corrplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3131,6 +3466,15 @@ struct Punchcard(MarkType):
     """`Mark.PUNCHCARD` as a type. Built by `Plot.mark_punchcard()`."""
 
     comptime id = Mark.PUNCHCARD
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var punchcard: _PunchcardData
     var continuous: _ContinuousData
@@ -3163,6 +3507,7 @@ struct Punchcard(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3197,6 +3542,15 @@ struct Marimekko(MarkType):
     """`Mark.MARIMEKKO` as a type. Built by `Plot.mark_marimekko()`."""
 
     comptime id = Mark.MARIMEKKO
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var marimekko: _MarimekkoData
 
@@ -3225,6 +3579,7 @@ struct Marimekko(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3253,6 +3608,15 @@ struct Sunburst(MarkType):
     """`Mark.SUNBURST` as a type. Built by `Plot.mark_sunburst()`."""
 
     comptime id = Mark.SUNBURST
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var hierarchy: _HierarchyData
 
@@ -3281,6 +3645,7 @@ struct Sunburst(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3307,6 +3672,15 @@ struct Tree(MarkType):
     """`Mark.TREE` as a type. Built by `Plot.mark_tree()`."""
 
     comptime id = Mark.TREE
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var hierarchy: _HierarchyData
 
@@ -3335,6 +3709,7 @@ struct Tree(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3361,6 +3736,15 @@ struct Treemap(MarkType):
     """`Mark.TREEMAP` as a type. Built by `Plot.mark_treemap()`."""
 
     comptime id = Mark.TREEMAP
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var hierarchy: _HierarchyData
 
@@ -3389,6 +3773,7 @@ struct Treemap(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3415,6 +3800,15 @@ struct ArcDiagram(MarkType):
     """`Mark.ARC_DIAGRAM` as a type. Built by `Plot.mark_arc_diagram()`."""
 
     comptime id = Mark.ARC_DIAGRAM
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -3447,6 +3841,7 @@ struct ArcDiagram(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3481,6 +3876,15 @@ struct Graph(MarkType):
     """`Mark.GRAPH` as a type. Built by `Plot.mark_graph()`."""
 
     comptime id = Mark.GRAPH
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -3513,6 +3917,7 @@ struct Graph(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3555,6 +3960,15 @@ struct Sankey(MarkType):
     """`Mark.SANKEY` as a type. Built by `Plot.mark_sankey()`."""
 
     comptime id = Mark.SANKEY
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -3587,6 +4001,7 @@ struct Sankey(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3629,6 +4044,15 @@ struct Radialbar(MarkType):
     """`Mark.RADIALBAR` as a type. Built by `Plot.mark_radialbar()`."""
 
     comptime id = Mark.RADIALBAR
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -3661,6 +4085,7 @@ struct Radialbar(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -3735,6 +4160,15 @@ struct Barbs(MarkType):
     """`Mark.BARBS` as a type. Built by `Plot.mark_barbs()`."""
 
     comptime id = Mark.BARBS
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var barbs: _BarbsData
     var continuous: _ContinuousData
@@ -3767,6 +4201,7 @@ struct Barbs(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -3796,6 +4231,15 @@ struct Contour(MarkType):
     """`Mark.CONTOUR` as a type. Built by `Plot.mark_contour()`."""
 
     comptime id = Mark.CONTOUR
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var contour: _ContourData
 
@@ -3824,6 +4268,7 @@ struct Contour(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3851,6 +4296,15 @@ struct Contourf(MarkType):
     """`Mark.CONTOURF` as a type. Built by `Plot.mark_contourf()`."""
 
     comptime id = Mark.CONTOURF
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var contour: _ContourData
 
@@ -3879,6 +4333,7 @@ struct Contourf(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3906,6 +4361,15 @@ struct Tricontour(MarkType):
     """`Mark.TRICONTOUR` as a type. Built by `Plot.mark_tricontour()`."""
 
     comptime id = Mark.TRICONTOUR
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var tricontour: _TriContourData
 
@@ -3934,6 +4398,7 @@ struct Tricontour(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -3961,6 +4426,15 @@ struct Tricontourf(MarkType):
     """`Mark.TRICONTOURF` as a type. Built by `Plot.mark_tricontourf()`."""
 
     comptime id = Mark.TRICONTOURF
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var tricontour: _TriContourData
 
@@ -3989,6 +4463,7 @@ struct Tricontourf(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4016,6 +4491,15 @@ struct Kde(MarkType):
     """`Mark.KDE` as a type. Built by `Plot.mark_kde()`."""
 
     comptime id = Mark.KDE
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var distribution: _DistributionData
 
@@ -4044,6 +4528,7 @@ struct Kde(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4068,6 +4553,15 @@ struct Rug(MarkType):
     """`Mark.RUG` as a type. Built by `Plot.mark_rug()`."""
 
     comptime id = Mark.RUG
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var distribution: _DistributionData
 
@@ -4096,6 +4590,7 @@ struct Rug(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4128,6 +4623,15 @@ struct Triplot(MarkType):
     """`Mark.TRIPLOT` as a type. Built by `Plot.mark_triplot()`."""
 
     comptime id = Mark.TRIPLOT
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var triplot: _TriplotData
 
@@ -4156,6 +4660,7 @@ struct Triplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4187,6 +4692,15 @@ struct Tripcolor(MarkType):
     """`Mark.TRIPCOLOR` as a type. Built by `Plot.mark_tripcolor()`."""
 
     comptime id = Mark.TRIPCOLOR
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var triplot: _TriplotData
 
@@ -4215,6 +4729,7 @@ struct Tripcolor(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4246,6 +4761,15 @@ struct Ecdf(MarkType):
     """`Mark.ECDF` as a type. Built by `Plot.mark_ecdf()`."""
 
     comptime id = Mark.ECDF
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var distribution: _DistributionData
 
@@ -4274,6 +4798,7 @@ struct Ecdf(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4306,6 +4831,15 @@ struct Imshow(MarkType):
     """`Mark.IMSHOW` as a type. Built by `Plot.mark_imshow()`."""
 
     comptime id = Mark.IMSHOW
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var image: _ImageData
 
@@ -4334,6 +4868,7 @@ struct Imshow(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4367,6 +4902,15 @@ struct Pcolormesh(MarkType):
     """`Mark.PCOLORMESH` as a type. Built by `Plot.mark_pcolormesh()`."""
 
     comptime id = Mark.PCOLORMESH
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = True
+    comptime supports_color_size = False
 
     var image: _ImageData
 
@@ -4395,6 +4939,7 @@ struct Pcolormesh(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4439,6 +4984,15 @@ struct Eventplot(MarkType):
     """`Mark.EVENTPLOT` as a type. Built by `Plot.mark_eventplot()`."""
 
     comptime id = Mark.EVENTPLOT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -4471,6 +5025,7 @@ struct Eventplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -4512,6 +5067,15 @@ struct Pointplot(MarkType):
     """`Mark.POINTPLOT` as a type. Built by `Plot.mark_pointplot()`."""
 
     comptime id = Mark.POINTPLOT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -4544,6 +5108,7 @@ struct Pointplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             self.y_err,
@@ -4617,6 +5182,15 @@ struct Boxenplot(MarkType):
     """`Mark.BOXENPLOT` as a type. Built by `Plot.mark_boxenplot()`."""
 
     comptime id = Mark.BOXENPLOT
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var boxen: _BoxenData
     var categorical: _CategoricalData
@@ -4649,6 +5223,7 @@ struct Boxenplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -4689,6 +5264,15 @@ struct Hist2d(MarkType):
     """`Mark.HIST2D` as a type. Built by `Plot.mark_hist2d()`."""
 
     comptime id = Mark.HIST2D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = True
+    comptime supports_color_size = False
 
     var image: _ImageData
 
@@ -4717,6 +5301,7 @@ struct Hist2d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4753,6 +5338,15 @@ struct Hexbin(MarkType):
     """`Mark.HEXBIN` as a type. Built by `Plot.mark_hexbin()`."""
 
     comptime id = Mark.HEXBIN
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var hexbin: _HexbinData
 
@@ -4781,6 +5375,7 @@ struct Hexbin(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -4807,6 +5402,15 @@ struct Quiver(MarkType):
     """`Mark.QUIVER` as a type. Built by `Plot.mark_quiver()`."""
 
     comptime id = Mark.QUIVER
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var barbs: _BarbsData
     var continuous: _ContinuousData
@@ -4839,6 +5443,7 @@ struct Quiver(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -4868,6 +5473,15 @@ struct Histogram(MarkType):
     """`Mark.HISTOGRAM` as a type. Built by `Plot.mark_histogram()`."""
 
     comptime id = Mark.HISTOGRAM
+    comptime supports_tooltips = True
+    comptime supports_data_labels = True
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = True
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -4904,6 +5518,7 @@ struct Histogram(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             self.channels,
             self.y_err,
@@ -4915,6 +5530,7 @@ struct Histogram(MarkType):
         return _render_continuous(
             target,
             Self.id,
+            _capabilities_of_type[Self](),
             self.histogram,
             self.continuous,
             self.channels,
@@ -4947,6 +5563,15 @@ struct Streamplot(MarkType):
     """`Mark.STREAMPLOT` as a type. Built by `Plot.mark_streamplot()`."""
 
     comptime id = Mark.STREAMPLOT
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = True
+    comptime supports_annotations_xy = True
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var stream: _StreamData
     var continuous: _ContinuousData
@@ -4979,6 +5604,7 @@ struct Streamplot(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             self.continuous,
             _ChannelData(),
             _ErrorBarData(),
@@ -5008,6 +5634,15 @@ struct DendrogramMark(MarkType):
     """`Mark.DENDROGRAM` as a type. Built by `Plot.mark_dendrogram()`."""
 
     comptime id = Mark.DENDROGRAM
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = True
+    comptime supports_annotations_y = True
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var dendrogram: _DendrogramData
 
@@ -5036,6 +5671,7 @@ struct DendrogramMark(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5062,6 +5698,15 @@ struct Scatter3d(MarkType):
     """`Mark.SCATTER3D` as a type. Built by `Plot.mark_scatter3d()`."""
 
     comptime id = Mark.SCATTER3D
+    comptime supports_tooltips = True
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var xyz: _Xyz
 
@@ -5090,6 +5735,7 @@ struct Scatter3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5116,6 +5762,15 @@ struct Plot3d(MarkType):
     """`Mark.PLOT3D` as a type. Built by `Plot.mark_plot3d()`."""
 
     comptime id = Mark.PLOT3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var xyz: _Xyz
 
@@ -5144,6 +5799,7 @@ struct Plot3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5170,6 +5826,15 @@ struct Surface3d(MarkType):
     """`Mark.SURFACE3D` as a type. Built by `Plot.mark_surface3d()`."""
 
     comptime id = Mark.SURFACE3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var surface: _Surface
 
@@ -5198,6 +5863,7 @@ struct Surface3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5224,6 +5890,15 @@ struct Wire3d(MarkType):
     """`Mark.WIRE3D` as a type. Built by `Plot.mark_wire3d()`."""
 
     comptime id = Mark.WIRE3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var surface: _Surface
 
@@ -5252,6 +5927,7 @@ struct Wire3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5278,6 +5954,15 @@ struct Trisurf3d(MarkType):
     """`Mark.TRISURF3D` as a type. Built by `Plot.mark_trisurf3d()`."""
 
     comptime id = Mark.TRISURF3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var xyz: _Xyz
 
@@ -5306,6 +5991,7 @@ struct Trisurf3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5332,6 +6018,15 @@ struct Bar3d(MarkType):
     """`Mark.BAR3D` as a type. Built by `Plot.mark_bar3d()`."""
 
     comptime id = Mark.BAR3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var bars3d: _Bars3D
 
@@ -5360,6 +6055,7 @@ struct Bar3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5386,6 +6082,15 @@ struct Voxels(MarkType):
     """`Mark.VOXELS` as a type. Built by `Plot.mark_voxels()`."""
 
     comptime id = Mark.VOXELS
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var voxels: _Voxels
 
@@ -5414,6 +6119,7 @@ struct Voxels(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5438,6 +6144,15 @@ struct Stem3d(MarkType):
     """`Mark.STEM3D` as a type. Built by `Plot.mark_stem3d()`."""
 
     comptime id = Mark.STEM3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var xyz: _Xyz
 
@@ -5466,6 +6181,7 @@ struct Stem3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5492,6 +6208,15 @@ struct Quiver3d(MarkType):
     """`Mark.QUIVER3D` as a type. Built by `Plot.mark_quiver3d()`."""
 
     comptime id = Mark.QUIVER3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var vectors3d: _Vectors3D
 
@@ -5520,6 +6245,7 @@ struct Quiver3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5550,6 +6276,15 @@ struct FillBetween3d(MarkType):
     """
 
     comptime id = Mark.FILL_BETWEEN3D
+    comptime supports_tooltips = False
+    comptime supports_data_labels = False
+    comptime supports_horizontal = False
+    comptime supports_annotations_y = False
+    comptime supports_annotations_x = False
+    comptime supports_annotations_xy = False
+    comptime supports_log_x = False
+    comptime supports_log_y = False
+    comptime supports_color_size = False
 
     var ribbon3d: _Ribbon3D
 
@@ -5578,6 +6313,7 @@ struct FillBetween3d(MarkType):
     ) raises -> _RenderResult:
         _check_render_settings(
             Self.id,
+            _capabilities_of_type[Self](),
             _ContinuousData(),
             _ChannelData(),
             _ErrorBarData(),
@@ -5839,3 +6575,156 @@ def _shared_distribution[M: MarkType](mark: M) -> _DistributionData:
     comptime if M == Ridgeline:
         return rebind[Ridgeline](mark).distribution.copy()
     return _DistributionData()
+
+
+def _capabilities_of(mark: Mark) -> _Capabilities:
+    """The constants of the mark type `mark` names, for code that holds
+    only the runtime id: the docs' feature-support page and the sweep
+    that checks each mark's behavior against its constants."""
+    if mark == Mark.POINT:
+        return _capabilities_of_type[Point]()
+    if mark == Mark.LINE:
+        return _capabilities_of_type[Line]()
+    if mark == Mark.BAR:
+        return _capabilities_of_type[Bar]()
+    if mark == Mark.AREA:
+        return _capabilities_of_type[Area]()
+    if mark == Mark.ARC:
+        return _capabilities_of_type[Arc]()
+    if mark == Mark.LOLLIPOP:
+        return _capabilities_of_type[Lollipop]()
+    if mark == Mark.WATERFALL:
+        return _capabilities_of_type[Waterfall]()
+    if mark == Mark.BOX:
+        return _capabilities_of_type[Box]()
+    if mark == Mark.CANDLESTICK:
+        return _capabilities_of_type[Candlestick]()
+    if mark == Mark.BULLET:
+        return _capabilities_of_type[Bullet]()
+    if mark == Mark.GANTT:
+        return _capabilities_of_type[Gantt]()
+    if mark == Mark.GROUPED_BAR:
+        return _capabilities_of_type[GroupedBar]()
+    if mark == Mark.STACKED_BAR:
+        return _capabilities_of_type[StackedBar]()
+    if mark == Mark.POPULATION_PYRAMID:
+        return _capabilities_of_type[PopulationPyramid]()
+    if mark == Mark.HEATMAP:
+        return _capabilities_of_type[Heatmap]()
+    if mark == Mark.CHORD:
+        return _capabilities_of_type[Chord]()
+    if mark == Mark.SINGLE_AXIS:
+        return _capabilities_of_type[SingleAxis]()
+    if mark == Mark.EFFECT_SCATTER:
+        return _capabilities_of_type[EffectScatter]()
+    if mark == Mark.FUNNEL:
+        return _capabilities_of_type[Funnel]()
+    if mark == Mark.BUMP:
+        return _capabilities_of_type[Bump]()
+    if mark == Mark.STREAMGRAPH:
+        return _capabilities_of_type[Streamgraph]()
+    if mark == Mark.BEESWARM:
+        return _capabilities_of_type[Beeswarm]()
+    if mark == Mark.VIOLIN:
+        return _capabilities_of_type[Violin]()
+    if mark == Mark.RIDGELINE:
+        return _capabilities_of_type[Ridgeline]()
+    if mark == Mark.NIGHTINGALE:
+        return _capabilities_of_type[Nightingale]()
+    if mark == Mark.POLAR_BAR:
+        return _capabilities_of_type[PolarBar]()
+    if mark == Mark.POLAR:
+        return _capabilities_of_type[Polar]()
+    if mark == Mark.RADAR:
+        return _capabilities_of_type[Radar]()
+    if mark == Mark.GAUGE:
+        return _capabilities_of_type[Gauge]()
+    if mark == Mark.PARALLEL:
+        return _capabilities_of_type[Parallel]()
+    if mark == Mark.SPAN_CHART:
+        return _capabilities_of_type[SpanChart]()
+    if mark == Mark.CALENDAR_HEATMAP:
+        return _capabilities_of_type[CalendarHeatmap]()
+    if mark == Mark.CORRPLOT:
+        return _capabilities_of_type[Corrplot]()
+    if mark == Mark.PUNCHCARD:
+        return _capabilities_of_type[Punchcard]()
+    if mark == Mark.MARIMEKKO:
+        return _capabilities_of_type[Marimekko]()
+    if mark == Mark.SUNBURST:
+        return _capabilities_of_type[Sunburst]()
+    if mark == Mark.TREE:
+        return _capabilities_of_type[Tree]()
+    if mark == Mark.TREEMAP:
+        return _capabilities_of_type[Treemap]()
+    if mark == Mark.ARC_DIAGRAM:
+        return _capabilities_of_type[ArcDiagram]()
+    if mark == Mark.GRAPH:
+        return _capabilities_of_type[Graph]()
+    if mark == Mark.SANKEY:
+        return _capabilities_of_type[Sankey]()
+    if mark == Mark.RADIALBAR:
+        return _capabilities_of_type[Radialbar]()
+    if mark == Mark.BARBS:
+        return _capabilities_of_type[Barbs]()
+    if mark == Mark.CONTOUR:
+        return _capabilities_of_type[Contour]()
+    if mark == Mark.CONTOURF:
+        return _capabilities_of_type[Contourf]()
+    if mark == Mark.TRICONTOUR:
+        return _capabilities_of_type[Tricontour]()
+    if mark == Mark.TRICONTOURF:
+        return _capabilities_of_type[Tricontourf]()
+    if mark == Mark.KDE:
+        return _capabilities_of_type[Kde]()
+    if mark == Mark.RUG:
+        return _capabilities_of_type[Rug]()
+    if mark == Mark.TRIPLOT:
+        return _capabilities_of_type[Triplot]()
+    if mark == Mark.TRIPCOLOR:
+        return _capabilities_of_type[Tripcolor]()
+    if mark == Mark.ECDF:
+        return _capabilities_of_type[Ecdf]()
+    if mark == Mark.IMSHOW:
+        return _capabilities_of_type[Imshow]()
+    if mark == Mark.PCOLORMESH:
+        return _capabilities_of_type[Pcolormesh]()
+    if mark == Mark.EVENTPLOT:
+        return _capabilities_of_type[Eventplot]()
+    if mark == Mark.POINTPLOT:
+        return _capabilities_of_type[Pointplot]()
+    if mark == Mark.BOXENPLOT:
+        return _capabilities_of_type[Boxenplot]()
+    if mark == Mark.HIST2D:
+        return _capabilities_of_type[Hist2d]()
+    if mark == Mark.HEXBIN:
+        return _capabilities_of_type[Hexbin]()
+    if mark == Mark.QUIVER:
+        return _capabilities_of_type[Quiver]()
+    if mark == Mark.HISTOGRAM:
+        return _capabilities_of_type[Histogram]()
+    if mark == Mark.STREAMPLOT:
+        return _capabilities_of_type[Streamplot]()
+    if mark == Mark.DENDROGRAM:
+        return _capabilities_of_type[DendrogramMark]()
+    if mark == Mark.SCATTER3D:
+        return _capabilities_of_type[Scatter3d]()
+    if mark == Mark.PLOT3D:
+        return _capabilities_of_type[Plot3d]()
+    if mark == Mark.SURFACE3D:
+        return _capabilities_of_type[Surface3d]()
+    if mark == Mark.WIRE3D:
+        return _capabilities_of_type[Wire3d]()
+    if mark == Mark.TRISURF3D:
+        return _capabilities_of_type[Trisurf3d]()
+    if mark == Mark.BAR3D:
+        return _capabilities_of_type[Bar3d]()
+    if mark == Mark.VOXELS:
+        return _capabilities_of_type[Voxels]()
+    if mark == Mark.STEM3D:
+        return _capabilities_of_type[Stem3d]()
+    if mark == Mark.QUIVER3D:
+        return _capabilities_of_type[Quiver3d]()
+    if mark == Mark.FILL_BETWEEN3D:
+        return _capabilities_of_type[FillBetween3d]()
+    return _Capabilities()

@@ -222,7 +222,7 @@ struct Plot(Copyable, Movable):
 
         `Tooltips.ON` on a mark without tooltips raises when the chart
         renders; which marks have them is
-        `Mark.supports(Feature.TOOLTIPS)`.
+        `MarkType.supports_tooltips`.
 
         Args:
             policy: `Tooltips.ON`, `Tooltips.OFF` or `Tooltips.AUTO`.

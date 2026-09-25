@@ -68,9 +68,9 @@ def test_render_svg_annotate_line_matches_hand_derived_position() raises:
     var vals: List[Float64] = [10.0, 20.0]
     var plot = (
         Plot()
+        .annotate_line(15.0, label="mid")
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_line(15.0, label="mid")
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
@@ -100,9 +100,9 @@ def test_render_annotate_line_raster_draws_ink_at_the_hand_derived_row() raises:
     var c = render(_hoisted1)
     var plot = (
         Plot()
+        .annotate_line(15.0)
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_line(15.0)
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
@@ -126,9 +126,9 @@ def test_render_annotate_line_out_of_range_value_draws_nothing() raises:
     var vals: List[Float64] = [10.0, 20.0]
     var plot = (
         Plot()
+        .annotate_line(25.0, label="out of range")
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_line(25.0, label="out of range")
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
@@ -150,9 +150,9 @@ def test_render_annotate_line_multiple_calls_all_draw() raises:
     var vals: List[Float64] = [10.0, 20.0]
     var plot = (
         Plot()
+        .annotate_line(5.0, label="low")
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_line(5.0, label="low")
         .annotate_line(15.0, label="high")
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
@@ -178,9 +178,9 @@ def test_render_annotate_line_raises_on_unsupported_mark() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var plot = (
         Plot()
+        .annotate_line(1.5)
         .mark_arc()
         .encode_categorical(x=cats, y=vals)
-        .annotate_line(1.5)
         .size(200, 150)
     )
     with assert_raises():
@@ -382,9 +382,9 @@ def test_render_annotate_area_raises_on_unsupported_mark() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var plot = (
         Plot()
+        .annotate_area(0.5, 1.5)
         .mark_arc()
         .encode_categorical(x=cats, y=vals)
-        .annotate_area(0.5, 1.5)
         .size(200, 150)
     )
     with assert_raises():
@@ -505,9 +505,9 @@ def test_render_raises_on_annotate_band_with_an_unsupported_mark() raises:
     with assert_raises():
         var plot = (
             Plot()
+            .annotate_band(x=x, y_lower=lo, y_upper=hi)
             .mark_bar()
             .encode_categorical(x=cats, y=vals)
-            .annotate_band(x=x, y_lower=lo, y_upper=hi)
         )
         _ = render_svg(plot)
 
@@ -742,9 +742,9 @@ def test_render_raises_on_annotate_best_fit_with_an_unsupported_mark() raises:
     with assert_raises():
         var plot = (
             Plot()
+            .annotate_best_fit()
             .mark_bar()
             .encode_categorical(x=cats, y=vals)
-            .annotate_best_fit()
         )
         _ = render_svg(plot)
 
@@ -1035,9 +1035,9 @@ def test_render_annotate_vline_raises_on_unsupported_mark() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var plot = (
         Plot()
+        .annotate_vline(1.5)
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_vline(1.5)
         .size(200, 150)
     )
     with assert_raises():
@@ -1049,9 +1049,9 @@ def test_render_annotate_point_raises_on_unsupported_mark() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var plot = (
         Plot()
+        .annotate_point(0.5, 1.5)
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_point(0.5, 1.5)
         .size(200, 150)
     )
     with assert_raises():
@@ -1075,14 +1075,24 @@ def test_annotate_line_raises_on_a_rug_which_has_no_y_scale() raises:
     genuine continuous y-axis.
     """
     with assert_raises():
-        _ = render(rugplot(_rug_samples()).annotate_line(0.5, "half of what?"))
+        _ = render(
+            Plot()
+            .annotate_line(0.5, "half of what?")
+            .mark_rug()
+            .encode_kde(values=_rug_samples())
+        )
 
 
 def test_annotate_area_raises_on_a_rug_which_has_no_y_scale() raises:
     """`annotate_area`'s half of  -- same placeholder domain, same
     reasoning."""
     with assert_raises():
-        _ = render(rugplot(_rug_samples()).annotate_area(0.2, 0.4, "band"))
+        _ = render(
+            Plot()
+            .annotate_area(0.2, 0.4, "band")
+            .mark_rug()
+            .encode_kde(values=_rug_samples())
+        )
 
 
 def test_annotate_vline_still_works_on_a_rug() raises:
@@ -1233,9 +1243,9 @@ def test_annotate_arrow_raises_on_a_mark_without_continuous_axes() raises:
     var vals: List[Float64] = [1.0, 2.0]
     var plot = (
         Plot()
+        .annotate_arrow(1.0, 1.0, "x", 0.5, 0.5)
         .mark_bar()
         .encode_categorical(x=cats, y=vals)
-        .annotate_arrow(1.0, 1.0, "x", 0.5, 0.5)
         .size(200, 150)
     )
     with assert_raises():
@@ -1514,7 +1524,12 @@ def test_a_vline_on_a_vertical_categorical_mark_still_raises() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises(contains="no continuous x-axis"):
-        _ = render_svg(bar(cats, vals).annotate_vline(1.0))
+        _ = render_svg(
+            Plot()
+            .annotate_vline(1.0)
+            .mark_bar()
+            .encode_categorical(x=cats, y=vals)
+        )
 
 
 # ---------------------------------------------------------------
@@ -1667,7 +1682,12 @@ def test_annotate_smooth_refuses_what_it_cannot_fit() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
     with assert_raises(contains="annotate_smooth(): this mark has no"):
-        _ = render(bar(cats, vals).annotate_smooth())
+        _ = render(
+            Plot()
+            .annotate_smooth()
+            .mark_bar()
+            .encode_categorical(x=cats, y=vals)
+        )
 
 
 def main() raises:

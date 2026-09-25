@@ -26,7 +26,6 @@ from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign, measure_text
 from canvas.vector.draw_target import DrawTarget
 
-from dataviz.core.mark import Feature, _supporting_names
 from dataviz.core.mathtext import _label_requests
 from dataviz.core.text import _extend_text_requests
 from dataviz.core.arrow import (
@@ -171,7 +170,7 @@ def _draw_annotation_areas[
         raise Error(
             "Plot.annotate_area(): this mark has no continuous y-axis to place"
             " a shaded band against. Supported today: "
-            + _supporting_names(Feature.ANNOTATIONS_Y)
+            + "marks with a continuous y axis"
         )
 
     var sc = _Scaled(theme)
@@ -269,7 +268,7 @@ def _draw_annotation_bands[
         raise Error(
             "Plot.annotate_band(): this mark has no continuous x/y axes to"
             " place a band against. Supported today: "
-            + _supporting_names(Feature.ANNOTATIONS_XY)
+            + "marks with continuous x and y axes"
         )
 
     var sc = _Scaled(theme)
@@ -398,7 +397,7 @@ def _draw_annotation_lines[
         raise Error(
             "Plot.annotate_line(): this mark has no continuous y-axis to place"
             " a reference line against. Supported today: "
-            + _supporting_names(Feature.ANNOTATIONS_Y)
+            + "marks with a continuous y axis"
         )
 
     var sc = _Scaled(theme)
@@ -468,7 +467,7 @@ def _draw_annotation_vlines[
         raise Error(
             "Plot.annotate_vline(): this mark has no continuous x-axis to place"
             " a reference line against. Supported today: "
-            + _supporting_names(Feature.ANNOTATIONS_XY)
+            + "marks with continuous x and y axes"
         )
 
     var sc = _Scaled(theme)
@@ -540,7 +539,7 @@ def _draw_annotation_points[
         raise Error(
             "Plot.annotate_point(): this mark has no continuous x/y axes to"
             " place a point against. Supported today: "
-            + _supporting_names(Feature.ANNOTATIONS_XY)
+            + "marks with continuous x and y axes"
         )
 
     var sc = _Scaled(theme)

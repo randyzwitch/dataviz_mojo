@@ -5,7 +5,8 @@ from std.utils.numerics import isfinite, isnan
 
 from dataviz.core.axis_controls import _TickOverride
 from dataviz.core.color_scale import _ColorDomainOverride
-from dataviz.core.mark import Feature, Mark, _supporting_names
+from dataviz.core.mark import Mark
+from dataviz.core.capabilities import _Capabilities
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ChannelData,
@@ -170,6 +171,7 @@ def _validate_continuous_encoding(
     channels: _ChannelData,
     y_err: _ErrorBarData,
     mark: Mark,
+    supports_color_size: Bool,
     context: String,
 ) raises:
     """Every check `Plot.encode()`'s channels need before a continuous-axis
@@ -227,12 +229,12 @@ def _validate_continuous_encoding(
             + ")"
         )
     if (has_color or has_color_categories or has_size) and not (
-        mark.supports(Feature.COLOR_SIZE)
+        supports_color_size
     ):
         raise Error(
             context
             + ": color/size encoding is only supported for "
-            + _supporting_names(Feature.COLOR_SIZE)
+            + "Mark.POINT"
             + " today"
         )
     var has_y_err = len(y_err.symmetric) > 0
@@ -766,7 +768,11 @@ def _reject_missing(values: List[Float64], channel: String) raises:
 
 
 def _check_unsupported_flags(
-    mark: Mark, theme: Theme, horizontal: Bool, tooltip_policy: Tooltips
+    mark: Mark,
+    caps: _Capabilities,
+    theme: Theme,
+    horizontal: Bool,
+    tooltip_policy: Tooltips,
 ) raises:
     """Raise when `Theme.show_data_labels`, `horizontal=True` or
     `Tooltips.ON` is set on a mark that ignores it (#676, #700).
@@ -787,6 +793,7 @@ def _check_unsupported_flags(
 
     Args:
         mark: The mark about to render.
+        caps: What it honors.
         theme: Its theme, for `show_data_labels`.
         horizontal: Whether `horizontal=True` was set.
         tooltip_policy: The tooltip policy in force.
@@ -795,27 +802,27 @@ def _check_unsupported_flags(
         Error: Any of the three set on a mark that does not support it, naming
             the mark and the marks that do.
     """
-    if theme.show_data_labels and not mark.supports(Feature.DATA_LABELS):
+    if theme.show_data_labels and not caps.data_labels:
         raise Error(
             "Theme.show_data_labels: "
             + mark.name()
             + " draws no data labels. It is supported for "
-            + _supporting_names(Feature.DATA_LABELS)
+            + "the marks that draw data labels"
             + " today"
         )
-    if horizontal and not mark.supports(Feature.HORIZONTAL):
+    if horizontal and not caps.horizontal:
         raise Error(
             "horizontal=True: "
             + mark.name()
             + " has no horizontal form. It is supported for "
-            + _supporting_names(Feature.HORIZONTAL)
+            + "the marks with a horizontal form"
             + " today"
         )
-    if tooltip_policy == Tooltips.ON and not mark.supports(Feature.TOOLTIPS):
+    if tooltip_policy == Tooltips.ON and not caps.tooltips:
         raise Error(
             "Tooltips.ON: "
             + mark.name()
             + " draws no tooltips. They are supported for "
-            + _supporting_names(Feature.TOOLTIPS)
+            + "the marks that draw tooltips"
             + " today"
         )

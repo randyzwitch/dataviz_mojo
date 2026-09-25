@@ -67,7 +67,8 @@ from dataviz.core.chart_settings import _ChartSettings
 from dataframe import DataFrame
 from dataviz.core.mark import Mark, _require_mark
 from std.memory import Allocation, Layout, Pointer, alloc, dealloc
-from dataviz.mark_type import MarkType
+from dataviz.core.capabilities import _Capabilities
+from dataviz.mark_type import MarkType, _capabilities_of_type
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ChannelData,
@@ -215,6 +216,10 @@ trait ChartLike(Copyable, Deinitable, Movable):
         """This chart with its mark type erased, for a `List[AnyChart]`."""
         ...
 
+    def capabilities(self) -> _Capabilities:
+        """What this chart's mark honors, from its type's constants."""
+        ...
+
     def render_mark[
         T: DrawTarget
     ](
@@ -328,6 +333,9 @@ struct Chart[M: MarkType](ChartLike):
         """This chart with its mark type erased, for a `List[AnyChart]`."""
         return AnyChart(self)
 
+    def capabilities(self) -> _Capabilities:
+        return _capabilities_of_type[Self.M]()
+
     def size(var self, width: Int, height: Int) -> Self:
         """Set the dimensions `render()`/`render_svg()`/`save()` construct
         their target at. Defaults to 640x420.
@@ -409,7 +417,7 @@ struct Chart[M: MarkType](ChartLike):
 
         `Tooltips.ON` on a mark without tooltips raises when the chart
         renders; which marks have them is
-        `Mark.supports(Feature.TOOLTIPS)`.
+        `MarkType.supports_tooltips`.
 
         Args:
             policy: `Tooltips.ON`, `Tooltips.OFF` or `Tooltips.AUTO`.
@@ -516,7 +524,9 @@ struct Chart[M: MarkType](ChartLike):
         self.settings.labels.series_name = name
         return self^
 
-    def annotate_line(var self, value: Float64, label: String = "") -> Self:
+    def annotate_line(
+        var self, value: Float64, label: String = ""
+    ) -> Self where Self.M.supports_annotations_y:
         """Add a horizontal reference line at `value` on the y-axis (ECharts'
         `markLine` with a fixed value; no auto-computed average/max/min
         modes). Each call adds a line. `label`, when non-empty, draws to the
@@ -552,7 +562,7 @@ struct Chart[M: MarkType](ChartLike):
 
     def annotate_area(
         var self, y0: Float64, y1: Float64, label: String = ""
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_y:
         """Add a shaded horizontal band from `y0` to `y1` on the y-axis
         (ECharts' `markArea` with a fixed pair). Each call adds a band.
         `label`, when non-empty, draws inside the band near its top edge in
@@ -585,7 +595,9 @@ struct Chart[M: MarkType](ChartLike):
         self.annotations.area_labels.append(label)
         return self^
 
-    def annotate_vline(var self, value: Float64, label: String = "") -> Self:
+    def annotate_vline(
+        var self, value: Float64, label: String = ""
+    ) -> Self where Self.M.supports_annotations_x:
         """Add a vertical reference line at `value` on the x-axis:
         `annotate_line()`'s mirror image, with the same fixed-value scope,
         additive behavior, styling, and out-of-domain skip.
@@ -619,7 +631,7 @@ struct Chart[M: MarkType](ChartLike):
 
     def annotate_point(
         var self, x: Float64, y: Float64, label: String = ""
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_xy:
         """Add a single labeled point at `(x, y)` (ECharts' `markPoint` with a
         fixed coordinate): a small filled marker in `Theme.annotation_color`,
         with `label` just above it when non-empty. Each call adds a point.
@@ -659,7 +671,7 @@ struct Chart[M: MarkType](ChartLike):
         text: String,
         text_x: Float64,
         text_y: Float64,
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_xy:
         """Point at `(x, y)` with an arrow, labeled `text` placed at
         `(text_x, text_y)`.
         Each call adds an arrow.
@@ -711,7 +723,7 @@ struct Chart[M: MarkType](ChartLike):
         y_lower: List[Float64],
         y_upper: List[Float64],
         label: String = "",
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_xy:
         """Shade the region between two curves that vary with `x`: a confidence
         band around a trend line, or a min/max envelope. `annotate_area()`'s
         band is
@@ -762,7 +774,7 @@ struct Chart[M: MarkType](ChartLike):
         show_r_squared: Bool = False,
         label: String = "",
         ci: Float64 = 0.95,
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_xy:
         """Overlay an ordinary-least-squares best-fit line computed from this
         plot's own `_continuous.x`/`_continuous.y` at render() time, so it works whether
         called before or after `.encode()`. Not additive: the last call wins,
@@ -824,7 +836,7 @@ struct Chart[M: MarkType](ChartLike):
         method: SmoothMethod = SmoothMethod.LOESS,
         span: Float64 = 0.75,
         degree: Int = 2,
-    ) -> Self:
+    ) -> Self where Self.M.supports_annotations_xy:
         """Overlay a curved trend line fitted to this plot's own x/y
         data (#147) -- `annotate_best_fit()`'s straight line, for data a
         straight line does not describe.
@@ -861,7 +873,7 @@ struct Chart[M: MarkType](ChartLike):
         self.annotations.smooth_degree = degree
         return self^
 
-    def scale_y_log(var self) -> Self:
+    def scale_y_log(var self) -> Self where Self.M.supports_log_y:
         """Scale the y-axis logarithmically (base 10). Every y value, and every
         y-axis annotation value, must be strictly positive; `render()`/
         `render_svg()` raise otherwise (see `_log_data_extent()`).
@@ -882,7 +894,7 @@ struct Chart[M: MarkType](ChartLike):
         self.settings.y_log = True
         return self^
 
-    def scale_x_log(var self) -> Self:
+    def scale_x_log(var self) -> Self where Self.M.supports_log_x:
         """`scale_y_log()`'s x-axis mirror. `Mark.POINT`/`LINE`/`AREA`/
         `EFFECT_SCATTER` (x is never forced through zero, so `AREA` is
         allowed here), standalone `render()`/`render_svg()` only.
@@ -896,7 +908,9 @@ struct Chart[M: MarkType](ChartLike):
         self.settings.x_log = True
         return self^
 
-    def scale_y_symlog(var self, linthresh: Float64 = 1.0) -> Self:
+    def scale_y_symlog(
+        var self, linthresh: Float64 = 1.0
+    ) -> Self where Self.M.supports_log_y:
         """Scale the y-axis symmetrically logarithmically: linear within
         `[-linthresh, linthresh]`, logarithmic beyond it, continuous
         where they meet (#368).
@@ -933,7 +947,9 @@ struct Chart[M: MarkType](ChartLike):
         self.settings.y_symlog_linthresh = linthresh
         return self^
 
-    def scale_x_symlog(var self, linthresh: Float64 = 1.0) -> Self:
+    def scale_x_symlog(
+        var self, linthresh: Float64 = 1.0
+    ) -> Self where Self.M.supports_log_x:
         """`scale_y_symlog()`'s x-axis mirror, with the same scope and
         the same `linthresh` meaning (#368).
 
@@ -3853,6 +3869,7 @@ struct AnyChart(ChartLike):
     """
 
     var mark_id: Mark
+    var caps: _Capabilities
     var settings: _ChartSettings
     var style: _MarkStyle
     var annotations: _AnnotationData
@@ -3873,6 +3890,7 @@ struct AnyChart(ChartLike):
 
     def __init__[M: MarkType](out self, chart: Chart[M]):
         self.mark_id = M.id
+        self.caps = _capabilities_of_type[M]()
         self.settings = chart.settings.copy()
         self.style = chart.style.copy()
         self.annotations = chart.annotations.copy()
@@ -3895,6 +3913,7 @@ struct AnyChart(ChartLike):
 
     def __init__(out self, *, copy: Self):
         self.mark_id = copy.mark_id
+        self.caps = copy.caps
         self.settings = copy.settings.copy()
         self.style = copy.style.copy()
         self.annotations = copy.annotations.copy()
@@ -4034,7 +4053,7 @@ struct AnyChart(ChartLike):
 
         `Tooltips.ON` on a mark without tooltips raises when the chart
         renders; which marks have them is
-        `Mark.supports(Feature.TOOLTIPS)`.
+        `MarkType.supports_tooltips`.
 
         Args:
             policy: `Tooltips.ON`, `Tooltips.OFF` or `Tooltips.AUTO`.
@@ -5002,6 +5021,9 @@ struct AnyChart(ChartLike):
 
     def erased(self) -> AnyChart:
         return self.copy()
+
+    def capabilities(self) -> _Capabilities:
+        return self.caps
 
     def x_data(self) -> List[Float64]:
         return self.continuous.x.copy()

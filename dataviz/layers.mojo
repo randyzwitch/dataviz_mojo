@@ -1643,6 +1643,7 @@ def _render_layers_generic[
             plots[i].channels,
             plots[i].y_err,
             plots[i].id(),
+            plots[i].capabilities().color_size,
             "render_layers(): layer " + String(i),
         )
         _validate_log_scale_annotations(

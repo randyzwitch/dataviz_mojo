@@ -31,7 +31,8 @@ A Mojo script rather than Python, using `.strip()`/`.startswith()`/
 from std.collections import Dict
 from std.os import listdir, makedirs
 
-from dataviz.core.mark import Feature, Mark, _marks_supporting
+from dataviz.core.mark import Mark
+from dataviz.marks import _capabilities_of
 
 from _example_docstrings import (
     ExamplePage,
@@ -388,11 +389,60 @@ def _categories() -> List[Category]:
 
 
 def _feature_support_page() -> String:
-    """The per-mark feature-support matrix, from `Mark.supports()`: one
-    row per mark, one column per `Feature` (#213). Generated so it
-    cannot drift from the table; tests/test_feature_support.mojo keeps
-    the table honest against the code.
+    """The per-mark feature-support matrix: one row per mark, one column
+    per `MarkType.supports_*` constant (#213, #829). Generated from the
+    constants so it cannot drift from the code;
+    tests/test_feature_support.mojo checks every mark's rendered output
+    against the same constants.
     """
+    var labels: List[String] = [
+        "`Theme.tooltips`, `Plot.tooltips()`",
+        "`Theme.show_data_labels`",
+        "`horizontal=True`",
+        "`annotate_line()`, `annotate_area()`",
+        "`annotate_vline()`",
+        "`annotate_band()`, `point`, `arrow`, `best_fit`",
+        "`scale_x_log()`",
+        "`scale_y_log()`",
+        "`encode(color=, size=)`",
+    ]
+    var summaries: List[String] = [
+        (
+            "each datum gets an SVG `<title>`, shown as a hover tooltip."
+            " `Tooltips.AUTO`, the default, draws them only when a plot"
+            " has at most `Theme.auto_tooltip_limit` (1,000) of them;"
+            " `Tooltips.ON` on another mark raises."
+        ),
+        "each value is drawn as text; other marks ignore the flag.",
+        (
+            "the axes swap; other marks ignore the flag. GANTT,"
+            " SPAN_CHART and EVENTPLOT are horizontal by construction"
+            " and take no flag."
+        ),
+        (
+            "a reference line or shaded band across a continuous y"
+            " axis; on a typed chart the call does not compile for other"
+            " marks, and raises at render time otherwise."
+        ),
+        (
+            "a reference line across a continuous x axis; the call"
+            " does not compile for other marks."
+        ),
+        (
+            "overlays placed on continuous x and y axes; the call does"
+            " not compile for other marks."
+        ),
+        "a logarithmic x axis; the call does not compile for other marks.",
+        (
+            "a logarithmic y axis; the call does not compile for other"
+            " marks. AREA and HISTOGRAM force their y domain through"
+            " zero, which has no logarithm."
+        ),
+        (
+            "a value or category per point drives its color or size;"
+            " the call raises on other marks."
+        ),
+    ]
     var out = List[String]()
     out.append("---")
     out.append("title: Feature support")
@@ -402,39 +452,51 @@ def _feature_support_page() -> String:
     out.append("")
     out.append(
         "Which `Theme` flags and `Plot` settings each mark honors. A blank"
-        " cell means the mark ignores the flag today or raises on the call;"
-        " the column's small print says which. Generated from"
-        " `Mark.supports()` in `dataviz/core/mark.mojo` by `pixi run docs`,"
-        " and checked against every mark's rendered output by"
-        " `tests/test_feature_support.mojo`, so the page and the code cannot"
-        " disagree."
+        " cell means the mark ignores the flag today, or the call does not"
+        " compile or raises; the column's small print says which. Generated"
+        " from each mark type's `supports_*` constants (`dataviz/marks.mojo`)"
+        " by `pixi run docs`, and checked against every mark's rendered"
+        " output by `tests/test_feature_support.mojo`, so the page and the"
+        " code cannot disagree."
     )
     out.append("")
     var header = String("| Mark |")
     var rule = String("| --- |")
-    for f in range(Feature.COUNT):
-        header += " " + Feature(f).label() + " |"
+    for label in labels:
+        header += " " + label + " |"
         rule += " :---: |"
     out.append(header)
     out.append(rule)
     for value in range(Mark.COUNT):
         var mark = Mark(value)
+        var caps = _capabilities_of(mark)
+        var flags: List[Bool] = [
+            caps.tooltips,
+            caps.data_labels,
+            caps.horizontal,
+            caps.annotations_y,
+            caps.annotations_x,
+            caps.annotations_xy,
+            caps.log_x,
+            caps.log_y,
+            caps.color_size,
+        ]
         var row = "| `" + mark.name() + "` |"
-        for f in range(Feature.COUNT):
-            row += " ✓ |" if mark.supports(Feature(f)) else "  |"
+        for flag in flags:
+            row += " ✓ |" if flag else "  |"
         out.append(row)
     out.append("")
     out.append("## Notes")
     out.append("")
-    for f in range(Feature.COUNT):
-        out.append("- " + Feature(f).label() + ": " + Feature(f).summary())
+    for i in range(len(labels)):
+        out.append("- " + labels[i] + ": " + summaries[i])
     out.append("")
     out.append(
-        "Supported marks per feature, for the same table from code:"
-        " `Mark.supports(Feature.TOOLTIPS)` and the rest of `Feature`."
+        "The same table from code: each mark type's `supports_*` constants,"
+        " or `_capabilities_of(mark)` for a runtime `Mark`."
     )
     out.append("")
-    return String("\n").join(out)
+    return "\n".join(out)
 
 
 def _cookbook() -> Category:

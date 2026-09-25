@@ -21,7 +21,8 @@ from std.testing import TestSuite, assert_equal, assert_false, assert_true
 from _mark_registry import _H, _W, _representative_plot
 from dataviz.chart import ChartLike
 from dataviz.marks import DendrogramMark, Histogram
-from dataviz.core.mark import Feature, Mark, _marks_supporting
+from dataviz.core.mark import Mark
+from dataviz.marks import _capabilities_of
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
 from dataviz.plot import Plot
@@ -60,43 +61,13 @@ def _renders[C: ChartLike](plot: C) -> Bool:
         return False
 
 
-def test_table_lists_every_mark_once_per_feature() raises:
-    for f in range(Feature.COUNT):
-        var marks = _marks_supporting(Feature(f))
-        for i in range(len(marks)):
-            for j in range(i + 1, len(marks)):
-                assert_false(
-                    marks[i] == marks[j],
-                    Feature(f).name() + " lists " + marks[i].name() + " twice",
-                )
-            assert_true(
-                marks[i]._value < Mark.COUNT,
-                Feature(f).name() + " lists a mark past Mark.COUNT",
-            )
-
-
-def test_supports_agrees_with_the_table() raises:
-    for f in range(Feature.COUNT):
-        var feature = Feature(f)
-        var marks = _marks_supporting(feature)
-        for mark in _every_mark():
-            var listed = False
-            for m in marks:
-                if m == mark:
-                    listed = True
-            assert_equal(
-                mark.supports(feature),
-                listed,
-                mark.name() + ".supports(" + feature.name() + ")",
-            )
-
-
 def _check_raises_or_changes[
     C: ChartLike
 ](
     mut mismatches: List[String],
     mark: Mark,
-    feature: Feature,
+    feature: String,
+    supported: Bool,
     var turned_on: C,
     base: String,
     count_tag: String,
@@ -114,18 +85,18 @@ def _check_raises_or_changes[
         svg = _svg(turned_on^)
     except:
         rendered = False
-    if not mark.supports(feature):
+    if not supported:
         if rendered:
             mismatches.append(
                 mark.name()
                 + " "
-                + feature.name()
+                + feature
                 + ": unsupported, but rendered instead of raising"
             )
         return
     if not rendered:
         mismatches.append(
-            mark.name() + " " + feature.name() + ": supported, but raised"
+            mark.name() + " " + feature + ": supported, but raised"
         )
         return
     var changed = (
@@ -138,22 +109,26 @@ def _check_raises_or_changes[
         mismatches.append(
             mark.name()
             + " "
-            + feature.name()
+            + feature
             + ": supported, but the render did not change"
         )
 
 
 def _check(
-    mut mismatches: List[String], mark: Mark, feature: Feature, found: Bool
+    mut mismatches: List[String],
+    mark: Mark,
+    feature: String,
+    supported: Bool,
+    found: Bool,
 ):
     """Record a disagreement between the table and the render."""
-    if found != mark.supports(feature):
+    if found != supported:
         mismatches.append(
             mark.name()
             + " "
-            + feature.name()
+            + feature
             + ": table says "
-            + String(mark.supports(feature))
+            + String(supported)
             + ", the render says "
             + String(found)
         )
@@ -169,7 +144,7 @@ def test_auto_tooltips_switch_off_exactly_past_each_mark_s_own_count() raises:
     draw none (#700)."""
     var mismatches = List[String]()
     for mark in _every_mark():
-        if not mark.supports(Feature.TOOLTIPS):
+        if not _capabilities_of(mark).tooltips:
             continue
         var plot = _representative_plot(mark)
         var drawn = _count(_svg(plot.copy().tooltips(Tooltips.ON)), "<title>")
@@ -199,6 +174,7 @@ def test_every_mark_matches_the_table() raises:
     var c: List[Float64] = [0.1, 0.5, 0.9]
     for mark in _every_mark():
         var plot = _representative_plot(mark)
+        var caps = _capabilities_of(mark)
         var base = _svg(plot)
 
         # Tooltips.AUTO is the default and every representative plot is
@@ -206,14 +182,15 @@ def test_every_mark_matches_the_table() raises:
         # mark supports them (#700). OFF removes them from every mark,
         # and ON is two-sided like data labels: titles added where
         # supported, a raise everywhere else.
-        _check(mismatches, mark, Feature.TOOLTIPS, "<title>" in base)
+        _check(mismatches, mark, "tooltips", caps.tooltips, "<title>" in base)
         var off = _svg(plot.copy().tooltips(Tooltips.OFF))
         if "<title>" in off:
             mismatches.append(mark.name() + " Tooltips.OFF: still titled")
         _check_raises_or_changes(
             mismatches,
             mark,
-            Feature.TOOLTIPS,
+            "tooltips",
+            caps.tooltips,
             plot.copy().tooltips(Tooltips.ON),
             off,
             "<title>",
@@ -226,7 +203,8 @@ def test_every_mark_matches_the_table() raises:
         _check_raises_or_changes(
             mismatches,
             mark,
-            Feature.DATA_LABELS,
+            "data_labels",
+            caps.data_labels,
             plot.copy().theme(Theme(show_data_labels=True)),
             base,
             "<text",
@@ -244,25 +222,28 @@ def test_every_mark_matches_the_table() raises:
         else:
             turned.settings.horizontal = True
         _check_raises_or_changes(
-            mismatches, mark, Feature.HORIZONTAL, turned^, base, ""
+            mismatches, mark, "horizontal", caps.horizontal, turned^, base, ""
         )
 
         _check(
             mismatches,
             mark,
-            Feature.ANNOTATIONS_Y,
+            "annotations_y",
+            caps.annotations_y,
             _renders(plot.copy().annotate_line(1.5, label="ref")),
         )
         _check(
             mismatches,
             mark,
-            Feature.ANNOTATIONS_X,
+            "annotations_x",
+            caps.annotations_x,
             _renders(plot.copy().annotate_vline(1.5, label="ref")),
         )
         _check(
             mismatches,
             mark,
-            Feature.ANNOTATIONS_XY,
+            "annotations_xy",
+            caps.annotations_xy,
             _renders(plot.copy().annotate_point(1.5, 1.5, label="ref")),
         )
         # A log axis must change the picture, not just be accepted. The
@@ -270,10 +251,22 @@ def test_every_mark_matches_the_table() raises:
         # mark that took the flag and drew linearly would have passed
         # (#687).
         _check_raises_or_changes(
-            mismatches, mark, Feature.LOG_X, plot.copy().scale_x_log(), base, ""
+            mismatches,
+            mark,
+            "log_x",
+            caps.log_x,
+            plot.copy().scale_x_log(),
+            base,
+            "",
         )
         _check_raises_or_changes(
-            mismatches, mark, Feature.LOG_Y, plot.copy().scale_y_log(), base, ""
+            mismatches,
+            mark,
+            "log_y",
+            caps.log_y,
+            plot.copy().scale_y_log(),
+            base,
+            "",
         )
 
         # A color channel is an encoder argument, and an encoder exists
@@ -300,7 +293,7 @@ def test_every_mark_matches_the_table() raises:
             colored = True
         except:
             colored = False
-        _check(mismatches, mark, Feature.COLOR_SIZE, colored)
+        _check(mismatches, mark, "color_size", caps.color_size, colored)
 
     var report = String("")
     for m in mismatches:
