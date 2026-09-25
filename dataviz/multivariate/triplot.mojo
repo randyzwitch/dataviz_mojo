@@ -8,6 +8,7 @@
 Both use data supplied by `encode_triplot()`; `TRIPLOT` needs only x and y.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.collections import Dict
 
 from canvas.color import Color
@@ -167,7 +168,8 @@ def _render_triplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    triplot: _TriplotData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -203,7 +205,8 @@ def _render_triplot[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_triplot` data this reads.
+        triplot: The mark's `_TriplotData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -216,13 +219,13 @@ def _render_triplot[
     Raises:
         Error: Empty data, or mismatched column lengths.
     """
-    _validate_triplot(plot)
+    _validate_triplot(triplot)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._triplot.x),
-        _data_extent(plot._triplot.y),
+        _data_extent(triplot.x),
+        _data_extent(triplot.y),
         theme,
         _LegendLayout(),
         ox0,
@@ -232,11 +235,33 @@ def _render_triplot[
         cache=cache,
     )
 
-    _draw_triplot_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    _draw_triplot_layer(
+        target, triplot, settings, frame.x_scale, frame.y_scale, frame.sc
+    )
     return frame.result()
 
 
-def _validate_triplot(plot: Plot) raises:
+def _render_triplot_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_triplot` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_triplot(
+        target, plot._triplot, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _validate_triplot(triplot: _TriplotData) raises:
     """`Mark.TRIPLOT`'s pre-draw checks: matching x/y columns and at least
     one sample. `Mark.TRIPCOLOR` needs a `z` as well and has its own
     (`_validate_tripcolor`).
@@ -246,13 +271,13 @@ def _validate_triplot(plot: Plot) raises:
     domain before any frame exists, so a mismatched `encode_triplot()`
     has to be caught there rather than inside the drawing.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n:
+    var n = len(triplot.x)
+    if len(triplot.y) != n:
         raise Error(
             "Plot.encode_triplot(): x and y must have the same length (got "
             + String(n)
             + " and "
-            + String(len(plot._triplot.y))
+            + String(len(triplot.y))
             + ")"
         )
     _require_non_empty(n, "Plot.encode_triplot()")
@@ -262,7 +287,8 @@ def _draw_triplot_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    triplot: _TriplotData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
@@ -281,18 +307,20 @@ def _draw_triplot_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_triplot` data this reads.
+        triplot: The mark's `_TriplotData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     # A caller's own triangulation wins (#397). Besides saving the
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
     # what makes `facecolors` indexable.
-    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
-        plot._triplot.x, plot._triplot.y
+    var tri = (
+        triplot.triangulation.copy() if triplot.triangulation.count()
+        > 0 else delaunay(triplot.x, triplot.y)
     )
     var edges = _triplot_edges(tri)
     if len(edges[0]) > 0:
@@ -304,12 +332,12 @@ def _draw_triplot_layer[
             mesh.line_to(x_scale.to_pixel(tri.x[b]), y_scale.to_pixel(tri.y[b]))
         target.stroke_path_aa(mesh, theme.mark_color, width=sc.scale)
 
-    if plot._triplot.show_points:
+    if triplot.show_points:
         var radius = sc.point_radius * _POINT_RADIUS_FRACTION
-        for i in range(len(plot._triplot.x)):
+        for i in range(len(triplot.x)):
             target.fill_circle_aa(
-                x_scale.to_pixel(plot._triplot.x[i]),
-                y_scale.to_pixel(plot._triplot.y[i]),
+                x_scale.to_pixel(triplot.x[i]),
+                y_scale.to_pixel(triplot.y[i]),
                 radius,
                 theme.mark_color,
             )
@@ -319,7 +347,8 @@ def _render_tripcolor[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    triplot: _TriplotData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -372,7 +401,8 @@ def _render_tripcolor[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_triplot` data this reads.
+        triplot: The mark's `_TriplotData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -385,13 +415,13 @@ def _render_tripcolor[
     Raises:
         Error: Empty data, or mismatched column lengths.
     """
-    _validate_tripcolor(plot)
+    _validate_tripcolor(triplot)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._triplot.x),
-        _data_extent(plot._triplot.y),
+        _data_extent(triplot.x),
+        _data_extent(triplot.y),
         theme,
         _LegendLayout(),
         ox0,
@@ -401,26 +431,48 @@ def _render_tripcolor[
         cache=cache,
     )
 
-    _draw_tripcolor_layer(target, plot, frame.x_scale, frame.y_scale)
+    _draw_tripcolor_layer(
+        target, triplot, settings, frame.x_scale, frame.y_scale
+    )
     return frame.result()
 
 
-def _validate_tripcolor(plot: Plot) raises:
+def _render_tripcolor_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_tripcolor` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_tripcolor(
+        target, plot._triplot, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _validate_tripcolor(triplot: _TriplotData) raises:
     """`Mark.TRIPCOLOR`'s pre-draw checks: `_validate_triplot`'s, plus a
     `z` value at every sample.
 
     A free function for the same reason as `_validate_triplot` -- see
     that docstring.
     """
-    var n = len(plot._triplot.x)
-    if len(plot._triplot.y) != n or len(plot._triplot.z) != n:
+    var n = len(triplot.x)
+    if len(triplot.y) != n or len(triplot.z) != n:
         raise Error(
             "Plot.encode_triplot(): x, y and z must have the same length (got "
             + String(n)
             + ", "
-            + String(len(plot._triplot.y))
+            + String(len(triplot.y))
             + " and "
-            + String(len(plot._triplot.z))
+            + String(len(triplot.z))
             + ") -- Mark.TRIPCOLOR needs a value at every sample"
         )
     _require_non_empty(n, "Plot.encode_triplot()")
@@ -430,7 +482,8 @@ def _draw_tripcolor_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    triplot: _TriplotData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
 ) raises:
@@ -455,7 +508,8 @@ def _draw_tripcolor_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_triplot` data this reads.
+        triplot: The mark's `_TriplotData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
 
@@ -463,13 +517,14 @@ def _draw_tripcolor_layer[
         Error: A `facecolors` length that does not match the
             triangulation, or whatever `fill_mesh()` raises.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     # A caller's own triangulation wins (#397). Besides saving the
     # second triangulation a layered chart pays for, it is the only way
     # the triangle order can be known outside this package, which is
     # what makes `facecolors` indexable.
-    var tri = plot._triplot.triangulation.copy() if plot._triplot.triangulation.count() > 0 else delaunay(
-        plot._triplot.x, plot._triplot.y
+    var tri = (
+        triplot.triangulation.copy() if triplot.triangulation.count()
+        > 0 else delaunay(triplot.x, triplot.y)
     )
     if tri.count() == 0:
         return
@@ -478,29 +533,29 @@ def _draw_tripcolor_layer[
     # vertex values; flat shading reads it per face and normalizes over
     # the face values. Different domains for different questions, and
     # matplotlib does the same.
-    if plot._triplot.gouraud:
-        if len(plot._triplot.facecolors) > 0:
+    if triplot.gouraud:
+        if len(triplot.facecolors) > 0:
             raise Error(
                 "Plot.encode_triplot(facecolors=...) is one value per"
                 " triangle, so there is nothing to interpolate between."
                 " Drop facecolors, or drop gouraud=True"
             )
-        if len(plot._triplot.z) != len(tri.x):
+        if len(triplot.z) != len(tri.x):
             raise Error(
                 "Mark.TRIPCOLOR with gouraud=True: needs one z per vertex, so "
                 + String(len(tri.x))
                 + " for this triangulation -- got "
-                + String(len(plot._triplot.z))
+                + String(len(triplot.z))
             )
-        var lo_v = plot._triplot.z[0]
-        var hi_v = plot._triplot.z[0]
-        for v in plot._triplot.z:
+        var lo_v = triplot.z[0]
+        var hi_v = triplot.z[0]
+        for v in triplot.z:
             if v < lo_v:
                 lo_v = v
             if v > hi_v:
                 hi_v = v
         var vertex_scale = _color_scale_for(
-            theme, plot._settings.color_domain, lo_v, hi_v
+            theme, settings.color_domain, lo_v, hi_v
         )
         var vpoints = List[FPoint](capacity=len(tri.x))
         var vcolors = List[Color](capacity=len(tri.x))
@@ -508,17 +563,17 @@ def _draw_tripcolor_layer[
             vpoints.append(
                 FPoint(x_scale.to_pixel(tri.x[i]), y_scale.to_pixel(tri.y[i]))
             )
-            vcolors.append(vertex_scale.color_at(plot._triplot.z[i]))
+            vcolors.append(vertex_scale.color_at(triplot.z[i]))
         target.fill_mesh_shaded(vpoints, tri.triangles, vcolors)
         return
 
     # One value per triangle if the caller supplied them, else the mean
     # of each triangle's three vertex values, which is what this mark
     # did before `facecolors` existed.
-    var means = plot._triplot.facecolors.copy() if len(
-        plot._triplot.facecolors
-    ) > 0 else _triangle_means(tri, plot._triplot.z)
-    if len(plot._triplot.facecolors) > 0 and len(means) != tri.count():
+    var means = triplot.facecolors.copy() if len(
+        triplot.facecolors
+    ) > 0 else _triangle_means(tri, triplot.z)
+    if len(triplot.facecolors) > 0 and len(means) != tri.count():
         raise Error(
             "Plot.encode_triplot(facecolors=...): needs one value per"
             " triangle, so "
@@ -533,9 +588,7 @@ def _draw_tripcolor_layer[
             lo = v
         if v > hi:
             hi = v
-    var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, lo, hi
-    )
+    var color_scale = _color_scale_for(theme, settings.color_domain, lo, hi)
 
     # Every vertex once, so two faces meeting at a corner index the same
     # point and there is no interior edge for the page to show through.

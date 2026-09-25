@@ -15,6 +15,7 @@ sit beside a heatmap of the same rows with the two lined up.
 close to what.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
@@ -108,7 +109,8 @@ def _render_dendrogram[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    dendrogram: _DendrogramData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -127,7 +129,8 @@ def _render_dendrogram[
 
     Args:
         target: The draw target.
-        plot: The chart.
+        dendrogram: The mark's `_DendrogramData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left bound.
         oy0: Top bound.
         ox1: Right bound.
@@ -140,9 +143,9 @@ def _render_dendrogram[
     Raises:
         Error: The tree is empty or malformed.
     """
-    ref data = plot._dendrogram
-    _validate_dendrogram(plot)
-    var theme = plot._settings.theme
+    ref data = dendrogram
+    _validate_dendrogram(dendrogram)
+    var theme = settings.theme
     var tallest = 0.0
     for h in data.height:
         if h > tallest:
@@ -154,7 +157,7 @@ def _render_dendrogram[
     var pos = List[Float64]()
     var hgt = List[Float64]()
     _node_positions(data, pos, hgt)
-    var tooltips_on = plot._settings.tooltips_on(len(data.height))
+    var tooltips_on = settings.tooltips_on(len(data.height))
     if data.horizontal:
         # Leaves down the y-axis, heights running right: the form that
         # sits beside a matrix's rows. Same tree, same brackets, the two
@@ -226,6 +229,33 @@ def _render_dendrogram[
     return frame.result()
 
 
+def _render_dendrogram_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_dendrogram` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_dendrogram(
+        target,
+        plot._dendrogram,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
 def _leaf_pixel(scale: OrdinalScale, position: Float64) -> Float64:
     """The pixel a node's position along the leaf axis lands on.
 
@@ -295,17 +325,17 @@ def _bracket_path(
     return path^
 
 
-def _validate_dendrogram(plot: Plot) raises:
+def _validate_dendrogram(dendrogram: _DendrogramData) raises:
     """`Mark.DENDROGRAM`'s pre-draw checks.
 
     Args:
-        plot: The chart.
+        dendrogram: The mark's `_DendrogramData` columns.
 
     Raises:
         Error: No leaves, a merge count that does not match, or a node
             id outside the tree.
     """
-    ref data = plot._dendrogram
+    ref data = dendrogram
     var n = len(data.labels)
     if n < 2:
         raise Error(

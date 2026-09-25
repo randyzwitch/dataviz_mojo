@@ -1,5 +1,12 @@
 """Point, line, and area rendering and their one-call constructors."""
 
+from dataviz.core.plot_fields import (
+    _ChannelData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
 from std.math import floor, sin
 
@@ -306,7 +313,14 @@ def _lighten(color: Color, alpha: UInt8, background: Color) -> Color:
     return color.with_alpha(alpha).blend_over(background)
 
 
-def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
+def _draws_bulk_markers(
+    mark: Mark,
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
+    draw_halo: Bool = False,
+) -> Bool:
     """Whether this plot's markers go to `fill_circles_aa` in one bulk
     call rather than one `fill_circle_aa` each.
 
@@ -334,25 +348,27 @@ def _draws_bulk_markers(plot: Plot, draw_halo: Bool = False) -> Bool:
       matters.
 
     Args:
-        plot: The chart.
+        mark: The mark being drawn.
+        continuous: The x and y columns.
+        channels: The color, size and label channels.
+        y_err: The error-bar columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         draw_halo: Whether the caller draws a halo per point
             (`Mark.EFFECT_SCATTER`), which forces per-marker drawing.
 
     Returns:
         True when the markers go out in one bulk call.
     """
-    if not (plot._mark == Mark.POINT or plot._mark == Mark.EFFECT_SCATTER):
+    if not (mark == Mark.POINT or mark == Mark.EFFECT_SCATTER):
         return False
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var has_shapes = (
-        len(plot._channels.color_categories) > 0 and theme.shape_by_category
+        len(channels.color_categories) > 0 and theme.shape_by_category
     )
-    var tooltips_on = plot._settings.tooltips_on(len(plot._continuous.y))
-    var has_error_bars = (
-        len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0
-    )
+    var tooltips_on = settings.tooltips_on(len(continuous.y))
+    var has_error_bars = len(y_err.symmetric) > 0 or len(y_err.lower) > 0
     return not (
-        len(plot._channels.size) > 0
+        len(channels.size) > 0
         or has_shapes
         or tooltips_on
         or draw_halo
@@ -403,7 +419,12 @@ def _draw_point_layer[
 ](
     mut target: T,
     mut text_requests: List[_TextRequest],
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ch: _PointChannels,
     x_scale: LinearScale,
     y_scale: LinearScale,
@@ -447,7 +468,7 @@ def _draw_point_layer[
     # Markers only: the legend sections below sit outside the plot
     # rect by construction, so the clip is popped before them (#369).
     _push_plot_clip(target, x_scale, y_scale)
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
 
     # The plain scatter -- nothing per point but a disk -- can hand every
@@ -460,32 +481,34 @@ def _draw_point_layer[
     # outside its closed form. `_draws_bulk_markers` holds the
     # conditions that rule the batch out, and `render()` reads the same
     # predicate to choose a supersampling strategy.
-    var batched = _draws_bulk_markers(plot, draw_halo)
+    var batched = _draws_bulk_markers(
+        mark, continuous, channels, y_err, settings, draw_halo
+    )
     var batch_centers = List[FPoint]()
     var batch_colors = List[Color]()
 
-    for i in range(len(plot._continuous.y)):
+    for i in range(len(continuous.y)):
         # A point with a missing coordinate is not drawn at all: there is
         # no position to draw it at, and every channel that would
         # decorate it -- color, size, error bar, label, tooltip -- goes
         # with it, which is what keeps the channels aligned (#367).
-        if _is_missing(plot._continuous.y[i]) or (
-            len(band_px) == 0 and _is_missing(plot._continuous.x[i])
+        if _is_missing(continuous.y[i]) or (
+            len(band_px) == 0 and _is_missing(continuous.x[i])
         ):
             continue
         var px = band_px[i] if len(band_px) > 0 else _axis_pixel_f(
-            x_scale, plot._continuous.x[i]
+            x_scale, continuous.x[i]
         )
-        var py = _axis_pixel_f(y_scale, plot._continuous.y[i])
+        var py = _axis_pixel_f(y_scale, continuous.y[i])
         # Jitter is applied here, after the scale and before anything is
         # drawn, so every per-point decoration -- halo, error bar, label,
         # tooltip anchor -- moves with its point rather than staying at
         # the unjittered position (#149).
-        px += _jitter_offset(i, plot._mark_style.point_jitter_x, _JITTER_PHI_X)
-        py += _jitter_offset(i, plot._mark_style.point_jitter_y, _JITTER_PHI_Y)
+        px += _jitter_offset(i, style.point_jitter_x, _JITTER_PHI_X)
+        py += _jitter_offset(i, style.point_jitter_y, _JITTER_PHI_Y)
         var color: Color
         if ch.has_color:
-            color = ch.color_scale.color_at(plot._channels.color[i])
+            color = ch.color_scale.color_at(channels.color[i])
         elif ch.has_color_categories:
             # A plain lookup: _PointChannels resolved every row's domain index up
             # front.
@@ -504,27 +527,27 @@ def _draw_point_layer[
         # whole-pixel steps, and two points 20% apart in value can come
         # out the same size.
         var radius = ch.size_scale.to_pixel(
-            plot._channels.size[i]
+            channels.size[i]
         ) if ch.has_size else Float64(round_to_int(sc.point_radius))
         # One group per point, covering its error bar, halo and marker
         # -- all one datum. The deferred label sits outside it, since
         # text is replayed after this pass (see _TextRequest).
-        var tooltip = plot._settings.tooltips_on(len(plot._continuous.y))
+        var tooltip = settings.tooltips_on(len(continuous.y))
         if tooltip:
             target.begin_annotated_group(
                 _point_tooltip_label(
-                    plot._channels,
-                    plot._continuous.x,
-                    plot._continuous.y,
-                    plot._mark,
+                    channels,
+                    continuous.x,
+                    continuous.y,
+                    mark,
                     i,
                 )
             )
-        if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
+        if len(y_err.symmetric) > 0 or len(y_err.lower) > 0:
             # Whisker first, point on top, in this point's own resolved `color`.
             # y_err and y_err_lower/y_err_upper are mutually exclusive, so exactly
             # one branch has data.
-            var extent = _y_err_extent(plot, i)
+            var extent = _y_err_extent(continuous, y_err, i)
             var lo = extent[0]
             var hi = extent[1]
             # Snap the hairline and caps to matching pixel centers.
@@ -577,10 +600,7 @@ def _draw_point_layer[
             target.fill_circle_aa(px, py, radius, color)
         if tooltip:
             target.end_annotated_group()
-        if (
-            len(plot._channels.point_labels) > 0
-            and plot._channels.point_labels[i] != ""
-        ):
+        if len(channels.point_labels) > 0 and channels.point_labels[i] != "":
             # Baseline placed label_gap above the point's top edge (py - radius).
             # Text anchors are pixel indices, so the top edge rounds
             # here and the gap stays a whole number of pixels.
@@ -588,7 +608,7 @@ def _draw_point_layer[
                 _TextRequest(
                     round_to_int(px),
                     round_to_int(py - radius) - sc.label_gap,
-                    plot._channels.point_labels[i],
+                    channels.point_labels[i],
                     theme.text_color,
                     sc.font_size,
                     TextAlign.CENTER,
@@ -729,31 +749,34 @@ def _draw_point_layer[
     return next_y
 
 
-def _y_err_extent(plot: Plot, i: Int) -> Tuple[Float64, Float64]:
+def _y_err_extent(
+    continuous: _ContinuousData, y_err: _ErrorBarData, i: Int
+) -> Tuple[Float64, Float64]:
     """One point's error-bar span in data units, `(lo, hi)` around
-    `plot._continuous.y[i]` (#702).
+    `continuous.y[i]` (#702).
 
     `y_err` and `y_err_lower`/`y_err_upper` are mutually exclusive
-    (validate.mojo), so exactly one of `plot._y_err.symmetric` and
-    `plot._y_err.lower`/`.upper` is populated; this is the one place
+    (validate.mojo), so exactly one of `y_err.symmetric` and
+    `y_err.lower`/`.upper` is populated; this is the one place
     that resolves either into the pair every drawing site actually
     wants, shared between `_draw_point_layer` and `_draw_line_layer`
     so a symmetric `y_err=e` and an equal `y_err_lower=e,
     y_err_upper=e` reach the same two pixels.
 
     Args:
-        plot: The chart, already validated.
+        continuous: The x and y columns.
+        y_err: The error-bar columns.
         i: The point's index.
 
     Returns:
         `(lo, hi)` in data units.
     """
-    if len(plot._y_err.symmetric) > 0:
-        var err = plot._y_err.symmetric[i]
-        return (plot._continuous.y[i] - err, plot._continuous.y[i] + err)
+    if len(y_err.symmetric) > 0:
+        var err = y_err.symmetric[i]
+        return (continuous.y[i] - err, continuous.y[i] + err)
     return (
-        plot._continuous.y[i] - plot._y_err.lower[i],
-        plot._continuous.y[i] + plot._y_err.upper[i],
+        continuous.y[i] - y_err.lower[i],
+        continuous.y[i] + y_err.upper[i],
     )
 
 
@@ -761,7 +784,10 @@ def _draw_line_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     band_px: List[Float64] = List[Float64](),
@@ -775,23 +801,23 @@ def _draw_line_layer[
     `Plot.encode()`'s `y_err`/`y_err_lower`/`y_err_upper` whisker, when
     set, draws once per original data point before the line (whisker
     first, line on top), over the untouched
-    `plot._continuous.x`/`_continuous.y` rather than the decimated
+    `continuous.x`/`_continuous.y` rather than the decimated
     path, in `theme.mark_color` (`Mark.LINE` has no per-point color).
     `_y_err_extent` resolves whichever form was given; symmetric and
     an equal lower/upper draw the same whisker (#702). Stepping does
     not move a whisker: it belongs to a sample, not to the segment
     between two of them.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     _check_line_smoothing(theme)
-    _check_step_smoothing(theme, plot._mark_style.step)
+    _check_step_smoothing(theme, style.step)
     _push_plot_clip(target, x_scale, y_scale)
-    if len(plot._y_err.symmetric) > 0 or len(plot._y_err.lower) > 0:
+    if len(y_err.symmetric) > 0 or len(y_err.lower) > 0:
         var cap_half = round_to_int(sc.error_bar_cap_width)
-        for i in range(len(plot._continuous.x)):
-            var px_i = round_to_int(x_scale.to_pixel(plot._continuous.x[i]))
-            var extent = _y_err_extent(plot, i)
+        for i in range(len(continuous.x)):
+            var px_i = round_to_int(x_scale.to_pixel(continuous.x[i]))
+            var extent = _y_err_extent(continuous, y_err, i)
             var py_hi = _axis_pixel(y_scale, extent[1])
             var py_lo = _axis_pixel(y_scale, extent[0])
             target.draw_line_aa(
@@ -813,21 +839,21 @@ def _draw_line_layer[
                 theme.mark_color,
                 width=sc.scale,
             )
-    var px = List[Float64](capacity=len(plot._continuous.y))
-    var py = List[Float64](capacity=len(plot._continuous.y))
-    for i in range(len(plot._continuous.y)):
+    var px = List[Float64](capacity=len(continuous.y))
+    var py = List[Float64](capacity=len(continuous.y))
+    for i in range(len(continuous.y)):
         px.append(
             band_px[i] if len(band_px)
-            > 0 else x_scale.to_pixel(plot._continuous.x[i])
+            > 0 else x_scale.to_pixel(continuous.x[i])
         )
-        py.append(y_scale.to_pixel(plot._continuous.y[i]))
+        py.append(y_scale.to_pixel(continuous.y[i]))
     # One path per run of present points, so a missing observation
     # leaves a gap rather than a segment across it (#367). A series with
     # nothing missing is one run, and nothing changes for it.
     for run in _present_runs(px, py):
         # Thin the expanded geometry so step risers retain their true
         # positions.
-        var stepped = _step_points(run.px, run.py, plot._mark_style.step)
+        var stepped = _step_points(run.px, run.py, style.step)
         # Drop sub-pixel detail before the rasterizer has to pay for it
         # -- a no-op for any series small enough that its points are
         # individually resolvable (see _decimate_to_pixel_columns).
@@ -839,7 +865,7 @@ def _draw_line_layer[
             path,
             theme.mark_color,
             width=sc.line_width,
-            dashes=plot._mark_style.line_style.dashes(sc.scale),
+            dashes=style.line_style.dashes(sc.scale),
         )
     target.pop_clip()
 
@@ -848,7 +874,9 @@ def _draw_area_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     band_px: List[Float64] = List[Float64](),
@@ -872,21 +900,21 @@ def _draw_area_layer[
     samples, with no sliver at either end and nothing for the path to
     cross back over.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     _check_line_smoothing(theme)
-    _check_step_smoothing(theme, plot._mark_style.step, Mark.AREA)
+    _check_step_smoothing(theme, style.step, Mark.AREA)
     _push_plot_clip(target, x_scale, y_scale)
     var baseline_py = y_scale.to_pixel(0.0)
     if round_to_int(baseline_py) == round_to_int(y_scale.range_min):
         baseline_py -= 1.0
-    var px = List[Float64](capacity=len(plot._continuous.x))
-    var py = List[Float64](capacity=len(plot._continuous.x))
-    for i in range(len(plot._continuous.x)):
+    var px = List[Float64](capacity=len(continuous.x))
+    var py = List[Float64](capacity=len(continuous.x))
+    for i in range(len(continuous.x)):
         px.append(
             band_px[i] if len(band_px)
-            > 0 else x_scale.to_pixel(plot._continuous.x[i])
+            > 0 else x_scale.to_pixel(continuous.x[i])
         )
-        py.append(y_scale.to_pixel(plot._continuous.y[i]))
+        py.append(y_scale.to_pixel(continuous.y[i]))
     # Step first, decimate second, the order and the reasoning
     # _draw_line_layer's own comment spells out: thin the geometry that
     # is actually drawn, so the two-points-per-column cap applies to the
@@ -896,7 +924,7 @@ def _draw_area_layer[
     # single point has no width to fill and is skipped, as the stroked
     # line skips it.
     for run in _present_runs(px, py):
-        var stepped = _step_points(run.px, run.py, plot._mark_style.step)
+        var stepped = _step_points(run.px, run.py, style.step)
         # Same sub-pixel thinning the stroked path gets; the fill's top
         # edge is that curve.
         var thinned = _decimate_to_pixel_columns(stepped.px, stepped.py)

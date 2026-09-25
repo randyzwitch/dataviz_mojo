@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from std.collections import Dict
 from std.math import isfinite
 
@@ -208,7 +209,7 @@ struct _GridAxis(Copyable, Movable):
 
 
 def _validate_contour(
-    plot: Plot, mark_context: String
+    contour: _ContourData, mark_context: String
 ) raises -> Tuple[Int, Int]:
     """Every check a contour's data has to pass, and its shape.
 
@@ -217,7 +218,7 @@ def _validate_contour(
     bad layer then raises the message a standalone render of it would.
 
     Args:
-        plot: The plot carrying `_contour`.
+        contour: The mark's `_ContourData` columns.
         mark_context: The builder to name in a level-count message, so
             a `Mark.CONTOURF` failure says `mark_contourf()`.
 
@@ -229,36 +230,36 @@ def _validate_contour(
             count is not positive, or a coordinate column is the wrong
             length, non-finite, or not strictly increasing.
     """
-    var shape = _grid_shape(plot._contour.z)
-    if plot._contour.level_count <= 0:
+    var shape = _grid_shape(contour.z)
+    if contour.level_count <= 0:
         raise Error(
             mark_context
             + ": levels must be positive (got "
-            + String(plot._contour.level_count)
+            + String(contour.level_count)
             + ")"
         )
     # Both or neither. One alone would leave the grid padded on one
     # axis and unpadded on the other, which is a frame nothing else in
     # the package draws and which no caller has asked for; matplotlib's
     # `contour(X, Y, Z)` takes both together for the same reason.
-    if (len(plot._contour.x) == 0) != (len(plot._contour.y) == 0):
+    if (len(contour.x) == 0) != (len(contour.y) == 0):
         raise Error(
             "Plot.encode_contour(): give both x and y or neither -- got "
-            + ("x" if len(plot._contour.x) > 0 else "y")
+            + ("x" if len(contour.x) > 0 else "y")
             + " alone, which would put one axis in the caller's units and"
             " the other in grid-index units"
         )
     _check_grid_coordinates(
-        plot._contour.x, shape[1], "x", "column", "Plot.encode_contour()"
+        contour.x, shape[1], "x", "column", "Plot.encode_contour()"
     )
     _check_grid_coordinates(
-        plot._contour.y, shape[0], "y", "row", "Plot.encode_contour()"
+        contour.y, shape[0], "y", "row", "Plot.encode_contour()"
     )
     return shape
 
 
 def _contour_axes(
-    plot: Plot, rows: Int, cols: Int
+    contour: _ContourData, rows: Int, cols: Int
 ) raises -> Tuple[_GridAxis, _GridAxis]:
     """The two axes a contour draws through, coordinates or indices.
 
@@ -270,7 +271,7 @@ def _contour_axes(
     frame with a scatter (#423).
 
     Args:
-        plot: The plot carrying `_contour`.
+        contour: The mark's `_ContourData` columns.
         rows: The grid's row count.
         cols: Its column count.
 
@@ -281,13 +282,13 @@ def _contour_axes(
         Error: Whatever `_data_extent` raises.
     """
     var x_axis = _GridAxis(
-        plot._contour.x.copy(),
-        _data_extent(plot._contour.x) if len(plot._contour.x)
+        contour.x.copy(),
+        _data_extent(contour.x) if len(contour.x)
         > 0 else LinearScale(0.0, Float64(cols - 1), 0.0, 1.0),
     )
     var y_axis = _GridAxis(
-        plot._contour.y.copy(),
-        _data_extent(plot._contour.y) if len(plot._contour.y)
+        contour.y.copy(),
+        _data_extent(contour.y) if len(contour.y)
         > 0 else LinearScale(0.0, Float64(rows - 1), 0.0, 1.0),
     )
     return (x_axis^, y_axis^)
@@ -812,7 +813,7 @@ def _append_subpath(
     path.close()
 
 
-def _contour_levels(plot: Plot) raises -> List[Float64]:
+def _contour_levels(contour: _ContourData) raises -> List[Float64]:
     """The levels a contour traces: the caller's own, or `_auto_levels`
     over `level_count` when none were given.
 
@@ -822,7 +823,7 @@ def _contour_levels(plot: Plot) raises -> List[Float64]:
     chart does not draw.
 
     Args:
-        plot: The plot carrying `_contour`.
+        contour: The mark's `_ContourData` columns.
 
     Returns:
         The levels, in the order given or chosen.
@@ -830,9 +831,9 @@ def _contour_levels(plot: Plot) raises -> List[Float64]:
     Raises:
         Error: Whatever `_auto_levels` raises.
     """
-    if len(plot._contour.levels) > 0:
-        return plot._contour.levels.copy()
-    return _auto_levels(plot._contour.z, plot._contour.level_count)
+    if len(contour.levels) > 0:
+        return contour.levels.copy()
+    return _auto_levels(contour.z, contour.level_count)
 
 
 def _level_span(levels: List[Float64]) -> Tuple[Float64, Float64]:
@@ -851,7 +852,8 @@ def _draw_contour_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    contour: _ContourData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
@@ -871,7 +873,8 @@ def _draw_contour_layer[
 
     Args:
         target: The draw target.
-        plot: The plot carrying `_contour`.
+        contour: The mark's `_ContourData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled layout metrics.
@@ -879,21 +882,21 @@ def _draw_contour_layer[
     Raises:
         Error: Whatever `_validate_contour` raises.
     """
-    var shape = _validate_contour(plot, "Plot.mark_contour()")
-    var levels = _contour_levels(plot)
+    var shape = _validate_contour(contour, "Plot.mark_contour()")
+    var levels = _contour_levels(contour)
     if len(levels) == 0:
         return
     var span = _level_span(levels)
     var color_scale = _color_scale_for(
-        plot._settings.theme, plot._settings.color_domain, span[0], span[1]
+        settings.theme, settings.color_domain, span[0], span[1]
     )
-    var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
-    var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
+    var x_axis = _GridAxis(contour.x.copy(), x_scale)
+    var y_axis = _GridAxis(contour.y.copy(), y_scale)
 
     for li in range(len(levels)):
         var level = levels[li]
         var color = color_scale.color_at(level)
-        var segs = _contour_segments(plot._contour.z, shape[0], shape[1], level)
+        var segs = _contour_segments(contour.z, shape[0], shape[1], level)
         var lines = _chain_segments(segs)
         for k in range(len(lines)):
             ref line = lines[k]
@@ -912,7 +915,13 @@ def _draw_contour_layer[
 
 def _draw_contourf_layer[
     T: DrawTarget
-](mut target: T, plot: Plot, x_scale: LinearScale, y_scale: LinearScale) raises:
+](
+    mut target: T,
+    contour: _ContourData,
+    settings: _ChartSettings,
+    x_scale: LinearScale,
+    y_scale: LinearScale,
+) raises:
     """Draw one `Mark.CONTOURF` plot's filled bands into an
     already-laid-out continuous axis frame, the counterpart to
     `_draw_tricontourf_layer`.
@@ -925,25 +934,26 @@ def _draw_contourf_layer[
 
     Args:
         target: The draw target.
-        plot: The plot carrying `_contour`.
+        contour: The mark's `_ContourData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
 
     Raises:
         Error: Whatever `_validate_contour` raises.
     """
-    var shape = _validate_contour(plot, "Plot.mark_contourf()")
+    var shape = _validate_contour(contour, "Plot.mark_contourf()")
     var rows = shape[0]
     var cols = shape[1]
-    var levels = _contour_levels(plot)
+    var levels = _contour_levels(contour)
     if len(levels) == 0:
         return
     var span = _level_span(levels)
     var color_scale = _color_scale_for(
-        plot._settings.theme, plot._settings.color_domain, span[0], span[1]
+        settings.theme, settings.color_domain, span[0], span[1]
     )
-    var x_axis = _GridAxis(plot._contour.x.copy(), x_scale)
-    var y_axis = _GridAxis(plot._contour.y.copy(), y_scale)
+    var x_axis = _GridAxis(contour.x.copy(), x_scale)
+    var y_axis = _GridAxis(contour.y.copy(), y_scale)
 
     var gx0 = x_axis.to_pixel(0.0)
     var gx1 = x_axis.to_pixel(Float64(cols - 1))
@@ -961,7 +971,7 @@ def _draw_contourf_layer[
         var level = levels[li]
         var path = Path()
         var appended = _append_above_region(
-            path, plot._contour.z, rows, cols, level, x_axis, y_axis
+            path, contour.z, rows, cols, level, x_axis, y_axis
         )
         if appended > 0:
             target.fill_path_aa(
@@ -975,7 +985,8 @@ def _render_contour[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    contour: _ContourData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -1003,16 +1014,16 @@ def _render_contour[
     draws an empty frame rather than raising: the axes still say what the
     data's extent was.
     """
-    var shape = _validate_contour(plot, "Plot.mark_contour()")
+    var shape = _validate_contour(contour, "Plot.mark_contour()")
     var rows = shape[0]
     var cols = shape[1]
-    var axes = _contour_axes(plot, rows, cols)
+    var axes = _contour_axes(contour, rows, cols)
 
-    var levels = plot._contour.levels.copy() if len(
-        plot._contour.levels
-    ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
+    var levels = contour.levels.copy() if len(
+        contour.levels
+    ) > 0 else _auto_levels(contour.z, contour.level_count)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     # Every level is a band or a line of its own, so the key is one
     # swatch per level rather than a gradient bar: a smooth ramp would
     # imply intermediate colors this mark never paints (#525). Built
@@ -1033,7 +1044,7 @@ def _render_contour[
         # shows in the key. A legend built from the data's own limits
         # would quietly contradict the bands beside it (#370).
         var legend_scale = _color_scale_for(
-            theme, plot._settings.color_domain, llo, lhi
+            theme, settings.color_domain, llo, lhi
         )
         var sc0 = _Scaled(theme)
         for v in _levels_descending(levels):
@@ -1060,7 +1071,9 @@ def _render_contour[
         oy1,
         cache=cache,
     )
-    _draw_contour_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    _draw_contour_layer(
+        target, contour, settings, frame.x_scale, frame.y_scale, frame.sc
+    )
 
     _draw_legend_at(
         target,
@@ -1079,11 +1092,32 @@ def _render_contour[
     return frame.result()
 
 
-def _render_contourf[
+def _render_contour_plot[
     T: DrawTarget
 ](
     mut target: T,
     plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_contour` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_contour(
+        target, plot._contour, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_contourf[
+    T: DrawTarget
+](
+    mut target: T,
+    contour: _ContourData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -1114,16 +1148,16 @@ def _render_contourf[
     in the stack. Levels and axes are `Mark.CONTOUR`'s exactly -- see
     `_render_contour`.
     """
-    var shape = _validate_contour(plot, "Plot.mark_contourf()")
+    var shape = _validate_contour(contour, "Plot.mark_contourf()")
     var rows = shape[0]
     var cols = shape[1]
-    var axes = _contour_axes(plot, rows, cols)
+    var axes = _contour_axes(contour, rows, cols)
 
-    var levels = plot._contour.levels.copy() if len(
-        plot._contour.levels
-    ) > 0 else _auto_levels(plot._contour.z, plot._contour.level_count)
+    var levels = contour.levels.copy() if len(
+        contour.levels
+    ) > 0 else _auto_levels(contour.z, contour.level_count)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     # Every level is a band or a line of its own, so the key is one
     # swatch per level rather than a gradient bar: a smooth ramp would
     # imply intermediate colors this mark never paints (#525). Built
@@ -1144,7 +1178,7 @@ def _render_contourf[
         # shows in the key. A legend built from the data's own limits
         # would quietly contradict the bands beside it (#370).
         var legend_scale = _color_scale_for(
-            theme, plot._settings.color_domain, llo, lhi
+            theme, settings.color_domain, llo, lhi
         )
         var sc0 = _Scaled(theme)
         for v in _levels_descending(levels):
@@ -1171,7 +1205,9 @@ def _render_contourf[
         oy1,
         cache=cache,
     )
-    _draw_contourf_layer(target, plot, frame.x_scale, frame.y_scale)
+    _draw_contourf_layer(
+        target, contour, settings, frame.x_scale, frame.y_scale
+    )
 
     _draw_legend_at(
         target,
@@ -1188,6 +1224,26 @@ def _render_contourf[
     )
 
     return frame.result()
+
+
+def _render_contourf_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_contourf` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_contourf(
+        target, plot._contour, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def contour(

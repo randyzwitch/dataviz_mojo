@@ -1,3 +1,9 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _DistributionData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import exp, pi, sqrt
 
 from canvas.text.font_cache import FontCache
@@ -35,7 +41,10 @@ def _draw_violin_silhouettes[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     orient: _Orientation,
@@ -58,24 +67,22 @@ def _draw_violin_silhouettes[
     `_KDE_SAMPLES` times; a zero `max_density` collapses `scale` to `0.0`
     rather than producing NaN.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var max_n = 0
-    for series in plot._distribution.values:
+    for series in distribution.values:
         if len(series) > max_n:
             max_n = len(series)
-    var half_extent = (
-        band_scale.bandwidth() * plot._mark_style.violin_width_fraction
-    )
+    var half_extent = band_scale.bandwidth() * style.violin_width_fraction
 
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
-        var values = plot._distribution.values[i].copy()
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
+        var values = distribution.values[i].copy()
         var center = band_scale.center(i)
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
+            distribution.kde_scale_by_count and max_n > 0
         ) else 1.0
         var bandwidth = (
-            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
+            distribution.kde_bandwidth_override if distribution.kde_bandwidth_override
             > 0.0 else _kde_bandwidth(values)
         )
         var mm = _min_max(values)
@@ -97,7 +104,7 @@ def _draw_violin_silhouettes[
             # A silhouette encodes a distribution, not a value, so the hover text
             # is what shaped it: how many points and over what range.
             target.begin_annotated_group(
-                plot._categorical.x[i]
+                categorical.x[i]
                 + ": n="
                 + String(len(values))
                 + ", range "
@@ -136,7 +143,10 @@ def _render_violin[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -158,23 +168,23 @@ def _render_violin[
     value across every category, the same domain choice `Mark.BOX`/
     `BEESWARM` make.
     """
-    var theme = plot._settings.theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    var theme = settings.theme
+    if distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(distribution.kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in distribution.values:
         for v in series:
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -185,7 +195,14 @@ def _render_violin[
     )
 
     _draw_violin_silhouettes(
-        target, plot, frame.x_scale, frame.y_scale, _Orientation(False)
+        target,
+        categorical,
+        distribution,
+        style,
+        settings,
+        frame.x_scale,
+        frame.y_scale,
+        _Orientation(False),
     )
 
     return frame.result()
@@ -195,7 +212,10 @@ def _render_horizontal_violin[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -212,23 +232,23 @@ def _render_horizontal_violin[
     rather than an orientation flag, for the reasons in
     `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    var theme = plot._settings.theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    var theme = settings.theme
+    if distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_violin(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(distribution.kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
-    for series in plot._distribution.values:
+    for series in distribution.values:
         for v in series:
             all_values.append(v)
     var value_scale = _data_extent(all_values)
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         value_scale,
         theme,
         ox0,
@@ -239,7 +259,14 @@ def _render_horizontal_violin[
     )
 
     _draw_violin_silhouettes(
-        target, plot, frame.y_scale, frame.x_scale, _Orientation(True)
+        target,
+        categorical,
+        distribution,
+        style,
+        settings,
+        frame.y_scale,
+        frame.x_scale,
+        _Orientation(True),
     )
 
     return frame.result()
@@ -463,7 +490,10 @@ def _render_violin_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -473,8 +503,57 @@ def _render_violin_oriented[
 ) raises -> _RenderResult:
     """`Mark.VIOLIN`'s renderer, the one its setter binds: `_render_horizontal_violin`
     when the plot is horizontal, `_render_violin` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_violin(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            categorical,
+            distribution,
+            style,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_violin(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_violin(
+        target,
+        categorical,
+        distribution,
+        style,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_violin_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_violin_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_violin_oriented(
+        target,
+        plot._categorical,
+        plot._distribution,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

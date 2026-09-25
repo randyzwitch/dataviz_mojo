@@ -2,6 +2,8 @@
 whose single box and whiskers become nested boxes at successively finer
 quantiles, so a large sample's tail is drawn rather than discarded."""
 
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
@@ -114,18 +116,20 @@ def _letter_values(values: List[Float64]) raises -> _LetterValues:
     )
 
 
-def _boxen_tooltip_label(plot: Plot, i: Int) raises -> String:
+def _boxen_tooltip_label(
+    boxen: _BoxenData, categorical: _CategoricalData, i: Int
+) raises -> String:
     """One category's letter-value glyph, titled by its median and the
     widest box's bounds (#678), the same shape `Mark.BOX`'s tooltip
     uses: the depth-0 level is the full band width, drawn last (see
     `_draw_boxen_glyphs`), so its `lower`/`upper` are the one box a
     reader would call "the box" if there were only one.
     """
-    var median = plot._boxen.median[i]
-    var lo = plot._boxen.lower[i][0]
-    var hi = plot._boxen.upper[i][0]
+    var median = boxen.median[i]
+    var lo = boxen.lower[i][0]
+    var hi = boxen.upper[i][0]
     return (
-        plot._categorical.x[i]
+        categorical.x[i]
         + ": median "
         + _format_fixed(median, _label_decimals(median))
         + ", box "
@@ -139,7 +143,9 @@ def _draw_boxen_glyphs[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    boxen: _BoxenData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     orient: _Orientation,
@@ -157,22 +163,24 @@ def _draw_boxen_glyphs[
     `ColorScale`, which is how the nesting is read when the widths
     alone are close.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var center = band_scale.center(i)
-        var depth = len(plot._boxen.lower[i])
+        var depth = len(boxen.lower[i])
         var scale = ColorScale.from_theme(
             theme, 0.0, Float64(max(depth - 1, 1))
         )
         if tooltips_on:
-            target.begin_annotated_group(_boxen_tooltip_label(plot, i))
+            target.begin_annotated_group(
+                _boxen_tooltip_label(boxen, categorical, i)
+            )
         var k = depth - 1
         while k >= 0:
-            var near_v = value_scale.to_pixel(plot._boxen.lower[i][k])
-            var far_v = value_scale.to_pixel(plot._boxen.upper[i][k])
+            var near_v = value_scale.to_pixel(boxen.lower[i][k])
+            var far_v = value_scale.to_pixel(boxen.upper[i][k])
             var near = min(near_v, far_v)
             var span = max(near_v, far_v) - near
             var width = band_size
@@ -188,7 +196,7 @@ def _draw_boxen_glyphs[
             k -= 1
         orient.band_line(
             target,
-            value_scale.to_pixel(plot._boxen.median[i]),
+            value_scale.to_pixel(boxen.median[i]),
             center - half,
             center + half,
             theme.axis_color,
@@ -196,34 +204,36 @@ def _draw_boxen_glyphs[
         )
         if tooltips_on:
             target.end_annotated_group()
-    for j in range(len(plot._boxen.outlier_value)):
+    for j in range(len(boxen.outlier_value)):
         orient.band_point(
             target,
-            _axis_pixel_f(value_scale, plot._boxen.outlier_value[j]),
-            band_scale.center(plot._boxen.outlier_cat[j]),
+            _axis_pixel_f(value_scale, boxen.outlier_value[j]),
+            band_scale.center(boxen.outlier_cat[j]),
             Float64(point_radius),
             theme.mark_color,
         )
 
 
-def _boxen_domain_data(plot: Plot) raises -> List[Float64]:
+def _boxen_domain_data(
+    boxen: _BoxenData, categorical: _CategoricalData
+) raises -> List[Float64]:
     """The deepest level's ends and every outlier -- exactly the values
     drawn -- for `_data_extent`."""
-    if len(plot._categorical.x) != len(plot._boxen.median):
+    if len(categorical.x) != len(boxen.median):
         raise Error(
             "Plot.encode_boxenplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " and "
-            + String(len(plot._boxen.median))
+            + String(len(boxen.median))
             + ")"
         )
     var domain_data = List[Float64]()
-    for i in range(len(plot._boxen.lower)):
-        var d = len(plot._boxen.lower[i]) - 1
-        domain_data.append(plot._boxen.lower[i][d])
-        domain_data.append(plot._boxen.upper[i][d])
-    for v in plot._boxen.outlier_value:
+    for i in range(len(boxen.lower)):
+        var d = len(boxen.lower[i]) - 1
+        domain_data.append(boxen.lower[i][d])
+        domain_data.append(boxen.upper[i][d])
+    for v in boxen.outlier_value:
         domain_data.append(v)
     return domain_data^
 
@@ -232,7 +242,9 @@ def _render_boxenplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    boxen: _BoxenData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -242,11 +254,11 @@ def _render_boxenplot[
 ) raises -> _RenderResult:
     """Render a `Mark.BOXENPLOT` plot: `Mark.BOX`'s categorical x-axis and
     `_data_extent` y-domain over what is drawn, then `_draw_boxen_glyphs`."""
-    var theme = plot._settings.theme
-    var y_scale = _data_extent(_boxen_domain_data(plot))
+    var theme = settings.theme
+    var y_scale = _data_extent(_boxen_domain_data(boxen, categorical))
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -257,7 +269,9 @@ def _render_boxenplot[
     )
     _draw_boxen_glyphs(
         target,
-        plot,
+        boxen,
+        categorical,
+        settings,
         frame.x_scale,
         frame.y_scale,
         _Orientation(False),
@@ -270,7 +284,9 @@ def _render_horizontal_boxenplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    boxen: _BoxenData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -281,11 +297,11 @@ def _render_horizontal_boxenplot[
     """`_render_boxenplot`'s mirror image for
     `Plot.mark_boxenplot(horizontal=True)`, as `_render_horizontal_box`
     is for `Mark.BOX`."""
-    var theme = plot._settings.theme
-    var x_scale = _data_extent(_boxen_domain_data(plot))
+    var theme = settings.theme
+    var x_scale = _data_extent(_boxen_domain_data(boxen, categorical))
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -296,7 +312,9 @@ def _render_horizontal_boxenplot[
     )
     _draw_boxen_glyphs(
         target,
-        plot,
+        boxen,
+        categorical,
+        settings,
         frame.y_scale,
         frame.x_scale,
         _Orientation(True),
@@ -502,7 +520,9 @@ def _render_boxenplot_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    boxen: _BoxenData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -512,8 +532,46 @@ def _render_boxenplot_oriented[
 ) raises -> _RenderResult:
     """`Mark.BOXENPLOT`'s renderer, the one its setter binds: `_render_horizontal_boxenplot`
     when the plot is horizontal, `_render_boxenplot` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_boxenplot(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            boxen,
+            categorical,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_boxenplot(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_boxenplot(
+        target, boxen, categorical, settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_boxenplot_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_boxenplot_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_boxenplot_oriented(
+        target,
+        plot._boxen,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

@@ -1,3 +1,9 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.fill_rule import FillRule
@@ -67,7 +73,11 @@ def _render_funnel[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -80,23 +90,21 @@ def _render_funnel[
     Row width is relative to the largest value. Colors and legend entries
     follow the sorted display order.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
-    _require_non_negative(plot._continuous.y, "Mark.FUNNEL")
+    var theme = settings.theme
+    _require_non_negative(continuous.y, "Mark.FUNNEL")
 
-    var order = _descending_value_order(plot._continuous.y)
+    var order = _descending_value_order(continuous.y)
     var n = len(order)
-    var largest = plot._continuous.y[order[0]]
+    var largest = continuous.y[order[0]]
     if largest <= 0.0:
         raise Error("Plot: Mark.FUNNEL requires at least one positive value")
 
     var sc = _Scaled(theme)
     var sorted_categories = List[String]()
     for i in range(n):
-        sorted_categories.append(plot._categorical.x[order[i]])
+        sorted_categories.append(categorical.x[order[i]])
 
     var show_legend = theme.show_legend
     var legend = _legend_layout(
@@ -120,10 +128,10 @@ def _render_funnel[
 
     var top_width = List[Float64]()
     for i in range(n):
-        top_width.append((plot._continuous.y[order[i]] / largest) * max_width)
+        top_width.append((continuous.y[order[i]] / largest) * max_width)
 
     var text_requests = List[_TextRequest]()
-    var tooltips_on = plot._settings.tooltips_on(n)
+    var tooltips_on = settings.tooltips_on(n)
     for i in range(n):
         var bottom_width = top_width[i + 1] if i < n - 1 else top_width[i]
         var y0 = plot_y0 + Int(Float64(i) * row_height)
@@ -132,9 +140,7 @@ def _render_funnel[
             # `order[i]`, not `i`: rows are drawn largest-value first, so
             # the stage's own name and value live at its pre-sort index.
             target.begin_annotated_group(
-                _tooltip_label(
-                    plot._categorical.x[order[i]], plot._continuous.y[order[i]]
-                )
+                _tooltip_label(categorical.x[order[i]], continuous.y[order[i]])
             )
         _fill_trapezoid(
             target,
@@ -149,7 +155,7 @@ def _render_funnel[
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
-            var value = plot._continuous.y[order[i]]
+            var value = continuous.y[order[i]]
             text_requests.append(
                 _TextRequest(
                     round_to_int(cx),
@@ -182,6 +188,36 @@ def _render_funnel[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_funnel_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_funnel` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_funnel(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def funnel(

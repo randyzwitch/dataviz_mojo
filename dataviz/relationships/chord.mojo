@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin
 
 from canvas.text.font_cache import FontCache
@@ -20,6 +22,7 @@ from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.relationships.edges import (
     _edge_node_index,
     _validate_edge_encoding,
+    _EdgeData,
 )
 from dataviz.core.theme import Theme
 
@@ -68,7 +71,9 @@ def _render_chord[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    edge_data: _EdgeData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -92,13 +97,13 @@ def _render_chord[
     Ribbons take their `from` node's palette color
     (`categorical_palette_for(theme)` by node position), reading as flow
     leaving that node. Ring thickness is
-    `plot._mark_style.chord_ring_fraction` of the radius.
+    `style.chord_ring_fraction` of the radius.
     """
-    _validate_edge_encoding(plot, "Mark.CHORD")
+    _validate_edge_encoding(edge_data, "Mark.CHORD")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        edge_data.from_categories, edge_data.to_categories
     )
     ref nodes = edges.nodes
     ref from_idx = edges.from_idx
@@ -108,9 +113,9 @@ def _render_chord[
     var node_total = List[Float64]()
     for _ in range(n):
         node_total.append(0.0)
-    for i in range(len(plot._edges.from_categories)):
-        node_total[from_idx[i]] += plot._edges.values[i]
-        node_total[to_idx[i]] += plot._edges.values[i]
+    for i in range(len(edge_data.from_categories)):
+        node_total[from_idx[i]] += edge_data.values[i]
+        node_total[to_idx[i]] += edge_data.values[i]
 
     var grand_total = 0.0
     for t in node_total:
@@ -146,17 +151,15 @@ def _render_chord[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = radius * (1.0 - plot._mark_style.chord_ring_fraction)
+    var inner_radius = radius * (1.0 - style.chord_ring_fraction)
 
     var palette = categorical_palette_for(theme)
 
-    var tooltips_on = plot._settings.tooltips_on(
-        len(plot._edges.from_categories)
-    )
-    for i in range(len(plot._edges.from_categories)):
+    var tooltips_on = settings.tooltips_on(len(edge_data.from_categories))
+    for i in range(len(edge_data.from_categories)):
         var fi = from_idx[i]
         var ti = to_idx[i]
-        var value = plot._edges.values[i]
+        var value = edge_data.values[i]
         var f0 = node_cursor[fi]
         var f1 = f0 + (value / grand_total) * 2.0 * pi
         node_cursor[fi] = f1
@@ -166,8 +169,8 @@ def _render_chord[
         if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
-                    plot._edges.from_categories[i],
-                    plot._edges.to_categories[i],
+                    edge_data.from_categories[i],
+                    edge_data.to_categories[i],
                     value,
                 )
             )
@@ -213,6 +216,34 @@ def _render_chord[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_chord_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_chord` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_chord(
+        target,
+        plot._edges,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def chord(

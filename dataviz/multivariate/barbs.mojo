@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import atan2, sqrt
 
 from canvas.fill_rule import FillRule
@@ -185,7 +186,8 @@ def _render_barbs[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    barbs: _BarbsData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -220,13 +222,13 @@ def _render_barbs[
     Glyphs are not clipped to the plot rect, so a barb on a point at the
     very edge of the data can reach into the margin.
     """
-    _validate_barbs(plot)
+    _validate_barbs(barbs)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._barbs.x),
-        _data_extent(plot._barbs.y),
+        _data_extent(barbs.x),
+        _data_extent(barbs.y),
         theme,
         _LegendLayout(),
         ox0,
@@ -236,37 +238,55 @@ def _render_barbs[
         cache=cache,
     )
 
-    _draw_barbs_layer(target, plot, frame.x_scale, frame.y_scale, frame.sc)
+    _draw_barbs_layer(
+        target, barbs, settings, frame.x_scale, frame.y_scale, frame.sc
+    )
     return frame.result()
 
 
-def _validate_vector_field(plot: Plot, context: String) raises:
+def _render_barbs_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_barbs` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_barbs(
+        target, plot._barbs, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _validate_vector_field(barbs: _BarbsData, context: String) raises:
     """The checks every mark over `encode_barbs()`/`encode_quiver()`'s
     four channels shares: equal-length columns and at least one point.
     `context` names the encoder in the message.
     """
-    var n = len(plot._barbs.x)
-    if (
-        len(plot._barbs.y) != n
-        or len(plot._barbs.u) != n
-        or len(plot._barbs.v) != n
-    ):
+    var n = len(barbs.x)
+    if len(barbs.y) != n or len(barbs.u) != n or len(barbs.v) != n:
         raise Error(
             context
             + ": x, y, u, and v must all have the same length (got "
             + String(n)
             + " x values, "
-            + String(len(plot._barbs.y))
+            + String(len(barbs.y))
             + " y values, "
-            + String(len(plot._barbs.u))
+            + String(len(barbs.u))
             + " u values, "
-            + String(len(plot._barbs.v))
+            + String(len(barbs.v))
             + " v values)"
         )
     _require_non_empty(n, context)
 
 
-def _validate_barbs(plot: Plot) raises:
+def _validate_barbs(barbs: _BarbsData) raises:
     """Every check a `Mark.BARBS` render needs before it draws anything:
     four equal-length columns, at least one station, and a positive glyph
     length.
@@ -276,11 +296,11 @@ def _validate_barbs(plot: Plot) raises:
     domain before any frame exists, so a mismatched `encode_barbs()` has
     to be caught there rather than inside the drawing.
     """
-    _validate_vector_field(plot, "Plot.encode_barbs()")
-    if plot._barbs.length <= 0.0:
+    _validate_vector_field(barbs, "Plot.encode_barbs()")
+    if barbs.length <= 0.0:
         raise Error(
             "Plot.mark_barbs(): length must be positive (got "
-            + String(plot._barbs.length)
+            + String(barbs.length)
             + ")"
         )
 
@@ -289,7 +309,8 @@ def _draw_barbs_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    barbs: _BarbsData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
@@ -307,14 +328,15 @@ def _draw_barbs_layer[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_barbs` data this reads.
+        barbs: The mark's `_BarbsData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         x_scale: The frame's x-scale, already ranged onto the plot rect.
         y_scale: The y-scale this layer draws against.
         sc: This layer's scaled theme metrics.
     """
-    var n = len(plot._barbs.x)
-    var theme = plot._settings.theme
-    var length = plot._barbs.length * sc.scale
+    var n = len(barbs.x)
+    var theme = settings.theme
+    var length = barbs.length * sc.scale
     var stroke_width = sc.scale
     var empty_radius = _EMPTY_RADIUS * length
 
@@ -326,13 +348,13 @@ def _draw_barbs_layer[
     var pennants = List[Path]()
 
     for i in range(n):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+        var u = barbs.u[i]
+        var v = barbs.v[i]
         var speed = sqrt(u * u + v * v)
         var counts = _barb_counts(speed)
 
-        var px = x_scale.to_pixel(plot._barbs.x[i])
-        var py = y_scale.to_pixel(plot._barbs.y[i])
+        var px = x_scale.to_pixel(barbs.x[i])
+        var py = y_scale.to_pixel(barbs.y[i])
 
         if counts.calm:
             # Exactly where every other glyph goes: the barbs below are
@@ -353,7 +375,7 @@ def _draw_barbs_layer[
                 slot = k
                 break
         if slot < 0:
-            _barb_glyph(strokes, pennants, counts, length, plot._barbs.flip)
+            _barb_glyph(strokes, pennants, counts, length, barbs.flip)
             keys.append(key)
             slot = len(keys) - 1
 

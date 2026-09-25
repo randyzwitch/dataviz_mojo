@@ -3,6 +3,7 @@ sample point, pointing along `(u, v)` with a length proportional to
 the magnitude. The general form of `Mark.BARBS`, which draws the same
 field in the meteorologist's station notation."""
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
 from canvas.fill_rule import FillRule
@@ -18,7 +19,7 @@ from dataviz.core.arrow import (
     _ARROW_HEAD_LENGTH,
     _arrow_head_path,
 )
-from dataviz.multivariate.barbs import _validate_vector_field
+from dataviz.multivariate.barbs import _validate_vector_field, _BarbsData
 from dataviz.core.color_scale import ColorScale, _color_scale_for
 from dataviz.plot import Plot, _finished
 from dataviz.core.legend import (
@@ -62,7 +63,8 @@ def _draw_quiver_layer[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    barbs: _BarbsData,
+    settings: _ChartSettings,
     x_scale: LinearScale,
     y_scale: LinearScale,
     sc: _Scaled,
@@ -85,19 +87,19 @@ def _draw_quiver_layer[
     `v` is positive up the page and pixel y grows downward, so the
     pixel direction is `(u, -v)`.
     """
-    var n = len(plot._barbs.x)
-    var theme = plot._settings.theme
+    var n = len(barbs.x)
+    var theme = settings.theme
     var head_len = _ARROW_HEAD_LENGTH * sc.scale
     var head_half = _ARROW_HEAD_HALF_WIDTH * sc.scale
     var width = sc.line_width
     for i in range(n):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+        var u = barbs.u[i]
+        var v = barbs.v[i]
         var mag = sqrt(u * u + v * v)
         if mag <= 0.0:
             continue
-        var px = x_scale.to_pixel(plot._barbs.x[i])
-        var py = y_scale.to_pixel(plot._barbs.y[i])
+        var px = x_scale.to_pixel(barbs.x[i])
+        var py = y_scale.to_pixel(barbs.y[i])
         var ux = u / mag
         var uy = -v / mag
         var length = mag * pixels_per_unit
@@ -128,7 +130,8 @@ def _render_quiver[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    barbs: _BarbsData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -147,7 +150,8 @@ def _render_quiver[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_barbs` data this reads.
+        barbs: The mark's `_BarbsData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -161,34 +165,32 @@ def _render_quiver[
         Error: Mismatched channel lengths, empty data, or a negative
             scale.
     """
-    _validate_vector_field(plot, "Plot.encode_quiver()")
-    if plot._barbs.scale < 0.0:
+    _validate_vector_field(barbs, "Plot.encode_quiver()")
+    if barbs.scale < 0.0:
         raise Error(
             "Plot.mark_quiver(): scale must be 0 (automatic) or positive (got "
-            + String(plot._barbs.scale)
+            + String(barbs.scale)
             + ")"
         )
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var top = 0.0
-    for i in range(len(plot._barbs.u)):
-        var u = plot._barbs.u[i]
-        var v = plot._barbs.v[i]
+    for i in range(len(barbs.u)):
+        var u = barbs.u[i]
+        var v = barbs.v[i]
         top = max(top, sqrt(u * u + v * v))
-    var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, 0.0, top
-    )
+    var color_scale = _color_scale_for(theme, settings.color_domain, 0.0, top)
 
     var legend = _LegendLayout()
-    if plot._barbs.color_by_magnitude:
+    if barbs.color_by_magnitude:
         legend = _continuous_color_legend_layout(
             color_scale, theme, sc, cache=cache
         )
 
     var frame = _draw_continuous_axis_frame(
         target,
-        _data_extent(plot._barbs.x),
-        _data_extent(plot._barbs.y),
+        _data_extent(barbs.x),
+        _data_extent(barbs.y),
         theme,
         legend,
         ox0,
@@ -197,22 +199,23 @@ def _render_quiver[
         oy1,
         cache=cache,
     )
-    var pixels_per_unit = plot._barbs.scale * sc.scale
-    if plot._barbs.scale == 0.0:
+    var pixels_per_unit = barbs.scale * sc.scale
+    if barbs.scale == 0.0:
         pixels_per_unit = _auto_pixels_per_unit(
-            plot._barbs.u,
-            plot._barbs.v,
+            barbs.u,
+            barbs.v,
             abs(frame.x_scale.range_max - frame.x_scale.range_min),
         )
     _draw_quiver_layer(
         target,
-        plot,
+        barbs,
+        settings,
         frame.x_scale,
         frame.y_scale,
         frame.sc,
         pixels_per_unit,
         color_scale,
-        plot._barbs.color_by_magnitude,
+        barbs.color_by_magnitude,
     )
     _draw_continuous_color_legend_at(
         target,
@@ -227,6 +230,26 @@ def _render_quiver[
         cache=cache,
     )
     return frame.result()
+
+
+def _render_quiver_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_quiver` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_quiver(
+        target, plot._barbs, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def quiver(

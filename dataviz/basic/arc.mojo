@@ -1,3 +1,10 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin
 
 from canvas.geometry import round_to_int
@@ -58,15 +65,18 @@ def _arc_share_label(
     )
 
 
-def _arc_total(plot: Plot) raises -> Float64:
+def _arc_total(
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+) raises -> Float64:
     """Validate an arc layer and return its positive total."""
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    _require_non_negative(plot._continuous.y, "Mark.ARC")
+    _require_non_negative(continuous.y, "Mark.ARC")
     var total = 0.0
-    for v in plot._continuous.y:
+    for v in continuous.y:
         total += v
     if total <= 0.0:
         raise Error(
@@ -82,7 +92,9 @@ def _draw_arc_wedges[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     cx: Float64,
     cy: Float64,
     inner_radius: Float64,
@@ -91,18 +103,18 @@ def _draw_arc_wedges[
     mut text_requests: List[_TextRequest],
 ) raises:
     """The same wedge geometry for standalone arcs and concentric layers."""
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var palette = categorical_palette_for(theme)
     var start = -pi / 2.0
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
-        var span = (plot._continuous.y[i] / total) * 2.0 * pi
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
+        var span = (continuous.y[i] / total) * 2.0 * pi
         var end = start + span
         var color = palette[i % len(palette)]
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+                _tooltip_label(categorical.x[i], continuous.y[i])
             )
         if inner_radius > 0.0:
             target.fill_ring_sector_aa(
@@ -118,7 +130,7 @@ def _draw_arc_wedges[
                 cy,
                 (start + end) / 2.0,
                 (inner_radius + radius) / 2.0,
-                (plot._continuous.y[i] / total) * 100.0,
+                (continuous.y[i] / total) * 100.0,
                 theme,
                 sc,
                 text_requests,
@@ -130,7 +142,12 @@ def _render_arc[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -144,16 +161,16 @@ def _render_arc[
     categorical palette, and a positive inner-radius fraction selects donut
     sectors. Values must have a positive total.
     """
-    var total = _arc_total(plot)
-    var theme = plot._settings.theme
+    var total = _arc_total(mark, continuous, categorical, y_err)
+    var theme = settings.theme
     var text_requests = List[_TextRequest]()
     if (
-        plot._mark_style.donut_inner_radius_fraction < 0.0
-        or plot._mark_style.donut_inner_radius_fraction >= 1.0
+        style.donut_inner_radius_fraction < 0.0
+        or style.donut_inner_radius_fraction >= 1.0
     ):
         raise Error(
             "mark_arc(inner_radius_fraction=...) must be in [0.0, 1.0) (got "
-            + String(plot._mark_style.donut_inner_radius_fraction)
+            + String(style.donut_inner_radius_fraction)
             + ")"
         )
 
@@ -162,7 +179,7 @@ def _render_arc[
 
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._categorical.x,
+        categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -177,9 +194,18 @@ def _render_arc[
     var cx = Float64(plot_x0 + plot_x1) / 2.0
     var cy = Float64(plot_y0 + plot_y1) / 2.0
     var radius = Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
-    var inner_radius = radius * plot._mark_style.donut_inner_radius_fraction
+    var inner_radius = radius * style.donut_inner_radius_fraction
     _draw_arc_wedges(
-        target, plot, cx, cy, inner_radius, radius, total, text_requests
+        target,
+        continuous,
+        categorical,
+        settings,
+        cx,
+        cy,
+        inner_radius,
+        radius,
+        total,
+        text_requests,
     )
     var palette = categorical_palette_for(theme)
 
@@ -187,7 +213,7 @@ def _render_arc[
         _draw_legend_at(
             target,
             text_requests,
-            plot._categorical.x,
+            categorical.x,
             palette,
             legend,
             plot_x0,
@@ -199,6 +225,37 @@ def _render_arc[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_arc_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_arc` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_arc(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def pie(

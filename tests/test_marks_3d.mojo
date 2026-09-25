@@ -324,14 +324,14 @@ def test_a_stem_always_reaches_the_base_plane() raises:
     var ys: List[Float64] = [0.0, 1.0]
     var high: List[Float64] = [8.0, 9.0]
     var plot = Plot().mark_stem3d().encode_xyz(xs, ys, high)
-    var extent = _stem3d_extent(plot)
+    var extent = _stem3d_extent(plot._xyz)
     assert_equal(extent.z.min, 0.0, "the base plane is not in the range")
     assert_equal(extent.z.max, 9.0)
     # And downward stems keep the plane too, rather than each direction
     # getting its own floor.
     var low: List[Float64] = [-8.0, -9.0]
     var down = Plot().mark_stem3d().encode_xyz(xs, ys, low)
-    var below = _stem3d_extent(down)
+    var below = _stem3d_extent(down._xyz)
     assert_equal(below.z.max, 0.0, "the base plane is not in the range")
     assert_equal(below.z.min, -9.0)
 
@@ -491,7 +491,7 @@ def test_the_box_reaches_an_arrows_tip_not_just_its_tail() raises:
     var v: List[Float64] = [-2.0]
     var w: List[Float64] = [5.0]
     var plot = Plot().mark_quiver3d().encode_vectors3d(o, o, o, u, v, w)
-    var extent = _vectors3d_extent(plot)
+    var extent = _vectors3d_extent(plot._vectors3d)
     assert_equal(extent.x.max, 3.0, "the box stops short of the tip in x")
     assert_equal(extent.y.min, -2.0, "the box stops short of the tip in y")
     assert_equal(extent.z.max, 5.0, "the box stops short of the tip in z")

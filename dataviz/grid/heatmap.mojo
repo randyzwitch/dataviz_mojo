@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.geometry import snap_to_pixel_edge
@@ -218,7 +219,8 @@ def _render_heatmap[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    heatmap: _HeatmapData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -241,29 +243,27 @@ def _render_heatmap[
     names when `Theme.show_legend` is on, sized and placed by
     `_continuous_color_legend_layout`/`_draw_continuous_color_legend_at`.
     """
-    if len(plot._heatmap.x) != len(plot._heatmap.y) or len(
-        plot._heatmap.value
-    ) != len(plot._heatmap.x):
+    if len(heatmap.x) != len(heatmap.y) or len(heatmap.value) != len(heatmap.x):
         raise Error(
             "Plot.encode_heatmap(): x, y, and value must all have the same"
             " length (got "
-            + String(len(plot._heatmap.x))
+            + String(len(heatmap.x))
             + " x values, "
-            + String(len(plot._heatmap.y))
+            + String(len(heatmap.y))
             + " y values, "
-            + String(len(plot._heatmap.value))
+            + String(len(heatmap.value))
             + " values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_empty(len(plot._heatmap.x), "Plot.encode_heatmap()")
-    var x_idx = _categorical_indices(plot._heatmap.x)
-    var y_idx = _categorical_indices(plot._heatmap.y)
+    var theme = settings.theme
+    _require_non_empty(len(heatmap.x), "Plot.encode_heatmap()")
+    var x_idx = _categorical_indices(heatmap.x)
+    var y_idx = _categorical_indices(heatmap.y)
 
     var sc = _Scaled(theme)
-    var value_mm = _min_max(plot._heatmap.value)
+    var value_mm = _min_max(heatmap.value)
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, value_mm.min, value_mm.max
+        theme, settings.color_domain, value_mm.min, value_mm.max
     )
 
     # The render's shared cache serves both measurements: the legend's labels
@@ -311,8 +311,8 @@ def _render_heatmap[
     # and a column's geometry starts half a pixel before its index, so
     # the grid's outer edge lines up with the plot rect instead of
     # sitting a pixel inside it.
-    var tooltips_on = plot._settings.tooltips_on(len(plot._heatmap.x))
-    for i in range(len(plot._heatmap.x)):
+    var tooltips_on = settings.tooltips_on(len(heatmap.x))
+    for i in range(len(heatmap.x)):
         var x_start = frame.x_scale.band_start(x_idx.indices[i]) - 0.5
         var y_start = frame.y_scale.band_start(y_idx.indices[i]) - 0.5
         var x_stop = frame.x_scale.band_end(x_idx.indices[i]) - 0.5
@@ -322,15 +322,15 @@ def _render_heatmap[
         # A cell with no value is left as background rather than given a
         # color off the ramp, which would read as a measurement at one
         # end of the scale (#367).
-        if isnan(plot._heatmap.value[i]):
+        if isnan(heatmap.value[i]):
             continue
-        var color = color_scale.color_at(plot._heatmap.value[i])
+        var color = color_scale.color_at(heatmap.value[i])
         if tooltips_on:
             target.begin_annotated_group(
                 _cell_tooltip_label(
-                    plot._heatmap.x[i],
-                    plot._heatmap.y[i],
-                    plot._heatmap.value[i],
+                    heatmap.x[i],
+                    heatmap.y[i],
+                    heatmap.value[i],
                 )
             )
         target.fill_rect(
@@ -357,6 +357,26 @@ def _render_heatmap[
     )
 
     return frame.result()
+
+
+def _render_heatmap_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_heatmap` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_heatmap(
+        target, plot._heatmap, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def heatmap(

@@ -14,7 +14,8 @@
 # - a line-only program (the shared continuous path) must define no
 #   `_render_*` function from any mark package but `basic`;
 # - a heatmap-only program must define `grid::heatmap::_render_heatmap`
-#   and no other mark renderer. That is also this check's positive
+#   (and its `_render_heatmap_plot` adapter, #826) and no other mark
+#   renderer. That is also this check's positive
 #   control: it cannot pass by grepping for a name that never appears.
 set -euo pipefail
 
@@ -67,9 +68,9 @@ if [ -n "$found" ]; then
     status=1
 fi
 found="$(renderers "$WORK/heatmap_only.ll")"
-if [ "$found" != "grid::heatmap::_render_heatmap" ]; then
+if [ "$found" != "$(printf 'grid::heatmap::_render_heatmap\ngrid::heatmap::_render_heatmap_plot')" ]; then
     echo "check_mark_isolation: a heatmap-only program should compile" >&2
-    echo "grid::heatmap::_render_heatmap and no other renderer; it compiled:" >&2
+    echo "grid::heatmap::_render_heatmap, its _plot adapter, and no other renderer; it compiled:" >&2
     printf '  %s\n' ${found:-(none)} >&2
     status=1
 fi

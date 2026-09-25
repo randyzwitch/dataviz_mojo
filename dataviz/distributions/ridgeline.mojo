@@ -1,3 +1,9 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _DistributionData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
 from canvas.text.font_cache import FontCache
@@ -23,7 +29,10 @@ def _render_ridgeline[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    categorical: _CategoricalData,
+    distribution: _DistributionData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -37,17 +46,17 @@ def _render_ridgeline[
     scaling multiplies height by `sqrt(n / max_n)`; a positive bandwidth
     override applies to every category.
     """
-    var theme = plot._settings.theme
-    if plot._distribution.kde_bandwidth_override < 0.0:
+    var theme = settings.theme
+    if distribution.kde_bandwidth_override < 0.0:
         raise Error(
             "Plot.mark_ridgeline(): bandwidth must be positive (got "
-            + String(plot._distribution.kde_bandwidth_override)
+            + String(distribution.kde_bandwidth_override)
             + ")"
         )
 
     var all_values = List[Float64]()
     var max_n = 0
-    for series in plot._distribution.values:
+    for series in distribution.values:
         if len(series) > max_n:
             max_n = len(series)
         for v in series:
@@ -56,7 +65,7 @@ def _render_ridgeline[
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -68,20 +77,20 @@ def _render_ridgeline[
     )
 
     var row_height = frame.y_scale.bandwidth()
-    var max_rise = row_height * plot._mark_style.ridgeline_overlap
+    var max_rise = row_height * style.ridgeline_overlap
 
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
-        var values = plot._distribution.values[i].copy()
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
+        var values = distribution.values[i].copy()
         var baseline_y = frame.y_scale.band_start(i) + row_height
         # Keep the bottom curve's closing edge off the axis line.
         if abs(baseline_y - Float64(frame.py1)) < 0.5:
             baseline_y -= 1.0
         var count_factor = sqrt(Float64(len(values)) / Float64(max_n)) if (
-            plot._distribution.kde_scale_by_count and max_n > 0
+            distribution.kde_scale_by_count and max_n > 0
         ) else 1.0
         var bandwidth = (
-            plot._distribution.kde_bandwidth_override if plot._distribution.kde_bandwidth_override
+            distribution.kde_bandwidth_override if distribution.kde_bandwidth_override
             > 0.0 else _kde_bandwidth(values)
         )
         var mm = _min_max(values)
@@ -110,7 +119,7 @@ def _render_ridgeline[
         path.close()
         if tooltips_on:
             target.begin_annotated_group(
-                plot._categorical.x[i] + ": n=" + String(len(values))
+                categorical.x[i] + ": n=" + String(len(values))
             )
         target.fill_path_aa(path, theme.mark_color, fill_rule=FillRule.NONZERO)
         # Outline the curve in the background color. Rows deliberately
@@ -129,6 +138,35 @@ def _render_ridgeline[
             target.end_annotated_group()
 
     return frame.result()
+
+
+def _render_ridgeline_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_ridgeline` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_ridgeline(
+        target,
+        plot._categorical,
+        plot._distribution,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def ridgeline(

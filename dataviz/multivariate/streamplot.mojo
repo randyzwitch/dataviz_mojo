@@ -18,6 +18,7 @@ than on the stroking. The three are `_rk4_step`, `_seed_order` and
 pins both against fields whose exact streamlines are known.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
 from canvas.fill_rule import FillRule
@@ -542,7 +543,8 @@ def _render_streamplot[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    stream: _StreamData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -561,7 +563,8 @@ def _render_streamplot[
 
     Args:
         target: Where to draw.
-        plot: The chart, whose `_stream` data this reads.
+        stream: The mark's `_StreamData` columns.
+        settings: The settings every mark shares: theme, axis transforms and overrides, tooltip policy.
         ox0: Left edge of the outer bounds.
         oy0: Top edge.
         ox1: Right edge.
@@ -574,14 +577,14 @@ def _render_streamplot[
     Raises:
         Error: The grid is malformed; see `_even_spacing`/`_build_field`.
     """
-    ref data = plot._stream
+    ref data = stream
     var lines = _streamlines(data)
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var nx = len(data.x)
     var ny = len(data.y)
     var color_scale = _color_scale_for(
-        theme, plot._settings.color_domain, 0.0, _max_magnitude(data)
+        theme, settings.color_domain, 0.0, _max_magnitude(data)
     )
 
     var legend = _LegendLayout()
@@ -676,6 +679,26 @@ def _render_streamplot[
         cache=cache,
     )
     return frame.result()
+
+
+def _render_streamplot_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_streamplot` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_streamplot(
+        target, plot._stream, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def streamplot(

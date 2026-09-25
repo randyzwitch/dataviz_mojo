@@ -1,3 +1,4 @@
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.geometry import round_to_int
@@ -12,6 +13,7 @@ from dataviz.core.color_scale import categorical_palette_for
 from dataviz.hierarchy_marks.hierarchy import (
     _HierarchyIndex,
     _build_hierarchy_index,
+    _HierarchyData,
 )
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _finished
@@ -141,7 +143,8 @@ def _render_treemap[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    hierarchy: _HierarchyData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -157,25 +160,25 @@ def _render_treemap[
     Every value must be non-negative and the root's subtree total
     positive, the same validation `Mark.SUNBURST` applies.
     """
-    if len(plot._hierarchy.parent_ids) != len(plot._hierarchy.ids) or len(
-        plot._hierarchy.values
-    ) != len(plot._hierarchy.ids):
+    if len(hierarchy.parent_ids) != len(hierarchy.ids) or len(
+        hierarchy.values
+    ) != len(hierarchy.ids):
         raise Error(
             "Plot.encode_hierarchy(): ids, parent_ids, and values must all have"
             " the same length (got "
-            + String(len(plot._hierarchy.ids))
+            + String(len(hierarchy.ids))
             + " ids, "
-            + String(len(plot._hierarchy.parent_ids))
+            + String(len(hierarchy.parent_ids))
             + " parent_ids, "
-            + String(len(plot._hierarchy.values))
+            + String(len(hierarchy.values))
             + " values)"
         )
 
-    var theme = plot._settings.theme
-    _require_non_negative(plot._hierarchy.values, "Mark.TREEMAP")
+    var theme = settings.theme
+    _require_non_negative(hierarchy.values, "Mark.TREEMAP")
 
     var idx = _build_hierarchy_index(
-        plot._hierarchy.ids, plot._hierarchy.parent_ids, plot._hierarchy.values
+        hierarchy.ids, hierarchy.parent_ids, hierarchy.values
     )
     if idx.subtree_value[idx.root] <= 0.0:
         raise Error(
@@ -185,7 +188,7 @@ def _render_treemap[
             + ")"
         )
 
-    var n = len(plot._hierarchy.ids)
+    var n = len(hierarchy.ids)
     var branch = List[Int](capacity=n)
     for _ in range(n):
         branch.append(-1)
@@ -196,7 +199,7 @@ def _render_treemap[
     var text_requests = List[_TextRequest]()
     var legend_labels = List[String]()
     for c in root_children:
-        legend_labels.append(plot._hierarchy.ids[c])
+        legend_labels.append(hierarchy.ids[c])
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
@@ -224,11 +227,11 @@ def _render_treemap[
         plot_y1,
         0,
         idx,
-        plot._hierarchy.ids,
+        hierarchy.ids,
         branch,
         palette,
         theme,
-        plot._settings.tooltips_on(leaves),
+        settings.tooltips_on(leaves),
         sc,
         text_requests,
     )
@@ -249,6 +252,26 @@ def _render_treemap[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_treemap_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_treemap` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_treemap(
+        target, plot._hierarchy, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def treemap(

@@ -25,6 +25,7 @@ keeps a full-size head on a shaft with no length, which is exactly when
 a reader should distrust the picture anyway.
 """
 
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
 from canvas.color import Color
@@ -50,6 +51,7 @@ from dataviz.spatial.scatter3d import (
     _draw_box,
     _tick_labels,
     _validate_xyz,
+    _Xyz,
 )
 from dataviz.core.mark import Mark, _require_mark
 
@@ -82,19 +84,19 @@ struct _Vectors3D(Copyable, Movable):
         self.azim = -60.0
 
 
-def _validate_vectors3d(plot: Plot) raises:
+def _validate_vectors3d(vectors3d: _Vectors3D) raises:
     """Six equal-length columns, at least one arrow.
 
     Raises:
         Error: The columns disagree in length, or there are no arrows.
     """
-    var n = len(plot._vectors3d.x)
+    var n = len(vectors3d.x)
     for pair in [
-        (len(plot._vectors3d.y), String("y")),
-        (len(plot._vectors3d.z), String("z")),
-        (len(plot._vectors3d.u), String("u")),
-        (len(plot._vectors3d.v), String("v")),
-        (len(plot._vectors3d.w), String("w")),
+        (len(vectors3d.y), String("y")),
+        (len(vectors3d.z), String("z")),
+        (len(vectors3d.u), String("u")),
+        (len(vectors3d.v), String("v")),
+        (len(vectors3d.w), String("w")),
     ]:
         if pair[0] != n:
             raise Error(
@@ -109,7 +111,7 @@ def _validate_vectors3d(plot: Plot) raises:
     _require_non_empty(n, "Plot.encode_vectors3d()")
 
 
-def _vectors3d_extent(plot: Plot) raises -> _Extent3D:
+def _vectors3d_extent(vectors3d: _Vectors3D) raises -> _Extent3D:
     """The three ranges, reaching every arrow's tip as well as its tail.
 
     An arrow that left the box would be read as pointing at something
@@ -118,13 +120,13 @@ def _vectors3d_extent(plot: Plot) raises -> _Extent3D:
     var xs = List[Float64]()
     var ys = List[Float64]()
     var zs = List[Float64]()
-    for i in range(len(plot._vectors3d.x)):
-        xs.append(plot._vectors3d.x[i])
-        xs.append(plot._vectors3d.x[i] + plot._vectors3d.u[i])
-        ys.append(plot._vectors3d.y[i])
-        ys.append(plot._vectors3d.y[i] + plot._vectors3d.v[i])
-        zs.append(plot._vectors3d.z[i])
-        zs.append(plot._vectors3d.z[i] + plot._vectors3d.w[i])
+    for i in range(len(vectors3d.x)):
+        xs.append(vectors3d.x[i])
+        xs.append(vectors3d.x[i] + vectors3d.u[i])
+        ys.append(vectors3d.y[i])
+        ys.append(vectors3d.y[i] + vectors3d.v[i])
+        zs.append(vectors3d.z[i])
+        zs.append(vectors3d.z[i] + vectors3d.w[i])
     return _Extent3D(_min_max(xs), _min_max(ys), _min_max(zs))
 
 
@@ -182,17 +184,17 @@ def _draw_arrowhead[
     target.fill_path_aa(head, color)
 
 
-def _stem3d_extent(plot: Plot) raises -> _Extent3D:
+def _stem3d_extent(xyz: _Xyz) raises -> _Extent3D:
     """The three ranges, with z always reaching the base plane.
 
     A stem is read as a length from that plane, so a range starting at
     the lowest point would draw every stem from a floor that is not
     zero -- the same reason a bar's base is fixed.
     """
-    var zs = _min_max(plot._xyz.z)
+    var zs = _min_max(xyz.z)
     return _Extent3D(
-        _min_max(plot._xyz.x),
-        _min_max(plot._xyz.y),
+        _min_max(xyz.x),
+        _min_max(xyz.y),
         MinMax(
             zs.min if zs.min < 0.0 else 0.0, zs.max if zs.max > 0.0 else 0.0
         ),
@@ -203,7 +205,8 @@ def _render_stem3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    xyz: _Xyz,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -229,16 +232,16 @@ def _render_stem3d[
     becomes the whole of the occlusion the moment markers differ in
     color or size.
     """
-    _validate_xyz(plot)
-    var theme = plot._settings.theme
+    _validate_xyz(xyz)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._xyz.elev, plot._xyz.azim),
-        _stem3d_extent(plot),
+        Camera3D(xyz.elev, xyz.azim),
+        _stem3d_extent(xyz),
         px0,
         py0,
         px1,
@@ -248,30 +251,49 @@ def _render_stem3d[
     var text = List[_TextRequest]()
     _tick_labels(frame, theme, sc, text)
 
-    var n = len(plot._xyz.x)
+    var n = len(xyz.x)
     for i in range(n):
-        var foot = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], 0.0)
-        var head = frame.to_pixel(
-            plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i]
-        )
+        var foot = frame.to_pixel(xyz.x[i], xyz.y[i], 0.0)
+        var head = frame.to_pixel(xyz.x[i], xyz.y[i], xyz.z[i])
         var stem = Path()
         stem.move_to(foot[0], foot[1])
         stem.line_to(head[0], head[1])
         target.stroke_path_aa(stem, theme.mark_color, width=sc.line_width)
 
-    var order = _depth_order(plot, frame)
+    var order = _depth_order(xyz, frame)
     for k in range(len(order)):
         var i = order[k]
-        var at = frame.to_pixel(plot._xyz.x[i], plot._xyz.y[i], plot._xyz.z[i])
+        var at = frame.to_pixel(xyz.x[i], xyz.y[i], xyz.z[i])
         target.fill_circle_aa(at[0], at[1], sc.point_radius, theme.mark_color)
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_stem3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_stem3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_stem3d(
+        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def _render_quiver3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    vectors3d: _Vectors3D,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -286,16 +308,16 @@ def _render_quiver3d[
     an order to matter: two shafts that cross in projection cross
     visibly either way, and that is what two crossing arrows look like.
     """
-    _validate_vectors3d(plot)
-    var theme = plot._settings.theme
+    _validate_vectors3d(vectors3d)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
     var px1 = ox1 - sc.margin_right
     var py1 = oy1 - sc.margin_bottom
     var frame = _fit_frame3d(
-        Camera3D(plot._vectors3d.elev, plot._vectors3d.azim),
-        _vectors3d_extent(plot),
+        Camera3D(vectors3d.elev, vectors3d.azim),
+        _vectors3d_extent(vectors3d),
         px0,
         py0,
         px1,
@@ -306,14 +328,14 @@ def _render_quiver3d[
     _tick_labels(frame, theme, sc, text)
 
     var head_size = sc.point_radius * 2.4
-    for i in range(len(plot._vectors3d.x)):
+    for i in range(len(vectors3d.x)):
         var tail = frame.to_pixel(
-            plot._vectors3d.x[i], plot._vectors3d.y[i], plot._vectors3d.z[i]
+            vectors3d.x[i], vectors3d.y[i], vectors3d.z[i]
         )
         var tip = frame.to_pixel(
-            plot._vectors3d.x[i] + plot._vectors3d.u[i],
-            plot._vectors3d.y[i] + plot._vectors3d.v[i],
-            plot._vectors3d.z[i] + plot._vectors3d.w[i],
+            vectors3d.x[i] + vectors3d.u[i],
+            vectors3d.y[i] + vectors3d.v[i],
+            vectors3d.z[i] + vectors3d.w[i],
         )
         var shaft = Path()
         shaft.move_to(tail[0], tail[1])
@@ -329,6 +351,26 @@ def _render_quiver3d[
             theme.mark_color,
         )
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_quiver3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_quiver3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_quiver3d(
+        target, plot._vectors3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 struct _Ribbon3D(Copyable, Movable):
@@ -360,20 +402,20 @@ struct _Ribbon3D(Copyable, Movable):
         self.azim = -60.0
 
 
-def _validate_ribbon3d(plot: Plot) raises:
+def _validate_ribbon3d(ribbon3d: _Ribbon3D) raises:
     """Six columns of one length, and at least two samples.
 
     Raises:
         Error: The columns disagree, or there are fewer than two
             samples to make a quad from.
     """
-    var n = len(plot._ribbon3d.x1)
+    var n = len(ribbon3d.x1)
     for pair in [
-        (len(plot._ribbon3d.y1), String("y1")),
-        (len(plot._ribbon3d.z1), String("z1")),
-        (len(plot._ribbon3d.x2), String("x2")),
-        (len(plot._ribbon3d.y2), String("y2")),
-        (len(plot._ribbon3d.z2), String("z2")),
+        (len(ribbon3d.y1), String("y1")),
+        (len(ribbon3d.z1), String("z1")),
+        (len(ribbon3d.x2), String("x2")),
+        (len(ribbon3d.y2), String("y2")),
+        (len(ribbon3d.z2), String("z2")),
     ]:
         if pair[0] != n:
             raise Error(
@@ -398,7 +440,8 @@ def _render_fill_between3d[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    ribbon3d: _Ribbon3D,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -426,8 +469,8 @@ def _render_fill_between3d[
     overnight -- but nothing here would notice if it broke, so do not
     read the digest entry as covering it.
     """
-    _validate_ribbon3d(plot)
-    var theme = plot._settings.theme
+    _validate_ribbon3d(ribbon3d)
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var px0 = ox0 + sc.margin_left
     var py0 = oy0 + sc.margin_top
@@ -436,15 +479,15 @@ def _render_fill_between3d[
     var xs = List[Float64]()
     var ys = List[Float64]()
     var zs = List[Float64]()
-    for i in range(len(plot._ribbon3d.x1)):
-        xs.append(plot._ribbon3d.x1[i])
-        xs.append(plot._ribbon3d.x2[i])
-        ys.append(plot._ribbon3d.y1[i])
-        ys.append(plot._ribbon3d.y2[i])
-        zs.append(plot._ribbon3d.z1[i])
-        zs.append(plot._ribbon3d.z2[i])
+    for i in range(len(ribbon3d.x1)):
+        xs.append(ribbon3d.x1[i])
+        xs.append(ribbon3d.x2[i])
+        ys.append(ribbon3d.y1[i])
+        ys.append(ribbon3d.y2[i])
+        zs.append(ribbon3d.z1[i])
+        zs.append(ribbon3d.z2[i])
     var frame = _fit_frame3d(
-        Camera3D(plot._ribbon3d.elev, plot._ribbon3d.azim),
+        Camera3D(ribbon3d.elev, ribbon3d.azim),
         _Extent3D(_min_max(xs), _min_max(ys), _min_max(zs)),
         px0,
         py0,
@@ -457,33 +500,53 @@ def _render_fill_between3d[
 
     var mesh = _Mesh()
     var color = theme.mark_color
-    for i in range(len(plot._ribbon3d.x1) - 1):
+    for i in range(len(ribbon3d.x1) - 1):
         mesh.add_quad(
             frame,
             _Vertex(
-                plot._ribbon3d.x1[i],
-                plot._ribbon3d.y1[i],
-                plot._ribbon3d.z1[i],
+                ribbon3d.x1[i],
+                ribbon3d.y1[i],
+                ribbon3d.z1[i],
             ),
             _Vertex(
-                plot._ribbon3d.x2[i],
-                plot._ribbon3d.y2[i],
-                plot._ribbon3d.z2[i],
+                ribbon3d.x2[i],
+                ribbon3d.y2[i],
+                ribbon3d.z2[i],
             ),
             _Vertex(
-                plot._ribbon3d.x2[i + 1],
-                plot._ribbon3d.y2[i + 1],
-                plot._ribbon3d.z2[i + 1],
+                ribbon3d.x2[i + 1],
+                ribbon3d.y2[i + 1],
+                ribbon3d.z2[i + 1],
             ),
             _Vertex(
-                plot._ribbon3d.x1[i + 1],
-                plot._ribbon3d.y1[i + 1],
-                plot._ribbon3d.z1[i + 1],
+                ribbon3d.x1[i + 1],
+                ribbon3d.y1[i + 1],
+                ribbon3d.z1[i + 1],
             ),
             color,
         )
     mesh.draw(target)
     return _RenderResult(text^, px0, py0, px1, py1)
+
+
+def _render_fill_between3d_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_fill_between3d` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_fill_between3d(
+        target, plot._ribbon3d, plot._settings, ox0, oy0, ox1, oy1, cache=cache
+    )
 
 
 def stem3d(

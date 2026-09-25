@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
@@ -54,7 +56,9 @@ struct _GroupedBarData(Copyable, Movable):
         self.percent = False
 
 
-def _validate_grouped_bar_series(plot: Plot) raises:
+def _validate_grouped_bar_series(
+    mark: Mark, grouped_bar: _GroupedBarData, categorical: _CategoricalData
+) raises:
     """`Plot.encode_grouped_bar()`'s deferred length checks:
     `series_names`/`values` the same length, and every `values[j]` the
     same length as `categories` (deferred to render() time; see that
@@ -64,63 +68,63 @@ def _validate_grouped_bar_series(plot: Plot) raises:
     bump.mojo, and streamgraph.mojo, which
     draw from the same data.
     """
-    if len(plot._grouped_bar.series_names) != len(plot._grouped_bar.values):
+    if len(grouped_bar.series_names) != len(grouped_bar.values):
         raise Error(
             "Plot.encode_grouped_bar(): series_names and values must have"
             " the same length (got "
-            + String(len(plot._grouped_bar.series_names))
+            + String(len(grouped_bar.series_names))
             + " and "
-            + String(len(plot._grouped_bar.values))
+            + String(len(grouped_bar.values))
             + ")"
         )
-    for j in range(len(plot._grouped_bar.values)):
-        if len(plot._grouped_bar.values[j]) != len(plot._categorical.x):
+    for j in range(len(grouped_bar.values)):
+        if len(grouped_bar.values[j]) != len(categorical.x):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' values must"
                 " have the same length as categories (series "
                 + String(j)
                 + " has "
-                + String(len(plot._grouped_bar.values[j]))
+                + String(len(grouped_bar.values[j]))
                 + ", categories has "
-                + String(len(plot._categorical.x))
+                + String(len(categorical.x))
                 + ")"
             )
-    _require_non_empty(len(plot._categorical.x), "Plot.encode_grouped_bar()")
+    _require_non_empty(len(categorical.x), "Plot.encode_grouped_bar()")
     _require_non_empty(
-        len(plot._grouped_bar.series_names), "Plot.encode_grouped_bar()"
+        len(grouped_bar.series_names), "Plot.encode_grouped_bar()"
     )
 
     # errors: shaped like values, Mark.GROUPED_BAR only among the
     # marks that share this validator.
-    if len(plot._grouped_bar.errors) == 0:
+    if len(grouped_bar.errors) == 0:
         return
-    if not (plot._mark == Mark.GROUPED_BAR):
+    if not (mark == Mark.GROUPED_BAR):
         raise Error(
             "Plot.encode_grouped_bar(): errors is only supported for"
             " Mark.GROUPED_BAR today"
         )
-    if len(plot._grouped_bar.errors) != len(plot._grouped_bar.values):
+    if len(grouped_bar.errors) != len(grouped_bar.values):
         raise Error(
             "Plot.encode_grouped_bar(): errors and values must have the"
             " same length (got "
-            + String(len(plot._grouped_bar.errors))
+            + String(len(grouped_bar.errors))
             + " and "
-            + String(len(plot._grouped_bar.values))
+            + String(len(grouped_bar.values))
             + ")"
         )
-    for j in range(len(plot._grouped_bar.errors)):
-        if len(plot._grouped_bar.errors[j]) != len(plot._categorical.x):
+    for j in range(len(grouped_bar.errors)):
+        if len(grouped_bar.errors[j]) != len(categorical.x):
             raise Error(
                 "Plot.encode_grouped_bar(): every series' errors must have"
                 " the same length as categories (series "
                 + String(j)
                 + " has "
-                + String(len(plot._grouped_bar.errors[j]))
+                + String(len(grouped_bar.errors[j]))
                 + ", categories has "
-                + String(len(plot._categorical.x))
+                + String(len(categorical.x))
                 + ")"
             )
-        for v in plot._grouped_bar.errors[j]:
+        for v in grouped_bar.errors[j]:
             if v < 0.0:
                 raise Error(
                     "Plot.encode_grouped_bar(): errors values must be >= 0"
@@ -131,20 +135,25 @@ def _validate_grouped_bar_series(plot: Plot) raises:
 
 
 def _series_legend_reserve(
-    plot: Plot, sc: _Scaled, available_width: Int, *, mut cache: FontCache
+    grouped_bar: _GroupedBarData,
+    settings: _ChartSettings,
+    sc: _Scaled,
+    available_width: Int,
+    *,
+    mut cache: FontCache,
 ) raises -> _LegendLayout:
     """How much room the series-name legend needs and on which edge, or an
     inactive layout when `Theme.show_legend` is off. Insets the outer
     bounds before the axis frame is built, the same
     shrink-the-rect-from-outside pattern `_apply_labels` uses.
     """
-    if not plot._settings.theme.show_legend:
+    if not settings.theme.show_legend:
         return _LegendLayout()
     return _legend_layout(
-        plot._grouped_bar.series_names,
+        grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
-        plot._settings.theme,
+        settings.theme,
         available_width,
         cache=cache,
     )
@@ -155,7 +164,7 @@ def _draw_series_legend[
 ](
     mut target: T,
     mut text_requests: List[_TextRequest],
-    plot: Plot,
+    grouped_bar: _GroupedBarData,
     sc: _Scaled,
     palette: List[Color],
     legend: _LegendLayout,
@@ -174,7 +183,7 @@ def _draw_series_legend[
     _draw_legend_at(
         target,
         text_requests,
-        plot._grouped_bar.series_names,
+        grouped_bar.series_names,
         palette,
         legend,
         plot_x0,
@@ -186,20 +195,20 @@ def _draw_series_legend[
     )
 
 
-def _grouped_bar_domain_data(plot: Plot) -> List[Float64]:
-    """Every `plot._grouped_bar.values[j][i]`, widened to that series'
+def _grouped_bar_domain_data(grouped_bar: _GroupedBarData) -> List[Float64]:
+    """Every `grouped_bar.values[j][i]`, widened to that series'
     error-bar endpoints (`values[j][i] +/- errors[j][i]`) when `errors`
     is set -- so the y-domain spans everything `_draw_grouped_bars`
     actually draws, the same pattern `_bar_y_domain_data` (bar.mojo) uses
     for `Mark.BAR`.
     """
-    var has_errors = len(plot._grouped_bar.errors) > 0
+    var has_errors = len(grouped_bar.errors) > 0
     var domain_data = List[Float64]()
-    for j in range(len(plot._grouped_bar.values)):
-        for i in range(len(plot._grouped_bar.values[j])):
-            var v = plot._grouped_bar.values[j][i]
+    for j in range(len(grouped_bar.values)):
+        for i in range(len(grouped_bar.values[j])):
+            var v = grouped_bar.values[j][i]
             if has_errors:
-                var err = plot._grouped_bar.errors[j][i]
+                var err = grouped_bar.errors[j][i]
                 domain_data.append(v - err)
                 domain_data.append(v + err)
             else:
@@ -211,7 +220,9 @@ def _draw_grouped_bars[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     baseline_edge: Int,
@@ -239,23 +250,21 @@ def _draw_grouped_bars[
     sub-bar's own series color, the same "whisker first, mark on top"
     order `_draw_bar_rects` uses for `Mark.BAR`.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(grouped_bar.series_names)
     var baseline = _axis_pixel_f(value_scale, 0.0)
     var sub_size = band_scale.bandwidth() / Float64(n_series)
-    var has_errors = len(plot._grouped_bar.errors) > 0
+    var has_errors = len(grouped_bar.errors) > 0
     var cap_half = sc.error_bar_cap_width
 
-    var tooltips_on = plot._settings.tooltips_on(
-        n_series * len(plot._categorical.x)
-    )
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(n_series * len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_start = band_scale.band_start(i)
         for j in range(n_series):
             var near = band_start + Float64(j) * sub_size
             var far = band_start + Float64(j + 1) * sub_size
-            var value = plot._grouped_bar.values[j][i]
+            var value = grouped_bar.values[j][i]
             var extent = _pull_off_axis_line_f(
                 baseline,
                 _axis_pixel_f(value_scale, value),
@@ -265,13 +274,13 @@ def _draw_grouped_bars[
             if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot._categorical.x[i],
-                        plot._grouped_bar.series_names[j],
+                        categorical.x[i],
+                        grouped_bar.series_names[j],
                         value,
                     )
                 )
             if has_errors:
-                var err = plot._grouped_bar.errors[j][i]
+                var err = grouped_bar.errors[j][i]
                 var center_j = (near + far) / 2.0
                 var py_hi = _axis_pixel_f(value_scale, value + err)
                 var py_lo = _axis_pixel_f(value_scale, value - err)
@@ -327,7 +336,10 @@ def _render_grouped_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -350,18 +362,20 @@ def _render_grouped_bar[
     `Theme.show_data_labels` draws each sub-bar's value above (or below,
     for a negative value) it, centered on the sub-bar's width.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
-    var y_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
+    var theme = settings.theme
+    var y_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(grouped_bar))
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
+    var legend = _series_legend_reserve(
+        grouped_bar, settings, sc, ox1 - ox0, cache=cache
+    )
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,
@@ -374,7 +388,9 @@ def _render_grouped_bar[
     var palette = categorical_palette_for(theme)
     _draw_grouped_bars(
         target,
-        plot,
+        grouped_bar,
+        categorical,
+        settings,
         frame.x_scale,
         frame.y_scale,
         frame.py1,
@@ -387,7 +403,7 @@ def _render_grouped_bar[
         _draw_series_legend(
             target,
             frame.text_requests,
-            plot,
+            grouped_bar,
             sc,
             palette,
             legend,
@@ -406,7 +422,10 @@ def _render_horizontal_grouped_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -429,18 +448,20 @@ def _render_horizontal_grouped_bar[
     `frame.y_scale.range_max` for the same corner because there `y_scale`
     is the continuous scale.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
-    var x_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(plot))
+    var theme = settings.theme
+    var x_scale = _zero_baseline_y_extent(_grouped_bar_domain_data(grouped_bar))
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
-    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
+    var legend = _series_legend_reserve(
+        grouped_bar, settings, sc, ox1 - ox0, cache=cache
+    )
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,
@@ -453,7 +474,9 @@ def _render_horizontal_grouped_bar[
     var palette = categorical_palette_for(theme)
     _draw_grouped_bars(
         target,
-        plot,
+        grouped_bar,
+        categorical,
+        settings,
         frame.y_scale,
         frame.x_scale,
         frame.px0,
@@ -466,7 +489,7 @@ def _render_horizontal_grouped_bar[
         _draw_series_legend(
             target,
             frame.text_requests,
-            plot,
+            grouped_bar,
             sc,
             palette,
             legend,
@@ -668,7 +691,10 @@ def _render_grouped_bar_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -678,8 +704,57 @@ def _render_grouped_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.GROUPED_BAR`'s renderer, the one its setter binds: `_render_horizontal_grouped_bar`
     when the plot is horizontal, `_render_grouped_bar` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_grouped_bar(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            mark,
+            grouped_bar,
+            categorical,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_grouped_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_grouped_bar(
+        target,
+        mark,
+        grouped_bar,
+        categorical,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_grouped_bar_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_grouped_bar_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_grouped_bar_oriented(
+        target,
+        plot._mark,
+        plot._grouped_bar,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

@@ -1,3 +1,10 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+)
+from dataviz.core.mark import Mark
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.path import Path
@@ -30,7 +37,9 @@ def _draw_lollipop_stems[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     baseline_edge: Int,
@@ -55,17 +64,17 @@ def _draw_lollipop_stems[
     `_pull_off_axis_line`'s bare stem extent) so the label clears the
     dot regardless of which end is the "far" one for a negative value.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
     var baseline = value_scale.to_pixel(0.0)
     var baseline_on_axis_line = abs(baseline - Float64(baseline_edge)) < 0.5
     var band_size = band_scale.bandwidth()
 
-    var tooltips_on = plot._settings.tooltips_on(len(plot._categorical.x))
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_pos = band_scale.band_start(i)
         var center = band_scale.center(i)
-        var value = value_scale.to_pixel(plot._continuous.y[i])
+        var value = value_scale.to_pixel(continuous.y[i])
         var stem_from = (
             baseline
             + orient.baseline_pull() if (
@@ -74,7 +83,7 @@ def _draw_lollipop_stems[
         )
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+                _tooltip_label(categorical.x[i], continuous.y[i])
             )
         target.stroke_path_aa(
             orient.value_stem_path(stem_from, value, center),
@@ -93,14 +102,14 @@ def _draw_lollipop_stems[
         if theme.show_data_labels:
             var extent = _pull_off_axis_line_f(
                 _axis_pixel_f(value_scale, 0.0),
-                _axis_pixel_f(value_scale, plot._continuous.y[i]),
+                _axis_pixel_f(value_scale, continuous.y[i]),
                 Float64(baseline_edge),
             )
             var padded_extent = _BaselineRectF(
                 extent.y - Float64(radius),
                 extent.height + 2.0 * Float64(radius),
             )
-            var label_value = plot._continuous.y[i]
+            var label_value = continuous.y[i]
             var at = orient.outside_band_label(
                 padded_extent,
                 band_pos,
@@ -130,7 +139,11 @@ def _render_lollipop[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -148,15 +161,13 @@ def _render_lollipop[
     `Mark.LINE`/`AREA` do; only the point's center, passed to the
     `Int`-coordinate `fill_circle_aa`, is rounded.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
-    var y_scale = _zero_baseline_y_extent(plot._continuous.y)
+    var theme = settings.theme
+    var y_scale = _zero_baseline_y_extent(continuous.y)
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -168,7 +179,9 @@ def _render_lollipop[
 
     _draw_lollipop_stems(
         target,
-        plot,
+        continuous,
+        categorical,
+        settings,
         frame.x_scale,
         frame.y_scale,
         frame.py1,
@@ -185,7 +198,11 @@ def _render_horizontal_lollipop[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -202,15 +219,13 @@ def _render_horizontal_lollipop[
     `_render_lollipop`, for the reasons in `_render_horizontal_bar`'s
     docstring (bar.mojo).
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
-    var x_scale = _zero_baseline_y_extent(plot._continuous.y)
+    var theme = settings.theme
+    var x_scale = _zero_baseline_y_extent(continuous.y)
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -222,7 +237,9 @@ def _render_horizontal_lollipop[
 
     _draw_lollipop_stems(
         target,
-        plot,
+        continuous,
+        categorical,
+        settings,
         frame.y_scale,
         frame.x_scale,
         frame.px0,
@@ -382,7 +399,11 @@ def _render_lollipop_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -392,8 +413,60 @@ def _render_lollipop_oriented[
 ) raises -> _RenderResult:
     """`Mark.LOLLIPOP`'s renderer, the one its setter binds: `_render_horizontal_lollipop`
     when the plot is horizontal, `_render_lollipop` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_lollipop(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            mark,
+            continuous,
+            categorical,
+            y_err,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_lollipop(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_lollipop(
+        target,
+        mark,
+        continuous,
+        categorical,
+        y_err,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_lollipop_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_lollipop_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_lollipop_oriented(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

@@ -1,3 +1,10 @@
+from dataviz.core.plot_fields import (
+    _ChannelData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
 from canvas.vector.draw_target import DrawTarget
@@ -161,7 +168,12 @@ def _render_single_axis[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    channels: _ChannelData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -176,30 +188,28 @@ def _render_single_axis[
     legends) unchanged through a degenerate `y_scale` whose
     `range_min == range_max == point_y`: `LinearScale.to_pixel` collapses
     to a constant `range_min` when the range span is zero, so every point
-    lands on the same row regardless of `plot._continuous.y[i]`.
+    lands on the same row regardless of `continuous.y[i]`.
     `encode_single_axis()` fills `_continuous.y` with one placeholder `0.0` per
     row so the loop has a same-length list to index.
     """
     _validate_continuous_encoding(
-        plot._continuous,
-        plot._channels,
-        plot._y_err,
-        plot._mark,
+        continuous,
+        channels,
+        y_err,
+        mark,
         "Plot.encode_single_axis()",
     )
-    _require_non_empty(len(plot._continuous.x), "Plot.encode_single_axis()")
+    _require_non_empty(len(continuous.x), "Plot.encode_single_axis()")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
 
     var sc = _Scaled(theme)
-    var ch = _PointChannels(
-        plot._channels, plot._settings.theme, plot._settings.color_domain, sc
-    )
+    var ch = _PointChannels(channels, settings.theme, settings.color_domain, sc)
     var legend_reserve = _legend_reserve_for(
-        plot._mark, plot._settings.theme, ch, sc, cache=cache
+        mark, settings.theme, ch, sc, cache=cache
     )
 
-    var x_scale = _data_extent(plot._continuous.x)
+    var x_scale = _data_extent(continuous.x)
     var frame = _draw_single_axis_frame(
         target,
         x_scale,
@@ -218,7 +228,12 @@ def _render_single_axis[
     _ = _draw_point_layer(
         target,
         frame.text_requests,
-        plot,
+        mark,
+        continuous,
+        channels,
+        y_err,
+        style,
+        settings,
         ch,
         frame.x_scale,
         y_scale,
@@ -229,6 +244,37 @@ def _render_single_axis[
     )
 
     return frame.result()
+
+
+def _render_single_axis_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_single_axis` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_single_axis(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._channels,
+        plot._y_err,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def single_axis(

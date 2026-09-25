@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
 from canvas.vector.draw_target import DrawTarget
@@ -130,7 +132,9 @@ def _draw_box_glyphs[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    box: _BoxData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     orient: _Orientation,
@@ -148,47 +152,37 @@ def _draw_box_glyphs[
     `to_pixel` (not `_axis_pixel`) for the five box statistics, since
     these are already-computed positions; outliers use `_axis_pixel`.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var band_size = band_scale.bandwidth()
     var half = band_size / 2.0
     var cap_half = band_size / 4.0
 
-    var tooltips_on = plot._settings.tooltips_on(
-        len(plot._categorical.x) + len(plot._box.outlier_value)
+    var tooltips_on = settings.tooltips_on(
+        len(categorical.x) + len(box.outlier_value)
     )
-    for i in range(len(plot._categorical.x)):
+    for i in range(len(categorical.x)):
         var center = band_scale.center(i)
-        var q1 = value_scale.to_pixel(plot._box.q1[i])
-        var q3 = value_scale.to_pixel(plot._box.q3[i])
-        var median = value_scale.to_pixel(plot._box.median[i])
-        var low = value_scale.to_pixel(plot._box.low[i])
-        var high = value_scale.to_pixel(plot._box.high[i])
+        var q1 = value_scale.to_pixel(box.q1[i])
+        var q3 = value_scale.to_pixel(box.q3[i])
+        var median = value_scale.to_pixel(box.median[i])
+        var low = value_scale.to_pixel(box.low[i])
+        var high = value_scale.to_pixel(box.high[i])
 
         if tooltips_on:
             # The five-number summary is what the shape encodes, so that's the
             # hover text. One per category, so the longer label is cheap.
             target.begin_annotated_group(
-                plot._categorical.x[i]
+                categorical.x[i]
                 + ": median "
-                + _format_fixed(
-                    plot._box.median[i], _label_decimals(plot._box.median[i])
-                )
+                + _format_fixed(box.median[i], _label_decimals(box.median[i]))
                 + ", Q1 "
-                + _format_fixed(
-                    plot._box.q1[i], _label_decimals(plot._box.q1[i])
-                )
+                + _format_fixed(box.q1[i], _label_decimals(box.q1[i]))
                 + ", Q3 "
-                + _format_fixed(
-                    plot._box.q3[i], _label_decimals(plot._box.q3[i])
-                )
+                + _format_fixed(box.q3[i], _label_decimals(box.q3[i]))
                 + ", range "
-                + _format_fixed(
-                    plot._box.low[i], _label_decimals(plot._box.low[i])
-                )
+                + _format_fixed(box.low[i], _label_decimals(box.low[i]))
                 + "-"
-                + _format_fixed(
-                    plot._box.high[i], _label_decimals(plot._box.high[i])
-                )
+                + _format_fixed(box.high[i], _label_decimals(box.high[i]))
             )
         # Whiskers: high -> q3 and q1 -> low, along the value axis.
         orient.value_line(
@@ -247,19 +241,19 @@ def _draw_box_glyphs[
 
     # Outliers sit outside the per-category groups: each is its own datum
     # with its own title.
-    for j in range(len(plot._box.outlier_value)):
+    for j in range(len(box.outlier_value)):
         if tooltips_on:
             target.begin_annotated_group(
                 _tooltip_label(
-                    plot._categorical.x[plot._box.outlier_cat[j]],
-                    plot._box.outlier_value[j],
+                    categorical.x[box.outlier_cat[j]],
+                    box.outlier_value[j],
                 )
                 + " (outlier)"
             )
         orient.band_point(
             target,
-            _axis_pixel_f(value_scale, plot._box.outlier_value[j]),
-            band_scale.center(plot._box.outlier_cat[j]),
+            _axis_pixel_f(value_scale, box.outlier_value[j]),
+            band_scale.center(box.outlier_cat[j]),
             Float64(point_radius),
             theme.mark_color,
         )
@@ -271,7 +265,9 @@ def _render_box[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    box: _BoxData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -290,29 +286,29 @@ def _render_box[
     Outliers are drawn in one final pass after every category's box so no
     outlier is occluded by a neighboring box.
     """
-    if len(plot._categorical.x) != len(plot._box.q1):
+    if len(categorical.x) != len(box.q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " and "
-            + String(len(plot._box.q1))
+            + String(len(box.q1))
             + ")"
         )
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var domain_data = List[Float64]()
-    for v in plot._box.low:
+    for v in box.low:
         domain_data.append(v)
-    for v in plot._box.high:
+    for v in box.high:
         domain_data.append(v)
-    for v in plot._box.outlier_value:
+    for v in box.outlier_value:
         domain_data.append(v)
     var y_scale = _data_extent(domain_data)
 
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0,
@@ -324,7 +320,9 @@ def _render_box[
 
     _draw_box_glyphs(
         target,
-        plot,
+        box,
+        categorical,
+        settings,
         frame.x_scale,
         frame.y_scale,
         _Orientation(False),
@@ -338,7 +336,9 @@ def _render_horizontal_box[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    box: _BoxData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -356,29 +356,29 @@ def _render_horizontal_box[
         rather than an orientation flag, for the reasons in
         `_render_horizontal_bar`'s docstring (bar.mojo).
     """
-    if len(plot._categorical.x) != len(plot._box.q1):
+    if len(categorical.x) != len(box.q1):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have the"
             " same length (got "
-            + String(len(plot._categorical.x))
+            + String(len(categorical.x))
             + " and "
-            + String(len(plot._box.q1))
+            + String(len(box.q1))
             + ")"
         )
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var domain_data = List[Float64]()
-    for v in plot._box.low:
+    for v in box.low:
         domain_data.append(v)
-    for v in plot._box.high:
+    for v in box.high:
         domain_data.append(v)
-    for v in plot._box.outlier_value:
+    for v in box.outlier_value:
         domain_data.append(v)
     var x_scale = _data_extent(domain_data)
 
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0,
@@ -390,7 +390,9 @@ def _render_horizontal_box[
 
     _draw_box_glyphs(
         target,
-        plot,
+        box,
+        categorical,
+        settings,
         frame.y_scale,
         frame.x_scale,
         _Orientation(True),
@@ -607,7 +609,9 @@ def _render_box_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    box: _BoxData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -617,8 +621,38 @@ def _render_box_oriented[
 ) raises -> _RenderResult:
     """`Mark.BOX`'s renderer, the one its setter binds: `_render_horizontal_box`
     when the plot is horizontal, `_render_box` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_box(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target, box, categorical, settings, ox0, oy0, ox1, oy1, cache=cache
         )
-    return _render_box(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_box(
+        target, box, categorical, settings, ox0, oy0, ox1, oy1, cache=cache
+    )
+
+
+def _render_box_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_box_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_box_oriented(
+        target,
+        plot._box,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )

@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin, sqrt
 
 from canvas.text.font_cache import FontCache
@@ -20,6 +22,7 @@ from dataviz.relationships.edges import (
     GraphLayout,
     _edge_node_index,
     _validate_edge_encoding,
+    _EdgeData,
 )
 from dataviz.core.theme import Theme
 
@@ -96,7 +99,9 @@ def _render_graph[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    edge_data: _EdgeData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -113,11 +118,11 @@ def _render_graph[
     under its node, and the layout is scaled to fill the plot area with room
     left for the labels below.
     """
-    _validate_edge_encoding(plot, "Mark.GRAPH")
+    _validate_edge_encoding(edge_data, "Mark.GRAPH")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        edge_data.from_categories, edge_data.to_categories
     )
     ref nodes = edges.nodes
     var n = len(nodes)
@@ -133,7 +138,7 @@ def _render_graph[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var force = plot._mark_style.graph_layout == GraphLayout.FORCE
+    var force = style.graph_layout == GraphLayout.FORCE
     var node_x = List[Float64](capacity=n)
     var node_y = List[Float64](capacity=n)
     if force:
@@ -170,29 +175,25 @@ def _render_graph[
             node_y.append(cy + max_radius * sin(angle))
 
     var palette = categorical_palette_for(theme)
-    var value_mm = _min_max(plot._edges.values)
+    var value_mm = _min_max(edge_data.values)
     var max_value = value_mm.max
 
-    var tooltips_on = plot._settings.tooltips_on(
-        len(plot._edges.from_categories)
-    )
-    for row in range(len(plot._edges.from_categories)):
+    var tooltips_on = settings.tooltips_on(len(edge_data.from_categories))
+    for row in range(len(edge_data.from_categories)):
         var from_idx = edges.from_idx[row]
         var to_idx = edges.to_idx[row]
         if from_idx == to_idx:
             continue
-        var frac = (
-            plot._edges.values[row] / max_value if max_value > 0.0 else 0.0
-        )
+        var frac = edge_data.values[row] / max_value if max_value > 0.0 else 0.0
         var width = sc.line_width + sc.line_width * 2.0 * frac
         var color = palette[from_idx % len(palette)]
         # Preserve exact node endpoints for diagonal edges.
         if tooltips_on:
             target.begin_annotated_group(
                 _edge_tooltip_label(
-                    plot._edges.from_categories[row],
-                    plot._edges.to_categories[row],
-                    plot._edges.values[row],
+                    edge_data.from_categories[row],
+                    edge_data.to_categories[row],
+                    edge_data.values[row],
                 )
             )
         target.draw_line_aa(
@@ -248,6 +249,34 @@ def _render_graph[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_graph_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_graph` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_graph(
+        target,
+        plot._edges,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def graph(

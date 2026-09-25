@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import FPoint
@@ -10,7 +12,10 @@ from dataviz.core.frame_input import _frame_series
 from dataviz.core.array_like import _materialize_nested_scalar_list
 from dataviz.core.color_scale import categorical_palette_for
 from dataviz.basic.continuous import _step_points
-from dataviz.categorical.grouped_bar import _validate_grouped_bar_series
+from dataviz.categorical.grouped_bar import (
+    _validate_grouped_bar_series,
+    _GroupedBarData,
+)
 from dataviz.core.mark import Mark
 from dataviz.plot import Plot, _finished
 from dataviz.core.render_result import _RenderResult
@@ -91,7 +96,11 @@ def _render_streamgraph[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -148,19 +157,19 @@ def _render_streamgraph[
 
         Every value must be non-negative. Reuses `_draw_categorical_axis_frame`.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
-    var step = plot._mark_style.step
+    var theme = settings.theme
+    var step = style.step
     # Range check first, then the conflict, the order _draw_line_layer
     # and _draw_area_layer use: an out-of-range line_smoothing should
     # say so rather than being reported as a step conflict.
     _check_line_smoothing(theme)
     _check_step_smoothing(theme, step, Mark.STREAMGRAPH)
-    var n_series = len(plot._grouped_bar.series_names)
-    var n_categories = len(plot._categorical.x)
+    var n_series = len(grouped_bar.series_names)
+    var n_categories = len(categorical.x)
 
-    for series in plot._grouped_bar.values:
+    for series in grouped_bar.values:
         for v in series:
             if v < 0.0:
                 raise Error(
@@ -172,7 +181,7 @@ def _render_streamgraph[
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._grouped_bar.series_names,
+        grouped_bar.series_names,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -185,21 +194,17 @@ def _render_streamgraph[
     var totals = List[Float64](capacity=n_categories)
     for i in range(n_categories):
         var total = 0.0
-        for series in plot._grouped_bar.values:
+        for series in grouped_bar.values:
             total += series[i]
         totals.append(total)
 
-    var zero_baseline = (
-        plot._mark_style.streamgraph_baseline == StackBaseline.ZERO
-    )
+    var zero_baseline = style.streamgraph_baseline == StackBaseline.ZERO
     var y_scale = _zero_baseline_y_extent(totals) if zero_baseline else (
-        _symmetric_zero_baseline_y_extent(
-            plot._grouped_bar.values, n_categories
-        )
+        _symmetric_zero_baseline_y_extent(grouped_bar.values, n_categories)
     )
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,
@@ -218,13 +223,13 @@ def _render_streamgraph[
         running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
     var palette = categorical_palette_for(theme)
-    var tooltips_on = plot._settings.tooltips_on(n_series)
+    var tooltips_on = settings.tooltips_on(n_series)
     for j in range(n_series):
         var top = List[Float64](capacity=n_categories)
         var bottom = List[Float64](capacity=n_categories)
         for i in range(n_categories):
             bottom.append(running[i])
-            running[i] += plot._grouped_bar.values[j][i]
+            running[i] += grouped_bar.values[j][i]
             top.append(running[i])
 
         # Top edge in category order, then bottom edge in reverse, so the path
@@ -265,7 +270,7 @@ def _render_streamgraph[
         # Per series, as on bump: the band is the shape, and its
         # value changes at every category it spans.
         if tooltips_on:
-            target.begin_annotated_group(plot._grouped_bar.series_names[j])
+            target.begin_annotated_group(grouped_bar.series_names[j])
         target.fill_path_aa(
             path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
         )
@@ -276,7 +281,7 @@ def _render_streamgraph[
         _draw_legend_at(
             target,
             frame.text_requests,
-            plot._grouped_bar.series_names,
+            grouped_bar.series_names,
             palette,
             legend,
             frame.px0,
@@ -288,6 +293,36 @@ def _render_streamgraph[
         )
 
     return frame.result()
+
+
+def _render_streamgraph_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_streamgraph` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_streamgraph(
+        target,
+        plot._mark,
+        plot._grouped_bar,
+        plot._categorical,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def streamgraph(

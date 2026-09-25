@@ -1,3 +1,5 @@
+from dataviz.core.plot_fields import _MarkStyle
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.fill_rule import FillRule
 from canvas.geometry import round_to_int
@@ -19,6 +21,7 @@ from dataviz.core.text import _Scaled, _TextRequest
 from dataviz.relationships.edges import (
     _edge_node_index,
     _validate_edge_encoding,
+    _EdgeData,
 )
 from dataviz.core.theme import Theme
 
@@ -27,7 +30,9 @@ def _render_sankey[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    edge_data: _EdgeData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -41,32 +46,32 @@ def _render_sankey[
     uses its larger total flow, skip edges cross intermediate columns through
     pass-through nodes, and self-loops are ignored.
     """
-    _validate_edge_encoding(plot, "Mark.SANKEY")
+    _validate_edge_encoding(edge_data, "Mark.SANKEY")
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var edges = _edge_node_index(
-        plot._edges.from_categories, plot._edges.to_categories
+        edge_data.from_categories, edge_data.to_categories
     )
     ref nodes = edges.nodes
     var n = len(nodes)
 
     # Filter self-loops before building the layout columns.
-    var from_idx = List[Int](capacity=len(plot._edges.from_categories))
-    var to_idx = List[Int](capacity=len(plot._edges.from_categories))
-    var edge_value = List[Float64](capacity=len(plot._edges.from_categories))
+    var from_idx = List[Int](capacity=len(edge_data.from_categories))
+    var to_idx = List[Int](capacity=len(edge_data.from_categories))
+    var edge_value = List[Float64](capacity=len(edge_data.from_categories))
     var children = List[List[Int]]()
     var in_degree = List[Int]()
     for _ in range(n):
         children.append(List[Int]())
         in_degree.append(0)
-    for row in range(len(plot._edges.from_categories)):
+    for row in range(len(edge_data.from_categories)):
         var fi = edges.from_idx[row]
         var ti = edges.to_idx[row]
         if fi == ti:
             continue
         from_idx.append(fi)
         to_idx.append(ti)
-        edge_value.append(plot._edges.values[row])
+        edge_value.append(edge_data.values[row])
         children[fi].append(ti)
         in_degree[ti] += 1
 
@@ -156,7 +161,7 @@ def _render_sankey[
         node_value.append(max(total_in[i], total_out[i]))
 
     var sc = _Scaled(theme)
-    var node_width = plot._mark_style.sankey_node_width * sc.scale
+    var node_width = style.sankey_node_width * sc.scale
     var plot_x0 = ox0 + sc.margin_left
     var plot_y0 = oy0 + sc.margin_top
     var plot_x1 = ox1 - sc.margin_right
@@ -205,7 +210,7 @@ def _render_sankey[
     var palette = categorical_palette_for(theme)
     var out_cursor = node_y0.copy()
     var in_cursor = node_y0.copy()
-    var tooltips_on = plot._settings.tooltips_on(len(final_from))
+    var tooltips_on = settings.tooltips_on(len(final_from))
     for e in range(len(final_from)):
         var fi = final_from[e]
         var ti = final_to[e]
@@ -280,6 +285,34 @@ def _render_sankey[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_sankey_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_sankey` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_sankey(
+        target,
+        plot._edges,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def sankey(

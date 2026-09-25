@@ -1,3 +1,10 @@
+from dataviz.core.plot_fields import (
+    _CategoricalData,
+    _ContinuousData,
+    _ErrorBarData,
+    _MarkStyle,
+)
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from std.math import pi
@@ -29,7 +36,12 @@ def _render_radialbar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    continuous: _ContinuousData,
+    categorical: _CategoricalData,
+    y_err: _ErrorBarData,
+    style: _MarkStyle,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -42,20 +54,18 @@ def _render_radialbar[
     The first category is outermost. Each clockwise arc starts at 12 o'clock
     and spans its value relative to the largest value.
     """
-    _validate_categorical_encoding(
-        plot._categorical, plot._continuous, plot._y_err, plot._mark
-    )
+    _validate_categorical_encoding(categorical, continuous, y_err, mark)
 
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var text_requests = List[_TextRequest]()
 
-    _require_non_negative(plot._continuous.y, "Mark.RADIALBAR")
-    var max_v = _require_some_positive(plot._continuous.y, "Mark.RADIALBAR")
+    _require_non_negative(continuous.y, "Mark.RADIALBAR")
+    var max_v = _require_some_positive(continuous.y, "Mark.RADIALBAR")
 
     var sc = _Scaled(theme)
     var show_legend = theme.show_legend
     var legend = _legend_layout(
-        plot._categorical.x,
+        categorical.x,
         sc.legend_swatch_size,
         sc,
         theme,
@@ -74,11 +84,11 @@ def _render_radialbar[
     )
 
     var palette = categorical_palette_for(theme)
-    var n = len(plot._categorical.x)
+    var n = len(categorical.x)
     var ring_slot = max_radius / Float64(n)
-    var gap = ring_slot * plot._mark_style.radialbar_ring_gap_fraction
+    var gap = ring_slot * style.radialbar_ring_gap_fraction
     var start_angle = -pi / 2.0
-    var tooltips_on = plot._settings.tooltips_on(n)
+    var tooltips_on = settings.tooltips_on(n)
     for i in range(n):
         var outer = max_radius - ring_slot * Float64(i) - gap / 2.0
         var inner = max_radius - ring_slot * Float64(i + 1) + gap / 2.0
@@ -88,7 +98,7 @@ def _render_radialbar[
         # part of a row is asking about the same datum.
         if tooltips_on:
             target.begin_annotated_group(
-                _tooltip_label(plot._categorical.x[i], plot._continuous.y[i])
+                _tooltip_label(categorical.x[i], continuous.y[i])
             )
         target.fill_ring_sector_aa(
             cx,
@@ -99,7 +109,7 @@ def _render_radialbar[
             start_angle + 2.0 * pi,
             theme.radialbar_track_color,
         )
-        var frac = plot._continuous.y[i] / max_v
+        var frac = continuous.y[i] / max_v
         if frac > 0.0:
             target.fill_ring_sector_aa(
                 cx,
@@ -119,7 +129,7 @@ def _render_radialbar[
                 cy,
                 start_angle + 2.0 * pi * frac,
                 (inner + outer) / 2.0,
-                plot._continuous.y[i],
+                continuous.y[i],
                 theme,
                 sc,
                 text_requests,
@@ -131,7 +141,7 @@ def _render_radialbar[
         _draw_legend_at(
             target,
             text_requests,
-            plot._categorical.x,
+            categorical.x,
             palette,
             legend,
             plot_x0,
@@ -143,6 +153,37 @@ def _render_radialbar[
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
+
+
+def _render_radialbar_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_radialbar` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_radialbar(
+        target,
+        plot._mark,
+        plot._continuous,
+        plot._categorical,
+        plot._y_err,
+        plot._mark_style,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
 
 
 def radialbar(

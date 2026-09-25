@@ -1,3 +1,6 @@
+from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.mark import Mark
+from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.color import Color
 from canvas.vector.draw_target import DrawTarget
@@ -13,6 +16,7 @@ from dataviz.categorical.grouped_bar import (
     _draw_series_legend,
     _series_legend_reserve,
     _validate_grouped_bar_series,
+    _GroupedBarData,
 )
 from dataviz.core.ordinal_scale import OrdinalScale
 from dataviz.plot import Plot, _finished
@@ -30,18 +34,20 @@ from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
 
 
-def _stacked_bar_domain_data(plot: Plot, n_series: Int) -> List[Float64]:
+def _stacked_bar_domain_data(
+    grouped_bar: _GroupedBarData, categorical: _CategoricalData, n_series: Int
+) -> List[Float64]:
     """Each category's positive and negative stack totals for a shared axis."""
     var domain_data = List[Float64]()
-    if plot._grouped_bar.percent:
+    if grouped_bar.percent:
         domain_data.append(0.0)
         domain_data.append(100.0)
         return domain_data^
-    for i in range(len(plot._categorical.x)):
+    for i in range(len(categorical.x)):
         var pos_total = 0.0
         var neg_total = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i]
+            var v = grouped_bar.values[j][i]
             if v >= 0.0:
                 pos_total += v
             else:
@@ -51,20 +57,26 @@ def _stacked_bar_domain_data(plot: Plot, n_series: Int) -> List[Float64]:
     return domain_data^
 
 
-def _stacked_bar_domain(plot: Plot, n_series: Int) raises -> LinearScale:
+def _stacked_bar_domain(
+    grouped_bar: _GroupedBarData, categorical: _CategoricalData, n_series: Int
+) raises -> LinearScale:
     """The standalone value-axis domain for `Mark.STACKED_BAR`."""
-    if plot._grouped_bar.percent:
+    if grouped_bar.percent:
         return LinearScale(0.0, 100.0, 0.0, 1.0)
-    return _zero_baseline_y_extent(_stacked_bar_domain_data(plot, n_series))
+    return _zero_baseline_y_extent(
+        _stacked_bar_domain_data(grouped_bar, categorical, n_series)
+    )
 
 
-def _validate_stacked_bar_percent(plot: Plot, n_series: Int) raises:
+def _validate_stacked_bar_percent(
+    grouped_bar: _GroupedBarData, n_series: Int
+) raises:
     """`percent=True` needs every value non-negative -- a negative
     share has no meaning. Orientation-independent."""
-    if not plot._grouped_bar.percent:
+    if not grouped_bar.percent:
         return
     for j in range(n_series):
-        for v in plot._grouped_bar.values[j]:
+        for v in grouped_bar.values[j]:
             if v < 0.0:
                 raise Error(
                     "Plot.mark_stacked_bar(percent=True): every value must be"
@@ -77,7 +89,9 @@ def _draw_stacked_segments[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     band_scale: OrdinalScale,
     value_scale: LinearScale,
     baseline_edge: Int,
@@ -106,24 +120,22 @@ def _draw_stacked_segments[
     `Theme.show_data_labels` centers each segment's value inside it,
     since a stacked segment has neighbors on both sides.
     """
-    var theme = plot._settings.theme
+    var theme = settings.theme
     var sc = _Scaled(theme)
-    var n_series = len(plot._grouped_bar.series_names)
+    var n_series = len(grouped_bar.series_names)
     var band_size = band_scale.bandwidth()
 
-    var tooltips_on = plot._settings.tooltips_on(
-        n_series * len(plot._categorical.x)
-    )
-    for i in range(len(plot._categorical.x)):
+    var tooltips_on = settings.tooltips_on(n_series * len(categorical.x))
+    for i in range(len(categorical.x)):
         var band_pos = band_scale.band_start(i)
         # percent=True rescales each category against its own total. An
         # all-zero category gets a 0.0 factor and draws an empty column rather
         # than NaN.
         var scale_factor = 1.0
-        if plot._grouped_bar.percent:
+        if grouped_bar.percent:
             var category_total = 0.0
             for j in range(n_series):
-                category_total += plot._grouped_bar.values[j][i]
+                category_total += grouped_bar.values[j][i]
             scale_factor = (
                 100.0 / category_total if category_total > 0.0 else 0.0
             )
@@ -131,7 +143,7 @@ def _draw_stacked_segments[
         var pos_running = 0.0
         var neg_running = 0.0
         for j in range(n_series):
-            var v = plot._grouped_bar.values[j][i] * scale_factor
+            var v = grouped_bar.values[j][i] * scale_factor
             var seg_near: Float64
             var seg_far: Float64
             if v >= 0.0:
@@ -150,8 +162,8 @@ def _draw_stacked_segments[
             if tooltips_on:
                 target.begin_annotated_group(
                     _series_tooltip_label(
-                        plot._categorical.x[i],
-                        plot._grouped_bar.series_names[j],
+                        categorical.x[i],
+                        grouped_bar.series_names[j],
                         v,
                     )
                 )
@@ -185,7 +197,10 @@ def _render_stacked_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -205,18 +220,20 @@ def _render_stacked_bar[
     `_draw_series_legend`, imported from grouped_bar.mojo alongside
     `_validate_grouped_bar_series`). No sign coloring.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
-    var n_series = len(plot._grouped_bar.series_names)
-    _validate_stacked_bar_percent(plot, n_series)
-    var y_scale = _stacked_bar_domain(plot, n_series)
+    var theme = settings.theme
+    var n_series = len(grouped_bar.series_names)
+    _validate_stacked_bar_percent(grouped_bar, n_series)
+    var y_scale = _stacked_bar_domain(grouped_bar, categorical, n_series)
 
     var sc = _Scaled(theme)
-    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
+    var legend = _series_legend_reserve(
+        grouped_bar, settings, sc, ox1 - ox0, cache=cache
+    )
     var frame = _draw_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         y_scale,
         theme,
         ox0 + legend.left,
@@ -229,7 +246,9 @@ def _render_stacked_bar[
     var palette = categorical_palette_for(theme)
     _draw_stacked_segments(
         target,
-        plot,
+        grouped_bar,
+        categorical,
+        settings,
         frame.x_scale,
         frame.y_scale,
         frame.py1,
@@ -242,7 +261,7 @@ def _render_stacked_bar[
         _draw_series_legend(
             target,
             frame.text_requests,
-            plot,
+            grouped_bar,
             sc,
             palette,
             legend,
@@ -261,7 +280,10 @@ def _render_horizontal_stacked_bar[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -280,18 +302,20 @@ def _render_horizontal_stacked_bar[
     docstring (bar.mojo). Legend placement matches
     `_render_horizontal_grouped_bar`.
     """
-    _validate_grouped_bar_series(plot)
+    _validate_grouped_bar_series(mark, grouped_bar, categorical)
 
-    var theme = plot._settings.theme
-    var n_series = len(plot._grouped_bar.series_names)
-    _validate_stacked_bar_percent(plot, n_series)
-    var x_scale = _stacked_bar_domain(plot, n_series)
+    var theme = settings.theme
+    var n_series = len(grouped_bar.series_names)
+    _validate_stacked_bar_percent(grouped_bar, n_series)
+    var x_scale = _stacked_bar_domain(grouped_bar, categorical, n_series)
 
     var sc = _Scaled(theme)
-    var legend = _series_legend_reserve(plot, sc, ox1 - ox0, cache=cache)
+    var legend = _series_legend_reserve(
+        grouped_bar, settings, sc, ox1 - ox0, cache=cache
+    )
     var frame = _draw_horizontal_categorical_axis_frame(
         target,
-        plot._categorical.x,
+        categorical.x,
         x_scale,
         theme,
         ox0 + legend.left,
@@ -304,7 +328,9 @@ def _render_horizontal_stacked_bar[
     var palette = categorical_palette_for(theme)
     _draw_stacked_segments(
         target,
-        plot,
+        grouped_bar,
+        categorical,
+        settings,
         frame.y_scale,
         frame.x_scale,
         frame.px0,
@@ -317,7 +343,7 @@ def _render_horizontal_stacked_bar[
         _draw_series_legend(
             target,
             frame.text_requests,
-            plot,
+            grouped_bar,
             sc,
             palette,
             legend,
@@ -499,7 +525,10 @@ def _render_stacked_bar_oriented[
     T: DrawTarget
 ](
     mut target: T,
-    plot: Plot,
+    mark: Mark,
+    grouped_bar: _GroupedBarData,
+    categorical: _CategoricalData,
+    settings: _ChartSettings,
     ox0: Int,
     oy0: Int,
     ox1: Int,
@@ -509,8 +538,57 @@ def _render_stacked_bar_oriented[
 ) raises -> _RenderResult:
     """`Mark.STACKED_BAR`'s renderer, the one its setter binds: `_render_horizontal_stacked_bar`
     when the plot is horizontal, `_render_stacked_bar` otherwise."""
-    if plot._settings.horizontal:
+    if settings.horizontal:
         return _render_horizontal_stacked_bar(
-            target, plot, ox0, oy0, ox1, oy1, cache=cache
+            target,
+            mark,
+            grouped_bar,
+            categorical,
+            settings,
+            ox0,
+            oy0,
+            ox1,
+            oy1,
+            cache=cache,
         )
-    return _render_stacked_bar(target, plot, ox0, oy0, ox1, oy1, cache=cache)
+    return _render_stacked_bar(
+        target,
+        mark,
+        grouped_bar,
+        categorical,
+        settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
+
+
+def _render_stacked_bar_oriented_plot[
+    T: DrawTarget
+](
+    mut target: T,
+    plot: Plot,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    *,
+    mut cache: FontCache,
+) raises -> _RenderResult:
+    """`_render_stacked_bar_oriented` on `plot`'s own columns and settings: the callback
+    its `mark_*()` setter binds. This is the one place the mark's
+    renderer meets a `Plot` (#826)."""
+    return _render_stacked_bar_oriented(
+        target,
+        plot._mark,
+        plot._grouped_bar,
+        plot._categorical,
+        plot._settings,
+        ox0,
+        oy0,
+        ox1,
+        oy1,
+        cache=cache,
+    )
