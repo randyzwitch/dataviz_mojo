@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Streamgraph
 from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -295,36 +297,6 @@ def _render_streamgraph[
     return frame.result()
 
 
-def _render_streamgraph_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_streamgraph` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_streamgraph(
-        target,
-        plot._mark,
-        plot._grouped_bar,
-        plot._categorical,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def streamgraph(
     df: DataFrame,
     category: String,
@@ -337,7 +309,7 @@ def streamgraph(
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Streamgraph]:
     """`streamgraph()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per (series, category) pair, with `value` holding the cell.
 
@@ -362,7 +334,7 @@ def streamgraph(
         x_title: The x-axis caption; defaults to `category`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -405,7 +377,7 @@ def streamgraph[
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Streamgraph]:
     """A streamgraph: `stacked_bar()`'s running total turned into smooth
     layers and floated around a central axis instead of a fixed zero
     baseline. Popularized by Lee Byron and Martin Wattenberg's 2008 work
@@ -448,7 +420,7 @@ def streamgraph[
         x_title: The x-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -509,7 +481,7 @@ def stacked_area(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Streamgraph]:
     """`stacked_area()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per (series, category) pair, with `value` holding the cell.
 
@@ -536,7 +508,7 @@ def stacked_area(
         y_title: The y-axis caption; defaults to `value`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -583,7 +555,7 @@ def stacked_area[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Streamgraph]:
     """A stacked area chart: the same series `streamgraph()` stacks, laid
     on a flat zero baseline instead of a centered one.
 
@@ -639,7 +611,7 @@ def stacked_area[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

@@ -10,23 +10,23 @@ trap 'rm -rf "$WORK"' EXIT
 cd "$ROOT"
 
 cat > "$WORK/wrong_mark.mojo" <<'PROG'
-from dataviz.chart import Plot2, render
+from dataviz import Plot, render
 
 
 def main() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var c = Plot2().mark_gantt().encode_categorical(cats, vals)
+    var c = Plot().mark_gantt().encode_categorical(cats, vals)
     _ = render(c)
 PROG
 cat > "$WORK/right_mark.mojo" <<'PROG'
-from dataviz.chart import Plot2, render
+from dataviz import Plot, render
 
 
 def main() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var c = Plot2().mark_bar().encode_categorical(cats, vals)
+    var c = Plot().mark_bar().encode_categorical(cats, vals)
     _ = render(c)
 PROG
 

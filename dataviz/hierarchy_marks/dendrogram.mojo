@@ -15,6 +15,8 @@ sit beside a heatmap of the same rows with the two lined up.
 close to what.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import DendrogramMark
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.path import Path
 from canvas.text.font_cache import FontCache
@@ -229,33 +231,6 @@ def _render_dendrogram[
     return frame.result()
 
 
-def _render_dendrogram_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_dendrogram` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_dendrogram(
-        target,
-        plot._dendrogram,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def _leaf_pixel(scale: OrdinalScale, position: Float64) -> Float64:
     """The pixel a node's position along the leaf axis lands on.
 
@@ -390,7 +365,7 @@ def dendrogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[DendrogramMark]:
     """Cluster `rows` and draw the merge tree as brackets (#355).
 
     The chart for "what is like what" before deciding anything else: the
@@ -480,7 +455,7 @@ def dendrogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[DendrogramMark]:
     """Cluster DataFrame rows using named numeric feature columns.
 
     Each row is one observation. `features` chooses its dimensions in
@@ -502,7 +477,7 @@ def dendrogram(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: No feature columns were selected, a column is absent or

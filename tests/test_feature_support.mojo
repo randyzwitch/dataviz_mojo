@@ -19,6 +19,8 @@ first one per feature.
 from std.testing import TestSuite, assert_equal, assert_false, assert_true
 
 from _mark_registry import _H, _W, _representative_plot
+from dataviz.chart import ChartLike
+from dataviz.marks import DendrogramMark, Histogram
 from dataviz.core.mark import Feature, Mark, _marks_supporting
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
@@ -37,7 +39,7 @@ def _count(s: String, needle: String) -> Int:
         at = i + needle.byte_length()
 
 
-def _svg(plot: Plot) raises -> String:
+def _svg[C: ChartLike](plot: C) raises -> String:
     return render_svg(plot).to_string()
 
 
@@ -48,7 +50,7 @@ def _every_mark() -> List[Mark]:
     return out^
 
 
-def _renders(plot: Plot) -> Bool:
+def _renders[C: ChartLike](plot: C) -> Bool:
     """Whether the plot renders at all: the oracle for the features
     whose unsupported case is a raise."""
     try:
@@ -89,11 +91,13 @@ def test_supports_agrees_with_the_table() raises:
             )
 
 
-def _check_raises_or_changes(
+def _check_raises_or_changes[
+    C: ChartLike
+](
     mut mismatches: List[String],
     mark: Mark,
     feature: Feature,
-    var turned_on: Plot,
+    var turned_on: C,
     base: String,
     count_tag: String,
 ):
@@ -170,9 +174,9 @@ def test_auto_tooltips_switch_off_exactly_past_each_mark_s_own_count() raises:
         var plot = _representative_plot(mark)
         var drawn = _count(_svg(plot.copy().tooltips(Tooltips.ON)), "<title>")
         var at = plot.copy()
-        at._settings.theme.auto_tooltip_limit = drawn
+        at.settings.theme.auto_tooltip_limit = drawn
         var below = plot.copy()
-        below._settings.theme.auto_tooltip_limit = drawn - 1
+        below.settings.theme.auto_tooltip_limit = drawn - 1
         var at_count = _count(_svg(at^), "<title>")
         var below_count = _count(_svg(below^), "<title>")
         if at_count != drawn or below_count != 0:
@@ -231,14 +235,14 @@ def test_every_mark_matches_the_table() raises:
         var turned = plot.copy()
         if mark == Mark.HISTOGRAM:
             # Its own flag: the histogram encoder carries orientation.
-            turned._histogram.horizontal = True
+            turned.mark[Histogram]().histogram.horizontal = True
         elif mark == Mark.DENDROGRAM:
-            # Likewise. Flipping Plot._settings.horizontal alone could not see a
+            # Likewise. Flipping Plot.settings.horizontal alone could not see a
             # dendrogram turn, which is how the table came to say it
             # could not.
-            turned._dendrogram.horizontal = True
+            turned.mark[DendrogramMark]().dendrogram.horizontal = True
         else:
-            turned._settings.horizontal = True
+            turned.settings.horizontal = True
         _check_raises_or_changes(
             mismatches, mark, Feature.HORIZONTAL, turned^, base, ""
         )
@@ -272,13 +276,27 @@ def test_every_mark_matches_the_table() raises:
             mismatches, mark, Feature.LOG_Y, plot.copy().scale_y_log(), base, ""
         )
 
+        # A color channel is an encoder argument, and an encoder exists
+        # only on the marks that accept it, so the probe is typed per
+        # mark: a mark with no `encode()` cannot be colored at all.
         var colored: Bool
         try:
             if mark == Mark.SINGLE_AXIS:
-                # Its own encoder carries the same channels.
-                _ = render_svg(plot.copy().encode_single_axis(xs, color=c))
+                _ = render_svg(
+                    Plot().mark_single_axis().encode_single_axis(xs, color=c)
+                )
+            elif mark == Mark.AREA:
+                _ = render_svg(Plot().mark_area().encode(x=xs, y=ys, color=c))
+            elif mark == Mark.EFFECT_SCATTER:
+                _ = render_svg(
+                    Plot().mark_effect_scatter().encode(x=xs, y=ys, color=c)
+                )
+            elif mark == Mark.LINE:
+                _ = render_svg(Plot().mark_line().encode(x=xs, y=ys, color=c))
+            elif mark == Mark.POINT:
+                _ = render_svg(Plot().mark_point().encode(x=xs, y=ys, color=c))
             else:
-                _ = render_svg(plot.copy().encode(x=xs, y=ys, color=c))
+                raise Error("no color channel on " + mark.name())
             colored = True
         except:
             colored = False

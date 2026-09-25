@@ -17,6 +17,8 @@ have, so the behavior is stated here rather than left to be
 discovered.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Plot3d, Scatter3d
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.color import Color
 from canvas.path import Path
@@ -278,26 +280,6 @@ def _render_scatter3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_scatter3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_scatter3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_scatter3d(
-        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _render_plot3d[
     T: DrawTarget
 ](
@@ -344,26 +326,6 @@ def _render_plot3d[
     return _RenderResult(text^, px0, py0, px1, py1)
 
 
-def _render_plot3d_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_plot3d` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_plot3d(
-        target, plot._xyz, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def scatter3d(
     df: DataFrame,
     x: String,
@@ -376,7 +338,7 @@ def scatter3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Scatter3d]:
     """`scatter3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -398,7 +360,7 @@ def scatter3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -434,7 +396,7 @@ def scatter3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Scatter3d]:
     """A 3D scatter: one marker per (x, y, z) in an orthographic view of
     a viewing cube.
 
@@ -462,7 +424,7 @@ def scatter3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The three columns disagree in length, or are empty.
@@ -516,7 +478,7 @@ def plot3d(
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Plot3d]:
     """`plot3d()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -538,7 +500,7 @@ def plot3d(
         subtitle: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -574,7 +536,7 @@ def plot3d[
     height: Int = 480,
     title: String = "",
     subtitle: String = "",
-) raises -> Plot:
+) raises -> Chart[Plot3d]:
     """A 3D line: the points joined in data order as one polyline
     through the viewing cube.
 
@@ -603,7 +565,7 @@ def plot3d[
         subtitle: A secondary line shown under the title.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.pdf/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: The three columns disagree in length, or are empty.

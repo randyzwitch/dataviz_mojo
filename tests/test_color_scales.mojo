@@ -15,6 +15,7 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
+from dataviz.chart import ChartLike
 from dataviz.core.color_scale import (
     ColorScale,
     _ColorDomainOverride,
@@ -1061,7 +1062,7 @@ def _grid() -> List[List[Float64]]:
     return z^
 
 
-def _texts(p: Plot) raises -> Int:
+def _texts[C: ChartLike](p: C) raises -> Int:
     return _count_tag(render_svg(p).to_string(), "text")
 
 

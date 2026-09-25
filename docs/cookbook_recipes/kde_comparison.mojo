@@ -1,6 +1,7 @@
 # title: Comparing Distributions (KDE + Rug)
 """Layer two KDE curves and a rug on one shared density axis for direct
 comparison."""
+from dataviz.chart import AnyChart
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.distributions.kde import kdeplot, rugplot
 from dataviz import Plot, save_layers
@@ -64,5 +65,9 @@ def main() raises:
         .size(640, 400)
     )
 
-    var plots: List[Plot] = [control_curve^, treatment_curve^, observations^]
+    var plots: List[AnyChart] = [
+        AnyChart(control_curve),
+        AnyChart(treatment_curve),
+        AnyChart(observations),
+    ]
     save_layers(plots, "docs/src/examples/out_kde_comparison.svg")

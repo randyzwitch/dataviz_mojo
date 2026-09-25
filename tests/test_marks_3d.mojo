@@ -298,11 +298,6 @@ def test_lattice_coordinates_follow_the_same_rules_a_contours_do() raises:
         _ = render(surface3d(z, y=backwards))
 
 
-def test_encode_surface_rejects_a_mark_with_no_grid() raises:
-    with assert_raises(contains="encode_surface"):
-        _ = Plot().mark_scatter3d().encode_surface(_flat_grid(3, 3, 0.0))
-
-
 def test_encode_xyz_accepts_trisurf3d() raises:
     # `trisurf3d` takes three loose columns, not a grid, so it rides
     # `encode_xyz` with the other scattered marks.
@@ -310,7 +305,7 @@ def test_encode_xyz_accepts_trisurf3d() raises:
     var ys: List[Float64] = [0.0, 0.0, 1.0]
     var zs: List[Float64] = [0.0, 1.0, 2.0]
     var p = Plot().mark_trisurf3d().encode_xyz(xs, ys, zs)
-    assert_true(p._mark == Mark.TRISURF3D)
+    assert_true(p.id() == Mark.TRISURF3D)
 
 
 # ==== where a stem anchors ====
@@ -324,14 +319,14 @@ def test_a_stem_always_reaches_the_base_plane() raises:
     var ys: List[Float64] = [0.0, 1.0]
     var high: List[Float64] = [8.0, 9.0]
     var plot = Plot().mark_stem3d().encode_xyz(xs, ys, high)
-    var extent = _stem3d_extent(plot._xyz)
+    var extent = _stem3d_extent(plot.mark.xyz)
     assert_equal(extent.z.min, 0.0, "the base plane is not in the range")
     assert_equal(extent.z.max, 9.0)
     # And downward stems keep the plane too, rather than each direction
     # getting its own floor.
     var low: List[Float64] = [-8.0, -9.0]
     var down = Plot().mark_stem3d().encode_xyz(xs, ys, low)
-    var below = _stem3d_extent(down._xyz)
+    var below = _stem3d_extent(down.mark.xyz)
     assert_equal(below.z.max, 0.0, "the base plane is not in the range")
     assert_equal(below.z.min, -9.0)
 
@@ -491,7 +486,7 @@ def test_the_box_reaches_an_arrows_tip_not_just_its_tail() raises:
     var v: List[Float64] = [-2.0]
     var w: List[Float64] = [5.0]
     var plot = Plot().mark_quiver3d().encode_vectors3d(o, o, o, u, v, w)
-    var extent = _vectors3d_extent(plot._vectors3d)
+    var extent = _vectors3d_extent(plot.mark.vectors3d)
     assert_equal(extent.x.max, 3.0, "the box stops short of the tip in x")
     assert_equal(extent.y.min, -2.0, "the box stops short of the tip in y")
     assert_equal(extent.z.max, 5.0, "the box stops short of the tip in z")

@@ -30,7 +30,7 @@ PAGE="$ROOT/docs/src/_index.md"
 marks="$(grep -oE '^\s+comptime COUNT = [0-9]+' "$ROOT/dataviz/core/mark.mojo" | head -1 | grep -oE '[0-9]+')"
 
 # One-call chart functions: public names re-exported from the package
-# root that are defined as a `def` returning a Plot or a Figure.
+# root that are defined as a `def` returning a Chart or a Figure.
 charts="$(python3 - "$ROOT" <<'PY'
 import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
@@ -46,7 +46,7 @@ found = set()
 for n in (x for x in names if x[:1].islower()):
     pat = r'^def %s(?:\[[^\]]*\])?\((?:[^()]|\([^()]*\))*\)\s*(?:raises\s*)?->\s*(\w+)' % re.escape(n)
     for body in bodies:
-        if any(m.group(1) in ("Plot", "Figure") for m in re.finditer(pat, body, re.M)):
+        if any(m.group(1) in ("Plot", "Chart", "Figure") for m in re.finditer(pat, body, re.M)):
             found.add(n)
             break
 print(len(found))

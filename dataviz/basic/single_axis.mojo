@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import SingleAxis
 from dataviz.core.plot_fields import (
     _ChannelData,
     _ContinuousData,
@@ -247,37 +249,6 @@ def _render_single_axis[
     return frame.result()
 
 
-def _render_single_axis_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_single_axis` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_single_axis(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._channels,
-        plot._y_err,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def single_axis(
     df: DataFrame,
     x: String,
@@ -290,7 +261,7 @@ def single_axis(
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[SingleAxis]:
     """`single_axis()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -312,7 +283,7 @@ def single_axis(
         x_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -357,7 +328,7 @@ def single_axis[
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[SingleAxis]:
     """A single-axis chart: every value plotted along one horizontal
     line rather than a full x/y plane, for showing a single variable's
     distribution or spread without the extra axis a scatter plot would
@@ -391,7 +362,7 @@ def single_axis[
         x_title: The x-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

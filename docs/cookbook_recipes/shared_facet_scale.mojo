@@ -2,6 +2,7 @@
 its own independent one -- for small multiples meant to be compared
 value-for-value, not just laid out side by side.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_facets
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN
 from dataviz.core.theme import Theme
@@ -29,7 +30,7 @@ def main() raises:
         .theme(Theme(mark_color=SEAGREEN))
     )
 
-    var plots: List[Plot] = [plot_small^, plot_big^]
+    var plots: List[AnyChart] = [AnyChart(plot_small), AnyChart(plot_big)]
     save_facets(
         plots,
         2,

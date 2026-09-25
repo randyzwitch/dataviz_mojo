@@ -42,6 +42,7 @@ Covers:
 from std.collections import Dict
 from std.testing import TestSuite, assert_equal, assert_raises, assert_true
 from canvas.color import Color
+from dataviz.chart import AnyChart
 from dataviz.core.colors import TOMATO
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
@@ -133,7 +134,7 @@ def test_render_svg_error_bar_uses_the_points_own_resolved_color() raises:
 def test_render_widens_the_y_domain_to_include_the_whisker_extent() raises:
     # y=[10], y_err=[20]: the whisker reaches -10, so domain data becomes
     # [-10, 30], padded to [-12, 32], and _nice_step picks step 10 -> ticks
-    # [-10, 0, 10, 20, 30]. A domain from plot._continuous.y alone would never
+    # [-10, 0, 10, 20, 30]. A domain from plot.mark.continuous.y alone would never
     # show a negative tick.
     var x: List[Float64] = [1.0]
     var y: List[Float64] = [10.0]
@@ -439,8 +440,8 @@ def test_a_line_with_asymmetric_errors_renders_the_same_layered_and_faceted() ra
         "sanity: the standalone whisker rows are present, in mark_color",
     )
 
-    var one_layer = List[Plot]()
-    one_layer.append(plot.copy())
+    var one_layer = List[AnyChart]()
+    one_layer.append(AnyChart(plot.copy()))
     var layered = render_layers_svg(one_layer).to_string()
     assert_true(
         _has_whisker_at_row(layered, "144"),
@@ -451,8 +452,8 @@ def test_a_line_with_asymmetric_errors_renders_the_same_layered_and_faceted() ra
         "the upper whisker survives in the layered render, in mark_color",
     )
 
-    var one_cell = List[Plot]()
-    one_cell.append(plot.copy())
+    var one_cell = List[AnyChart]()
+    one_cell.append(AnyChart(plot.copy()))
     var faceted = render_facets_svg(one_cell, 1).to_string()
     assert_true(
         _has_whisker_at_row(faceted, "144"),
@@ -976,7 +977,7 @@ def test_render_layers_takes_a_lone_scale_y_domain_as_the_shared_axis() raises:
     var y: List[Float64] = [1.0, 2.0]
     var a = Plot().mark_line().encode(x=x, y=y).scale_y_domain(0.0, 10.0)
     var b = Plot().mark_point().encode(x=x, y=y)
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     var s = render_layers_svg(plots).to_string()
     assert_true(">10<" in s or ">10.0<" in s, "the shared y-axis runs to 10")
 
@@ -1005,7 +1006,7 @@ def test_render_facets_svg_scale_y_domain_applies_per_cell_like_a_shared_domain(
         .scale_y_domain(0.0, 100.0)
         .theme(Theme(show_gridlines=False))
     )
-    var plots: List[Plot] = [p0^, p1^]
+    var plots: List[AnyChart] = [AnyChart(p0), AnyChart(p1)]
     var s = render_facets_svg(plots, 2).to_string()
     assert_true(">0<" in s, "the shared pinned domain's low tick draws")
     assert_true(">100<" in s, "the shared pinned domain's high tick draws")
@@ -1019,7 +1020,7 @@ def test_render_layers_raises_on_a_layer_with_scale_y_log() raises:
     var y: List[Float64] = [1.0, 10.0]
     var a = Plot().mark_line().encode(x=x, y=y).scale_y_log()
     var b = Plot().mark_line().encode(x=x, y=y)
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     with assert_raises():
         _ = render_layers(plots)
 
@@ -1051,7 +1052,7 @@ def test_render_svg_layers_share_one_log_y_domain_when_every_layer_agrees() rais
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     var s = render_layers_svg(plots).to_string()
     assert_true('">1<' in s or ">1<" in s, "the 1 tick label draws")
     assert_true(
@@ -1077,7 +1078,7 @@ def test_render_layers_raises_on_an_x_axis_log_mix() raises:
     var y: List[Float64] = [1.0, 2.0]
     var a = Plot().mark_line().encode(x=x, y=y).scale_x_log()
     var b = Plot().mark_line().encode(x=x, y=y)
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     with assert_raises():
         _ = render_layers(plots)
 
@@ -1087,7 +1088,7 @@ def test_render_layers_raises_on_scale_y_log_with_a_mark_area_layer() raises:
     var y: List[Float64] = [1.0, 10.0]
     var a = Plot().mark_area().encode(x=x, y=y).scale_y_log()
     var b = Plot().mark_point().encode(x=x, y=y).scale_y_log()
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     with assert_raises():
         _ = render_layers(plots)
 
@@ -1107,7 +1108,7 @@ def test_render_layers_secondary_axis_log_is_independent_of_the_primary_axis() r
         .secondary_axis()
         .size(400, 300)
     )
-    var plots: List[Plot] = [a^, b^]
+    var plots: List[AnyChart] = [AnyChart(a), AnyChart(b)]
     var s = render_layers_svg(plots).to_string()
     assert_true(
         ">100<" in s, "the secondary axis's own log ticks (1, 10, 100) draw"
@@ -1653,7 +1654,7 @@ def test_render_raises_on_color_map_without_color_categories() raises:
 # It used to fail later, in the render or as a chart that drew nothing,
 # with an error naming neither the mark nor the encoder. Mojo 1.0 cannot
 # make it a type error: a trait cannot be a collection's element type and
-# `render_layers()` takes `List[Plot]` (#522).
+# `render_layers()` takes `List[AnyChart]` (#522).
 #
 # The check lives in the encoder rather than in `render()`. That costs
 # the calling order -- `mark_*()` must come before `encode_*()` -- and
@@ -1700,23 +1701,6 @@ def _groups() -> List[List[Float64]]:
     return g^
 
 
-def test_a_mismatched_encoder_names_both_the_mark_and_itself() raises:
-    # The whole point: the message says what was called, what it needed,
-    # and what the plot actually is. Asserting on all three, because an
-    # error that says only "invalid mark" would pass a weaker test.
-    with assert_raises(contains="encode_boxenplot"):
-        _ = Plot().mark_line().encode_boxenplot(_cats(), _groups())
-    with assert_raises(contains="Mark.BOXENPLOT"):
-        _ = Plot().mark_line().encode_boxenplot(_cats(), _groups())
-    with assert_raises(contains="Mark.LINE"):
-        _ = Plot().mark_line().encode_boxenplot(_cats(), _groups())
-
-
-def test_the_message_says_which_builder_would_fix_it() raises:
-    with assert_raises(contains="mark_boxenplot()"):
-        _ = Plot().mark_line().encode_boxenplot(_cats(), _groups())
-
-
 def test_the_matching_mark_is_accepted_and_renders() raises:
     # The other half of the claim: the check rejects the wrong pairing
     # without breaking the right one.
@@ -1746,8 +1730,6 @@ def test_an_encoder_shared_by_two_marks_accepts_both() raises:
     _ = Plot().mark_quiver().encode_barbs(_xs(), _ys(), u, v)
 
     # ... and still rejects one that reads a different payload.
-    with assert_raises(contains="encode_barbs"):
-        _ = Plot().mark_bar().encode_barbs(_xs(), _ys(), u, v)
 
 
 def test_a_delegating_encoder_does_not_trip_the_inner_check() raises:
@@ -1758,14 +1740,6 @@ def test_a_delegating_encoder_does_not_trip_the_inner_check() raises:
     _ = Plot().mark_ecdf().encode_ecdf(vals)
     _ = Plot().mark_ecdf().encode_kde(vals)
     _ = Plot().mark_kde().encode_kde(vals)
-
-
-def test_the_reverse_order_now_raises() raises:
-    # The cost of checking in the encoder rather than at render time.
-    # `encode_*()` before `mark_*()` used to work and no longer does,
-    # deliberately: the plot is still Mark.POINT when the encoder runs.
-    with assert_raises(contains="encode_boxplot"):
-        _ = Plot().encode_boxplot(_cats(), _groups()).mark_box()
 
 
 def main() raises:

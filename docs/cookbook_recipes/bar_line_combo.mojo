@@ -3,6 +3,7 @@
 `render_layers()` -- the classic bar-plus-line combo chart, sharing
 one categorical x-axis with the bars.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_layers
 from dataviz.core.colors import CORNFLOWERBLUE, TOMATO
 from dataviz.core.theme import Theme
@@ -35,5 +36,5 @@ def main() raises:
         .encode(x=index, y=target)
         .theme(Theme(mark_color=TOMATO, line_width=2.0))
     )
-    var plots: List[Plot] = [bars^, target_line^]
+    var plots: List[AnyChart] = [AnyChart(bars), AnyChart(target_line)]
     save_layers(plots, "docs/src/examples/out_bar_line_combo.svg")

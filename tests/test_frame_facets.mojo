@@ -11,6 +11,7 @@ drawn on its own is the same chart as the same rows passed as lists.
 
 from dataframe import Column, DataFrame, Series
 
+from dataviz.chart import AnyChart
 from dataviz.core.missing import Missing
 from dataviz.core.theme import Theme
 from dataviz import (
@@ -165,17 +166,19 @@ def test_pooled_extent_ignores_missing_values() raises:
 def test_panels_given_the_pooled_extent_share_an_axis() raises:
     var df = _sales()
     var extent = pooled_extent(df, "revenue")
-    var panels = List[Plot]()
+    var panels = List[AnyChart]()
     for part in facet_by(df, "region"):
         panels.append(
-            scatter(
-                part.frame,
-                x="spend",
-                y="revenue",
-                title=part.name,
-                width=240,
-                height=200,
-            ).scale_y_domain(extent[0], extent[1])
+            AnyChart(
+                scatter(
+                    part.frame,
+                    x="spend",
+                    y="revenue",
+                    title=part.name,
+                    width=240,
+                    height=200,
+                ).scale_y_domain(extent[0], extent[1])
+            )
         )
     var first = render_svg(panels[0].copy()).to_string()
     var last = render_svg(panels[2].copy()).to_string()
@@ -231,19 +234,19 @@ def test_grouped_scatter_facets_keep_colors_and_infer_labels() raises:
         height=220,
     )
     assert_equal(len(panels), 2)
-    assert_equal(panels[0]._settings.labels.title, "south")
-    assert_equal(panels[1]._settings.labels.title, "north")
-    assert_equal(panels[0]._settings.labels.x_title, "spend")
-    assert_equal(panels[0]._settings.labels.y_title, "revenue")
-    assert_equal(panels[0]._channels.color_categories[0], "B")
-    assert_equal(panels[1]._channels.color_categories[0], "A")
+    assert_equal(panels[0].settings.labels.title, "south")
+    assert_equal(panels[1].settings.labels.title, "north")
+    assert_equal(panels[0].settings.labels.x_title, "spend")
+    assert_equal(panels[0].settings.labels.y_title, "revenue")
+    assert_equal(panels[0].channels.color_categories[0], "B")
+    assert_equal(panels[1].channels.color_categories[0], "A")
     assert_equal(
-        panels[0]._channels.color_map["A"].r,
-        panels[1]._channels.color_map["A"].r,
+        panels[0].channels.color_map["A"].r,
+        panels[1].channels.color_map["A"].r,
     )
     assert_equal(
-        panels[0]._channels.color_map["B"].r,
-        panels[1]._channels.color_map["B"].r,
+        panels[0].channels.color_map["B"].r,
+        panels[1].channels.color_map["B"].r,
     )
     assert_true(render_facets_svg(panels, 2).to_string().byte_length() > 0)
     var reverse_rows: List[Int] = [4, 3, 2, 1, 0]
@@ -258,10 +261,10 @@ def test_grouped_scatter_facets_keep_colors_and_infer_labels() raises:
         width=280,
         height=220,
     )
-    assert_equal(reordered[0]._settings.labels.title, "south")
+    assert_equal(reordered[0].settings.labels.title, "south")
     assert_equal(
-        reordered[0]._channels.color_map["A"].r,
-        panels[0]._channels.color_map["A"].r,
+        reordered[0].channels.color_map["A"].r,
+        panels[0].channels.color_map["A"].r,
         "explicit color order survives row reordering",
     )
 

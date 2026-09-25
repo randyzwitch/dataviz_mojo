@@ -26,6 +26,9 @@ from std.testing import (
     assert_true,
 )
 from canvas.color import Color
+from dataviz.marks import Line
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart
 from dataviz.core.stats import _loess_at, _poly_fit
 from dataviz.core.theme import Theme
 from dataviz.plot import Plot
@@ -775,9 +778,9 @@ def test_render_facets_svg_each_cells_own_annotations_use_that_cells_own_scale()
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(p1^)
-    plots.append(p2^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(p1))
+    plots.append(AnyChart(p2))
     var svg = render_facets_svg(plots, 2)
     var s = svg.to_string()
     assert_true(
@@ -834,9 +837,9 @@ def test_render_layers_svg_each_layers_own_annotations_use_that_layers_own_scale
         .theme(Theme(show_gridlines=False))
         .size(400, 300)
     )
-    var plots = List[Plot]()
-    plots.append(primary^)
-    plots.append(secondary^)
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(primary))
+    plots.append(AnyChart(secondary))
     var svg = render_layers_svg(plots)
     var s = svg.to_string()
     assert_true(
@@ -1112,7 +1115,7 @@ def test_a_kde_keeps_its_y_annotations() raises:
 # ---------------------------------------------------------------
 
 
-def _arrow_plot() raises -> Plot:
+def _arrow_plot() raises -> Chart[Line]:
     """A 400x300 line plot with one arrow from (3, 3) to (8, 8).
 
     Both axes carry the same data [0, 10], so `_data_extent`'s 5% pad

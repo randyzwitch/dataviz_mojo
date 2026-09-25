@@ -21,6 +21,9 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
+from dataviz.marks import Streamgraph
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart
 from dataviz.core.tooltips import Tooltips
 from dataviz.core.color_scale import default_categorical_palette
 from dataviz.core.frame import _draw_continuous_axis_frame
@@ -1515,7 +1518,7 @@ def test_render_effect_scatter_raises_on_no_data() raises:
 comptime _STEP_CATS = 3
 
 
-def _step_stack_plot(step: StepStyle) raises -> Plot:
+def _step_stack_plot(step: StepStyle) raises -> Chart[Streamgraph]:
     var cats: List[String] = ["X", "Y", "Z"]
     var names: List[String] = ["A", "B"]
     var vals: List[List[Float64]] = [[10.0, 20.0, 15.0], [5.0, 8.0, 12.0]]
@@ -2102,7 +2105,7 @@ def test_a_layered_kde_without_data_raises_instead_of_aborting() raises:
     collect each layer's domain contribution before the shared frame is
     drawn -- so it reached the bad subscript earlier than the standalone
     render did, not later."""
-    var plots: List[Plot] = [Plot().mark_kde().size(200, 150)]
+    var plots: List[AnyChart] = [AnyChart(Plot().mark_kde().size(200, 150))]
     with assert_raises():
         _ = render_layers(plots)
 

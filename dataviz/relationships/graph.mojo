@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Graph
 from dataviz.core.plot_fields import _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin, sqrt
@@ -251,34 +253,6 @@ def _render_graph[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_graph_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_graph` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_graph(
-        target,
-        plot._edges,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def graph(
     df: DataFrame,
     from_categories: String,
@@ -292,7 +266,7 @@ def graph(
     x_title: String = "",
     y_title: String = "",
     layout: GraphLayout = GraphLayout.CIRCLE,
-) raises -> Plot:
+) raises -> Chart[Graph]:
     """`graph()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -315,7 +289,7 @@ def graph(
         layout: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -365,7 +339,7 @@ def graph[
     x_title: String = "",
     y_title: String = "",
     layout: GraphLayout = GraphLayout.CIRCLE,
-) raises -> Plot:
+) raises -> Chart[Graph]:
     """A network graph: nodes connected by edges, for visualizing
     relationships without the ordering constraints an arc diagram or
     chord diagram impose.
@@ -395,7 +369,7 @@ def graph[
             or `GraphLayout.FORCE`.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

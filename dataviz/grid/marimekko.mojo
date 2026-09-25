@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Marimekko
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.geometry import round_to_int
@@ -191,26 +193,6 @@ def _render_marimekko[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_marimekko_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_marimekko` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_marimekko(
-        target, plot._marimekko, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def marimekko(
     df: DataFrame,
     category: String,
@@ -223,7 +205,7 @@ def marimekko(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Marimekko]:
     """`marimekko()` over a long-form `dataframe_mojo` `DataFrame`
     (#743): one row per (subcategory, category) pair, with `value`
     holding the cell.
@@ -251,7 +233,7 @@ def marimekko(
         y_title: The y-axis caption; defaults to `value`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -294,7 +276,7 @@ def marimekko[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Marimekko]:
     """A Marimekko/mosaic chart, so named for its resemblance to the
     Finnish textile company's patterned fabric: column widths
     proportional to each category's overall share, and segment heights
@@ -326,7 +308,7 @@ def marimekko[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

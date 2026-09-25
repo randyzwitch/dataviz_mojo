@@ -1,5 +1,7 @@
 from dataframe import DataFrame
 
+from dataviz.chart import Chart
+from dataviz.marks import EffectScatter
 from dataviz.core.frame_input import _frame_floats
 from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.plot import Plot, _finished
@@ -17,7 +19,7 @@ def effect_scatter(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[EffectScatter]:
     """`effect_scatter()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -38,7 +40,7 @@ def effect_scatter(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -71,7 +73,7 @@ def effect_scatter[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[EffectScatter]:
     """A scatter plot with a halo drawn under each point, drawing the eye
     to it regardless of how dense its neighbors are. Useful when a
     handful of points (outliers, highlighted items) need to stand out
@@ -97,7 +99,7 @@ def effect_scatter[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

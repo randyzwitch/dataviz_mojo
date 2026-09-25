@@ -9,6 +9,7 @@ deterministic synthetic data, so the figure is the same on every run.
 """
 from std.math import cos, log, pi, sqrt
 
+from dataviz.chart import AnyChart
 from dataviz import Plot, histogram, save_facets
 from dataviz.binned.histogram import HistStat, histogram_bins, shared_bin_edges
 
@@ -40,7 +41,7 @@ def main() raises:
     # the same interval as the bar beside it in the next.
     var edges = shared_bin_edges(samples, bins=24)
 
-    var plots = List[Plot]()
+    var plots = List[AnyChart]()
     for g in range(len(samples)):
         # Check what the panels claim before drawing them: the common
         # bins really are common, and each density integrates to one.
@@ -53,15 +54,17 @@ def main() raises:
         if abs(area - 1.0) > 1e-9:
             raise Error(names[g] + ": density integrates to " + String(area))
         plots.append(
-            histogram(
-                samples[g],
-                edges=edges,
-                stat=HistStat.DENSITY,
-                title=names[g],
-                x_title="Response",
-                y_title="Density",
-                width=300,
-                height=240,
+            AnyChart(
+                histogram(
+                    samples[g],
+                    edges=edges,
+                    stat=HistStat.DENSITY,
+                    title=names[g],
+                    x_title="Response",
+                    y_title="Density",
+                    width=300,
+                    height=240,
+                )
             )
         )
 

@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Bullet
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _MarkStyle,
@@ -391,7 +393,7 @@ def bullet[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Bullet]:
     """A bullet chart, Stephen Few's compact alternative to a dashboard
     gauge: a single measure bar against qualitative range bands and a
     target tick, for tracking a KPI against a goal without a
@@ -428,7 +430,7 @@ def bullet[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -511,7 +513,7 @@ def bullet(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Bullet]:
     """Draw a bullet chart from named DataFrame columns.
 
     Each row is one category. `ranges` names numeric threshold columns
@@ -535,7 +537,7 @@ def bullet(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A required column is missing, has the wrong dtype, has
@@ -639,35 +641,6 @@ def _render_bullet_oriented[
         categorical,
         style,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_bullet_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_bullet_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_bullet_oriented(
-        target,
-        plot._bullet,
-        plot._categorical,
-        plot._mark_style,
-        plot._settings,
         ox0,
         oy0,
         ox1,

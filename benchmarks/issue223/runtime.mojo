@@ -4,6 +4,7 @@ of which read a payload struct per point or per cell (#223)."""
 from std.math import cos, sin
 from std.time import perf_counter
 
+from dataviz.chart import AnyChart
 from dataviz import Plot, heatmap, hexbin, line, render, render_svg, scatter3d
 
 
@@ -25,11 +26,11 @@ def main() raises:
             hx.append(String(c))
             hy.append(String(r))
             hv.append(sin(Float64(c) / 9) * cos(Float64(r) / 7))
-    var plots = List[Plot]()
-    plots.append(line(x, y))
-    plots.append(hexbin(x, y))
-    plots.append(scatter3d(x, y, z))
-    plots.append(heatmap(hx, hy, hv))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(x, y)))
+    plots.append(AnyChart(hexbin(x, y)))
+    plots.append(AnyChart(scatter3d(x, y, z)))
+    plots.append(AnyChart(heatmap(hx, hy, hv)))
     var check = 0
     for i in range(len(plots)):
         var warm_r = render(plots[i])

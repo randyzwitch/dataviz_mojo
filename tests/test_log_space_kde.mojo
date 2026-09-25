@@ -68,7 +68,7 @@ def test_a_lognormal_sample_is_symmetric_on_a_log_axis() raises:
     var v = _lognormal(2000)
     var log_axis = Plot().mark_kde().scale_x_log()
     var curve = _kde_curve_for_axis(
-        log_axis._distribution, log_axis._settings, v
+        log_axis.mark.distribution, log_axis.settings, v
     )
     var lopsided = _asymmetry(curve[0], curve[1], 0.0)
     assert_true(
@@ -101,7 +101,9 @@ def test_a_linear_axis_is_unchanged() raises:
     var v = _lognormal(200)
     var direct = _kde_curve(v, 0.0)
     var linear = Plot().mark_kde()
-    var routed = _kde_curve_for_axis(linear._distribution, linear._settings, v)
+    var routed = _kde_curve_for_axis(
+        linear.mark.distribution, linear.settings, v
+    )
     for i in range(len(direct[0])):
         assert_true(
             direct[0][i] == routed[0][i] and direct[1][i] == routed[1][i],

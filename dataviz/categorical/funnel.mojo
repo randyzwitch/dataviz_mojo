@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Funnel
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -190,36 +192,6 @@ def _render_funnel[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_funnel_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_funnel` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_funnel(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._categorical,
-        plot._y_err,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def funnel(
     df: DataFrame,
     categories: String,
@@ -231,7 +203,7 @@ def funnel(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Funnel]:
     """`funnel()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `categories` and `values` column names.
@@ -252,7 +224,7 @@ def funnel(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -287,7 +259,7 @@ def funnel[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Funnel]:
     """A funnel chart: a sequence of stages drawn as narrowing bars, each
     width proportional to its value, for visualizing drop-off through a
     process such as a sales pipeline or a signup flow.
@@ -314,7 +286,7 @@ def funnel[
         y_title: Unused -- a funnel chart has no y-axis to label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

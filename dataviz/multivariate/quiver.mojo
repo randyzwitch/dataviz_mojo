@@ -3,6 +3,8 @@ sample point, pointing along `(u, v)` with a length proportional to
 the magnitude. The general form of `Mark.BARBS`, which draws the same
 field in the meteorologist's station notation."""
 
+from dataviz.chart import Chart
+from dataviz.marks import Quiver
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
@@ -232,26 +234,6 @@ def _render_quiver[
     return frame.result()
 
 
-def _render_quiver_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_quiver` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_quiver(
-        target, plot._barbs, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def quiver(
     df: DataFrame,
     x: String,
@@ -267,7 +249,7 @@ def quiver(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Quiver]:
     """`quiver()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -292,7 +274,7 @@ def quiver(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -335,7 +317,7 @@ def quiver[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Quiver]:
     """A vector field as arrows: one arrow per
     `(x, y)` sample, pointing along `(u, v)` with a length proportional
     to the magnitude and a filled head at the tip.
@@ -381,7 +363,7 @@ def quiver[
         y_title: Vertical axis label.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: Channel lengths differ, the data is empty, or `scale` is

@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Ridgeline
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _DistributionData,
@@ -140,35 +142,6 @@ def _render_ridgeline[
     return frame.result()
 
 
-def _render_ridgeline_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_ridgeline` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_ridgeline(
-        target,
-        plot._categorical,
-        plot._distribution,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def ridgeline(
     df: DataFrame,
     category: String,
@@ -183,7 +156,7 @@ def ridgeline(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Ridgeline]:
     """`ridgeline()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per observation, with `category` naming each row's group and
     `value` holding the number.
@@ -208,7 +181,7 @@ def ridgeline(
         y_title: The y-axis caption; defaults to `value`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -253,7 +226,7 @@ def ridgeline[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Ridgeline]:
     """A ridgeline plot, popularized as the "joyplot" after the cover of
     Joy Division's Unknown Pleasures album: one density-estimate curve
     per category, stacked with a slight vertical overlap, for comparing
@@ -293,7 +266,7 @@ def ridgeline[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

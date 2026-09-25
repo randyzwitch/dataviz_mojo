@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Violin
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _DistributionData,
@@ -288,7 +290,7 @@ def violin(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Violin]:
     """`violin()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per observation, with `category` naming each row's group and
     `value` holding the number.
@@ -314,7 +316,7 @@ def violin(
         horizontal: Draw the categories down the y axis instead.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -361,7 +363,7 @@ def violin[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Violin]:
     """A violin plot: a box plot's summary combined with a mirrored
     kernel-density-estimate silhouette per category, for seeing a
     distribution's actual shape (multiple modes, skew) that a box plot
@@ -403,7 +405,7 @@ def violin[
             own docstring.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -526,35 +528,6 @@ def _render_violin_oriented[
         distribution,
         style,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_violin_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_violin_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_violin_oriented(
-        target,
-        plot._categorical,
-        plot._distribution,
-        plot._mark_style,
-        plot._settings,
         ox0,
         oy0,
         ox1,

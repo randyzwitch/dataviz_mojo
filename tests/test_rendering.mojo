@@ -17,6 +17,9 @@ from canvas.color import Color
 from canvas.resize import downsample
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
+from dataviz.marks import Line, Point
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart, ChartLike
 from dataviz.core.colors import CRIMSON, WHITE
 from dataviz.core.mark import Mark
 from dataviz.core.theme import Theme
@@ -28,7 +31,6 @@ from dataviz.plot import Plot
 from dataviz.rendering import (
     _all_at_dpi,
     _at_dpi,
-    _render_generic,
     _render_into,
     _resolve_supersample,
     render_tight,
@@ -155,7 +157,7 @@ from _test_helpers import _assert_same_canvas
 # mark is how one of them ends up missing a mark.
 
 
-def _assert_same_layout(mark_value: Int, plot: Plot) raises -> Int:
+def _assert_same_layout[C: ChartLike](mark_value: Int, plot: C) raises -> Int:
     """Lay `plot` out on both backends and require the results to match.
 
     Also checks the comparison isn't vacuous: a mark that laid out into
@@ -180,8 +182,32 @@ def _assert_same_layout(mark_value: Int, plot: Plot) raises -> Int:
     var vector_cache = FontCache()
     var canvas = Canvas(_W, _H, WHITE)
     var svg = SvgCanvas(_W, _H)
-    var raster = _render_generic(canvas, plot, 0, 0, _W, _H, cache=raster_cache)
-    var vector = _render_generic(svg, plot, 0, 0, _W, _H, cache=vector_cache)
+    var raster = plot.render_mark(
+        canvas,
+        0,
+        0,
+        _W,
+        _H,
+        False,
+        0.0,
+        0.0,
+        False,
+        cache=raster_cache,
+        vector_target=False,
+    )
+    var vector = plot.render_mark(
+        svg,
+        0,
+        0,
+        _W,
+        _H,
+        False,
+        0.0,
+        0.0,
+        False,
+        cache=vector_cache,
+        vector_target=False,
+    )
 
     assert_equal(raster.px0, vector.px0, "plot rect px0 differs" + label)
     assert_equal(raster.py0, vector.py0, "plot rect py0 differs" + label)
@@ -248,7 +274,7 @@ def test_every_mark_value_has_a_representative_plot() raises:
     for value in range(Mark.COUNT):
         var plot = _representative_plot(Mark(value))
         assert_true(
-            plot._mark == Mark(value),
+            plot.id() == Mark(value),
             "representative plot for mark value "
             + String(value)
             + " actually uses a different mark",
@@ -451,7 +477,7 @@ def test_step_setter_name_is_derived_from_the_mark() raises:
 # otherwise pass.
 
 
-def _two_step(plot: Plot) raises -> Canvas:
+def _two_step[C: ChartLike](plot: C) raises -> Canvas:
     """The pre-#534 recipe, spelled out so the test does not depend on
     `render()`'s choice of path.
 
@@ -467,20 +493,22 @@ def _two_step(plot: Plot) raises -> Canvas:
         The downsampled canvas.
     """
     var factor = _resolve_supersample(
-        plot._mark, plot._settings.theme, "render"
+        plot.id(), plot.chart_settings().theme, "render"
     )
     var scratch = Canvas(
-        plot.width * factor,
-        plot.height * factor,
-        plot._settings.theme.background,
+        plot.canvas_width() * factor,
+        plot.canvas_height() * factor,
+        plot.chart_settings().theme.background,
     )
     scratch.translate(Float64(factor - 1) / 2.0, Float64(factor - 1) / 2.0)
     scratch.scale(Float64(factor), Float64(factor))
-    _ = _render_into(scratch, plot, 0, 0, plot.width, plot.height)
+    _ = _render_into(
+        scratch, plot, 0, 0, plot.canvas_width(), plot.canvas_height()
+    )
     return downsample(scratch, factor)
 
 
-def _ink(c: Canvas, plot: Plot) -> Int:
+def _ink[C: ChartLike](c: Canvas, plot: C) -> Int:
     """Pixels that differ from the theme background.
 
     Guards the whole file: `_assert_same_canvas` on two empty canvases
@@ -493,7 +521,7 @@ def _ink(c: Canvas, plot: Plot) -> Int:
     Returns:
         The count of non-background pixels.
     """
-    var bg = plot._settings.theme.background
+    var bg = plot.chart_settings().theme.background
     var n = 0
     for y in range(c.height):
         for x in range(c.width):
@@ -503,7 +531,7 @@ def _ink(c: Canvas, plot: Plot) -> Int:
     return n
 
 
-def _check(plot: Plot, label: String, want_factor: Int) raises:
+def _check[C: ChartLike](plot: C, label: String, want_factor: Int) raises:
     """Both paths agree on `plot`, and both drew something.
 
     Args:
@@ -514,7 +542,7 @@ def _check(plot: Plot, label: String, want_factor: Int) raises:
             move a test off the path it was written for.
     """
     assert_equal(
-        _resolve_supersample(plot._mark, plot._settings.theme, "render"),
+        _resolve_supersample(plot.id(), plot.chart_settings().theme, "render"),
         want_factor,
         label + ": supersample factor",
     )
@@ -688,7 +716,7 @@ def test_every_mark_draws_ink_on_raster() raises:
     """
     for value in range(Mark.COUNT):
         var plot = _representative_plot(Mark(value))
-        plot._settings.theme = _chrome_free_theme()
+        plot.settings.theme = _chrome_free_theme()
         # Render small. Raster cost is per device pixel and this sweep
         # renders every mark, so the default size made this the slowest
         # module in the suite for no extra coverage -- presence of ink
@@ -821,13 +849,17 @@ def test_a_layered_chart_is_clipped_by_the_same_code() raises:
     # built, which is why the clip is pushed from the scales inside the
     # layer rather than from a frame outside it.
     var d = _ramp()
-    var plots: List[Plot] = [
-        line(d[0], d[1], theme=_theme(), width=400, height=300).scale_x_domain(
-            15.0, 25.0
+    var plots: List[AnyChart] = [
+        AnyChart(
+            line(
+                d[0], d[1], theme=_theme(), width=400, height=300
+            ).scale_x_domain(15.0, 25.0)
         ),
-        scatter(
-            d[0], d[1], theme=_theme(), width=400, height=300
-        ).scale_x_domain(15.0, 25.0),
+        AnyChart(
+            scatter(
+                d[0], d[1], theme=_theme(), width=400, height=300
+            ).scale_x_domain(15.0, 25.0)
+        ),
     ]
     var c = render_layers(plots)
     assert_equal(_outside(c), 0, "an overlay clips its layers too")
@@ -874,7 +906,7 @@ def test_an_unpinned_chart_is_unchanged() raises:
 # and everything below is a consequence of it.
 
 
-def _pdf_plot() raises -> Plot:
+def _pdf_plot() raises -> Chart[Point]:
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
     return scatter(
@@ -1055,9 +1087,9 @@ def test_every_multi_plot_save_writes_a_real_pdf() raises:
     var x: List[Float64] = [0.0, 1.0, 2.0, 3.0]
     var y: List[Float64] = [1.0, 3.0, 2.0, 4.0]
     var t = Theme(show_legend=False)
-    var plots = List[Plot]()
-    plots.append(scatter(x, y, theme=t).size(300, 200))
-    plots.append(line(x, y, theme=t).size(300, 200))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(scatter(x, y, theme=t).size(300, 200)))
+    plots.append(AnyChart(line(x, y, theme=t).size(300, 200)))
 
     var facets = "/tmp/dataviz_test_facets.pdf"
     save_facets(plots, 2, facets)
@@ -1103,7 +1135,7 @@ def _clear_theme() -> Theme:
     return Theme(background=Color(255, 255, 255, 0))
 
 
-def _tiny_plot(theme: Theme) raises -> Plot:
+def _tiny_plot(theme: Theme) raises -> Chart[Line]:
     """A small line chart under `theme`, enough to have a background."""
     var xs: List[Float64] = [1.0, 2.0, 3.0]
     var ys: List[Float64] = [1.0, 4.0, 2.0]
@@ -1182,7 +1214,7 @@ def test_an_opaque_background_costs_no_alpha_machinery() raises:
 # chase it.
 
 
-def _roomy_plot() raises -> Plot:
+def _roomy_plot() raises -> Chart[Line]:
     """A small chart on a deliberately oversized figure, so there is
     whitespace for a crop to remove."""
     var xs: List[Float64] = [1.0, 2.0, 3.0]
@@ -1246,7 +1278,7 @@ def test_the_measured_box_agrees_with_the_ink_it_crops_to() raises:
     # would crop away ink -- so erring outward is the safe direction and
     # the only one allowed here.
     var plot = _roomy_plot()
-    var bg = plot._settings.theme.background
+    var bg = plot.chart_settings().theme.background
     var full = render(plot)
     var scanned = _ink_box_by_scanning(full, bg)
     var tight = render_tight(_roomy_plot())
@@ -1285,7 +1317,7 @@ def test_a_tight_render_keeps_the_ink() raises:
     # Cropping must not shave the thing it cropped to. Every cropped
     # figure still has ink on it, and as much of it as before.
     var plot = _roomy_plot()
-    var bg = plot._settings.theme.background
+    var bg = plot.chart_settings().theme.background
     var full = render(plot)
     var tight = render_tight(_roomy_plot())
     var full_ink = 0
@@ -1550,18 +1582,22 @@ def _svg_root(svg: String) -> String:
     return String(svg[byte = 0 : svg.find(">") + 1])
 
 
-def _roomy_pair() raises -> List[Plot]:
+def _roomy_pair() raises -> List[AnyChart]:
     """Two small charts on oversized figures -- whitespace for a crop to
     remove -- with titles and axis titles, so a crop that shaved text
     would lose ink."""
     var xs: List[Float64] = [1.0, 2.0, 3.0]
     var ys: List[Float64] = [1.0, 4.0, 2.0]
-    var out = List[Plot]()
+    var out = List[AnyChart]()
     out.append(
-        line(xs, ys, title="Left", x_title="x", y_title="y").size(400, 300)
+        AnyChart(
+            line(xs, ys, title="Left", x_title="x", y_title="y").size(400, 300)
+        )
     )
     out.append(
-        line(xs, ys, title="Right", x_title="x", y_title="y").size(400, 300)
+        AnyChart(
+            line(xs, ys, title="Right", x_title="x", y_title="y").size(400, 300)
+        )
     )
     return out^
 
@@ -1610,7 +1646,7 @@ def test_dpi_keeps_a_composite_figure_the_same_figure() raises:
     # makes for one plot: more pixels, the same share of them inked --
     # which only holds if the text, strokes and title band scaled too.
     var plots = _roomy_pair()
-    var bg = plots[0]._settings.theme.background
+    var bg = plots[0].settings.theme.background
     var low = render_facets(plots, 2)
     var high = render_facets(_all_at_dpi(plots, 288.0, "test"), 2)
     assert_equal(high.width, 4 * low.width)
@@ -1673,7 +1709,7 @@ def test_a_tight_composite_keeps_all_of_its_ink() raises:
     # Cropping must not shave what it cropped to -- the figure title a
     # grid draws above its cells, each cell's title and axis titles.
     var plots = _roomy_pair()
-    var bg = plots[0]._settings.theme.background
+    var bg = plots[0].settings.theme.background
     var full_l = render_layers(plots)
     var tight_l = _render_layers_tight(plots)
     assert_true(_inked(tight_l, bg) >= _inked(full_l, bg), "layers lost ink")

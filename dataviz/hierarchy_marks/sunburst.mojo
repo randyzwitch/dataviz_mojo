@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Sunburst
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
 
@@ -283,26 +285,6 @@ def _render_sunburst[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_sunburst_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_sunburst` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_sunburst(
-        target, plot._hierarchy, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def sunburst(
     df: DataFrame,
     ids: String,
@@ -315,7 +297,7 @@ def sunburst(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Sunburst]:
     """`sunburst()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -337,7 +319,7 @@ def sunburst(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -381,7 +363,7 @@ def sunburst[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Sunburst]:
     """A sunburst chart: a hierarchy drawn as concentric rings, each ring
     a level of depth and each arc's angle proportional to its value, for
     showing both a hierarchy's structure and its values' relative sizes
@@ -410,7 +392,7 @@ def sunburst[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

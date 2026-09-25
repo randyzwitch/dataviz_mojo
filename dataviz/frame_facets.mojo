@@ -3,6 +3,7 @@
 from dataframe import DataFrame
 
 from dataviz.core.color_scale import shared_color_map
+from dataviz.chart import AnyChart
 from dataviz.plot import Plot
 from dataviz.core.theme import Theme
 
@@ -71,10 +72,10 @@ def facet_by(
     one-call functions.
 
     ```mojo
-    var panels = List[Plot]()
+    var panels = List[AnyChart]()
     for part in facet_by(sales, "region"):
         panels.append(
-            scatter(part.frame, x="spend", y="revenue", title=part.name)
+            scatter(part.frame, x="spend", y="revenue", title=part.name).erased()
         )
     save_facets(panels, 2, "by-region.png")
     ```
@@ -154,7 +155,7 @@ def scatter_facets(
     theme: Theme = Theme(),
     width: Int = 640,
     height: Int = 420,
-) raises -> List[Plot]:
+) raises -> List[AnyChart]:
     """Build grouped scatter panels from named DataFrame columns (#364).
 
     Each facet receives its own rows, title, and x/y column labels. A
@@ -199,7 +200,7 @@ def scatter_facets(
         else:
             colors.append(whole^)
     var mapping = shared_color_map(colors, theme)
-    var out = List[Plot]()
+    var out = List[AnyChart]()
     for part in parts:
         var xs = _frame_floats(part.frame, x, caller, theme.missing)
         var ys = _frame_floats(part.frame, y, caller, theme.missing)
@@ -222,8 +223,12 @@ def scatter_facets(
         else:
             plot = plot^.encode(x=xs, y=ys)
         out.append(
-            plot
-            ^.labels(title=part.name, x_title=x, y_title=y).size(width, height)
+            AnyChart(
+                plot
+                ^.labels(title=part.name, x_title=x, y_title=y).size(
+                    width, height
+                )
+            )
         )
     return out^
 

@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Radar
 from dataviz.core.plot_fields import _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi
@@ -219,34 +221,6 @@ def _render_radar[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_radar_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_radar` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_radar(
-        target,
-        plot._radar,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def radar(
     df: DataFrame,
     indicator: String,
@@ -261,7 +235,7 @@ def radar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Radar]:
     """Draw a radar chart from one row per (series, indicator) pair (#743).
 
     The `max_value` column repeats each indicator's maximum for every
@@ -364,7 +338,7 @@ def radar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Radar]:
     """A radar/spider chart: one axis per indicator radiating from a
     shared center, with each series drawn as a polygon connecting its
     values, for comparing several items across the same set of metrics
@@ -394,7 +368,7 @@ def radar(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -455,7 +429,7 @@ def radar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Radar]:
     """`radar()` generalized over numeric element type for `series_values`,
     via `_materialize_nested_scalar_list` (array_like.mojo); see
     `scatter()`'s `DType` overload (continuous.mojo). `max_values` stays
@@ -493,7 +467,7 @@ def radar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Radar]:
     """`radar()` generalized over numeric element type for `max_values`, via
     `_materialize_scalar_list`. `series_values` stays concrete here.
     Delegates to the concrete overload above.

@@ -7,6 +7,8 @@ the de-facto shared home without anything saying so. Moved here
 unchanged; the estimator is the same one violins have always drawn.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Kde, Rug
 from dataviz.core.plot_fields import _DistributionData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import exp, log10, pi, sqrt
@@ -207,33 +209,6 @@ def _render_kde[
     return frame.result()
 
 
-def _render_kde_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_kde` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_kde(
-        target,
-        plot._distribution,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def _kde_curve_for_axis(
     distribution: _DistributionData,
     settings: _ChartSettings,
@@ -424,8 +399,8 @@ def _render_rug[
     A density curve is smooth everywhere and says nothing about how many
     observations are behind it, or where they actually fall. A rug is the
     honesty check on one, which is why it is conventionally drawn
-    underneath. Two ways to draw that: `render_layers([kdeplot(v),
-    rugplot(v)])` composes the two marks, and `kdeplot(rug=True)`
+    underneath. Two ways to draw that: `render_layers(kdeplot(v),
+    rugplot(v))` composes the two marks, and `kdeplot(rug=True)`
     draws both from the one mark. They produce byte-identical output --
     both reach `_draw_rug_ticks` below against the curve's own x-scale --
     so the choice is about how the code reads, not the chart.
@@ -501,34 +476,6 @@ def _render_rug[
     return frame.result()
 
 
-def _render_rug_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_rug` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_rug(
-        target,
-        plot._mark,
-        plot._distribution,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def kdeplot(
     values: List[Float64],
     bandwidth: Float64 = 0.0,
@@ -541,7 +488,7 @@ def kdeplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Kde]:
     """A kernel-density curve over raw observations: the smooth estimate
     of a distribution's shape, without a histogram's bin-width choice.
 
@@ -551,7 +498,7 @@ def kdeplot(
     axes.
 
     To compare them on one frame,
-    `render_layers([kdeplot(a), kdeplot(b)])` is how to say that: the
+    `render_layers(kdeplot(a), kdeplot(b))` is how to say that: the
     curves share one density axis, so their peak heights are
     comparable, which is the whole point. `render_facets()` puts them
     side by side instead, a weaker reading but useful when the
@@ -631,7 +578,7 @@ def kdeplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Kde]:
     """`kdeplot()` over a named column of a `dataframe_mojo` `DataFrame`
     (#743); the x-axis title defaults to the column name.
 
@@ -653,7 +600,7 @@ def kdeplot(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -684,12 +631,12 @@ def rugplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Rug]:
     """One short tick per observation along the x axis.
 
     `Mark.RUG`: the same ticks `kdeplot(rug=True)`
     draws under its curve, as a chart of their own -- or as a layer, via
-    `render_layers([kdeplot(v), rugplot(v)])`, which draws exactly what
+    `render_layers(kdeplot(v), rugplot(v))`, which draws exactly what
     `kdeplot(rug=True)` does.
 
     Drawn with no y-axis: a rug's ticks are all the same length
@@ -750,7 +697,7 @@ def rugplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Rug]:
     """`rugplot()` over a named column of a `dataframe_mojo` `DataFrame`
     (#743); the x-axis title defaults to the column name.
 
@@ -769,7 +716,7 @@ def rugplot(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for

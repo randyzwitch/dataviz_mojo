@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Waterfall
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -408,7 +410,7 @@ def waterfall(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Waterfall]:
     """`waterfall()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -432,7 +434,7 @@ def waterfall(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -482,7 +484,7 @@ def waterfall[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Waterfall]:
     """A waterfall chart: floating bars from a running total, each one
     showing how a positive or negative change moves the total from its
     previous value, for visualizing a sequence of additions and
@@ -521,7 +523,7 @@ def waterfall[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -620,36 +622,6 @@ def _render_waterfall_oriented[
         categorical,
         style,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_waterfall_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_waterfall_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_waterfall_oriented(
-        target,
-        plot._waterfall,
-        plot._continuous,
-        plot._categorical,
-        plot._mark_style,
-        plot._settings,
         ox0,
         oy0,
         ox1,

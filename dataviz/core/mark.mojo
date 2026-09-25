@@ -359,7 +359,7 @@ def _require_mark(
     chart, with an error naming neither the mark the caller chose nor
     the encoder they called. Mojo 1.0 has no way to make that a type
     error: a trait cannot be a collection's element type, and
-    `render_layers()` takes `List[Plot]` (#522).
+    `render_layers()` takes `List[AnyChart]` (#522).
 
     The check is here rather than in `render()` on purpose. It costs
     the order `mark_*()` then `encode_*()`, which is now required, and

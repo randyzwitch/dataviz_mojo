@@ -608,9 +608,10 @@ def test_bar_reads_date_and_datetime_columns_as_time() raises:
         ]
     )
     var by_date = bar(date_frame, x="day", y="amount")
-    assert_true(by_date._settings.x_time, "date column uses a time axis")
+    assert_true(by_date.settings.x_time, "date column uses a time axis")
     assert_equal(
-        by_date._continuous.x[1] - by_date._continuous.x[0], 3.0 * 86400.0
+        by_date.mark.continuous.x[1] - by_date.mark.continuous.x[0],
+        3.0 * 86400.0,
     )
     var expected = render_svg(
         bar(dates, values, x_title="day", y_title="amount")
@@ -732,7 +733,7 @@ def test_gantt_reads_temporal_start_and_end_columns() raises:
         )
     ).to_string()
     var from_frame = gantt(df, categories="task", start="start", end="end")
-    assert_true(from_frame._settings.x_time, "temporal columns use a time axis")
+    assert_true(from_frame.settings.x_time, "temporal columns use a time axis")
     assert_equal(
         render_svg(from_frame).to_string(), expected, "date columns match lists"
     )
@@ -775,7 +776,7 @@ def test_candlestick_reads_date_and_datetime_columns_as_time() raises:
     var from_frame = candlestick(
         df, categories="day", open="open", high="high", low="low", close="close"
     )
-    assert_true(from_frame._settings.x_time, "date column uses a time axis")
+    assert_true(from_frame.settings.x_time, "date column uses a time axis")
     assert_equal(
         render_svg(from_frame).to_string(), expected, "date column matches list"
     )

@@ -12,6 +12,7 @@ Int conversion up to 2^53, whole-number labels from List[Int]).
 
 from _test_helpers import Lcg, _count_color
 from canvas.color import Color
+from dataviz.chart import AnyChart, ChartLike
 from dataviz.core.camera3d import Camera3D
 from dataviz.core.frame3d import (
     Frame3D,
@@ -859,7 +860,7 @@ def test_a_single_stop_color_ramp_is_a_flat_color() raises:
 
 def test_a_color_ramp_survives_a_theme_copy() raises:
     # Theme is ImplicitlyCopyable and is copied all over the package
-    # (`var theme = plot._settings.theme`). ColorRamp packs its stops into a SIMD
+    # (`var theme = plot.settings.theme`). ColorRamp packs its stops into a SIMD
     # vector precisely so that copy keeps working; this pins it.
     var original = Theme(color_ramp=magma())
     var copied = original
@@ -1030,7 +1031,7 @@ struct _OtherFloatBuffer(Copyable, Float64Sequence, Movable):
         return self.data[idx]
 
 
-def _labeled_svg(var plot: Plot) raises -> String:
+def _labeled_svg(var plot: AnyChart) raises -> String:
     return render_svg(plot^.size(400, 300)).to_string()
 
 
@@ -1044,7 +1045,7 @@ def test_encode_labels_work_for_every_non_python_input_kind() raises:
     var xf: List[Float64] = [1.0, 2.0, 3.0]
     var yf: List[Float64] = [10.0, 20.0, 30.0]
     var expected = _labeled_svg(
-        Plot().mark_point().encode(x=xf, y=yf, labels=labels)
+        AnyChart(Plot().mark_point().encode(x=xf, y=yf, labels=labels))
     )
     assert_true(
         ">one</text>" in expected and ">three</text>" in expected,
@@ -1053,18 +1054,22 @@ def test_encode_labels_work_for_every_non_python_input_kind() raises:
     var xi: List[Int32] = [1, 2, 3]
     var yi: List[Int32] = [10, 20, 30]
     assert_equal(
-        _labeled_svg(Plot().mark_point().encode(x=xi, y=yi, labels=labels)),
+        _labeled_svg(
+            AnyChart(Plot().mark_point().encode(x=xi, y=yi, labels=labels))
+        ),
         expected,
         "a List[Int32] column keeps its labels",
     )
     assert_equal(
         _labeled_svg(
-            Plot()
-            .mark_point()
-            .encode(
-                x=_FloatBuffer([1.0, 2.0, 3.0]),
-                y=_FloatBuffer([10.0, 20.0, 30.0]),
-                labels=labels,
+            AnyChart(
+                Plot()
+                .mark_point()
+                .encode(
+                    x=_FloatBuffer([1.0, 2.0, 3.0]),
+                    y=_FloatBuffer([10.0, 20.0, 30.0]),
+                    labels=labels,
+                )
             )
         ),
         expected,
@@ -1080,8 +1085,8 @@ def test_encode_accepts_x_and_y_of_different_numeric_types() raises:
     var xf: List[Float64] = [1.0, 2.0, 3.0]
     var yf: List[Float64] = [0.5, 2.25, 4.0]
     assert_equal(
-        _labeled_svg(Plot().mark_point().encode(x=xi, y=yf32)),
-        _labeled_svg(Plot().mark_point().encode(x=xf, y=yf)),
+        _labeled_svg(AnyChart(Plot().mark_point().encode(x=xi, y=yf32))),
+        _labeled_svg(AnyChart(Plot().mark_point().encode(x=xf, y=yf))),
     )
 
 
@@ -1090,14 +1095,16 @@ def test_encode_accepts_x_and_y_of_different_container_types() raises:
     var yf: List[Float64] = [10.0, 20.0, 30.0]
     assert_equal(
         _labeled_svg(
-            Plot()
-            .mark_point()
-            .encode(
-                x=_FloatBuffer([1.0, 2.0, 3.0]),
-                y=_OtherFloatBuffer([10.0, 20.0, 30.0]),
+            AnyChart(
+                Plot()
+                .mark_point()
+                .encode(
+                    x=_FloatBuffer([1.0, 2.0, 3.0]),
+                    y=_OtherFloatBuffer([10.0, 20.0, 30.0]),
+                )
             )
         ),
-        _labeled_svg(Plot().mark_point().encode(x=xf, y=yf)),
+        _labeled_svg(AnyChart(Plot().mark_point().encode(x=xf, y=yf))),
     )
 
 

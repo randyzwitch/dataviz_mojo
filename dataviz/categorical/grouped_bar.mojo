@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import GroupedBar
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -517,7 +519,7 @@ def grouped_bar(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[GroupedBar]:
     """`grouped_bar()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per (series, category) pair, with `value` holding the cell.
 
@@ -543,7 +545,7 @@ def grouped_bar(
         horizontal: Draw the categories down the y axis instead.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -588,7 +590,7 @@ def grouped_bar[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[GroupedBar]:
     """A grouped bar chart: several bars side by side per category, one
     per series, for comparing series values within each category
     directly rather than reading a stacked total.
@@ -619,7 +621,7 @@ def grouped_bar[
             own docstring.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -726,35 +728,6 @@ def _render_grouped_bar_oriented[
         grouped_bar,
         categorical,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_grouped_bar_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_grouped_bar_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_grouped_bar_oriented(
-        target,
-        plot._mark,
-        plot._grouped_bar,
-        plot._categorical,
-        plot._settings,
         ox0,
         oy0,
         ox1,

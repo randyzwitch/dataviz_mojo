@@ -36,6 +36,9 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.vector.svg import SvgCanvas
 
+from dataviz.marks import Point
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart
 from dataviz import (
     render,
     render_svg,
@@ -98,25 +101,25 @@ def _series() -> Tuple[List[Float64], List[Float64]]:
     return (x^, y^)
 
 
-def _facet_plots() raises -> List[Plot]:
+def _facet_plots() raises -> List[AnyChart]:
     """Three cells of the same size -- what `render_facets` requires --
     so the second row is partly empty and the figure ground shows."""
     var s = _series()
     var theme = _dark_ground()
-    var plots = List[Plot]()
-    plots.append(scatter(s[0], s[1], theme=theme).size(240, 180))
-    plots.append(line(s[0], s[1], theme=theme).size(240, 180))
-    plots.append(scatter(s[1], s[0], theme=theme).size(240, 180))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(scatter(s[0], s[1], theme=theme).size(240, 180)))
+    plots.append(AnyChart(line(s[0], s[1], theme=theme).size(240, 180)))
+    plots.append(AnyChart(scatter(s[1], s[0], theme=theme).size(240, 180)))
     return plots^
 
 
-def _grid_plots() raises -> List[Plot]:
+def _grid_plots() raises -> List[AnyChart]:
     """Two charts for the unequal grid below."""
     var s = _series()
     var theme = _dark_ground()
-    var plots = List[Plot]()
-    plots.append(scatter(s[0], s[1], theme=theme))
-    plots.append(line(s[0], s[1], theme=theme))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(scatter(s[0], s[1], theme=theme)))
+    plots.append(AnyChart(line(s[0], s[1], theme=theme)))
     return plots^
 
 
@@ -153,7 +156,7 @@ def _matrix() -> List[List[Float64]]:
     return out^
 
 
-def _math_plot() raises -> Plot:
+def _math_plot() raises -> Chart[Point]:
     """A scatter whose every label is an expression (#371): a
     superscript and a relation in the title, a fraction on the y
     caption, a subscript on the x caption, Greek in the legend.

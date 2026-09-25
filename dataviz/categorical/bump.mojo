@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Bump
 from dataviz.core.plot_fields import _CategoricalData
 from dataviz.core.mark import Mark
 from dataviz.core.chart_settings import _ChartSettings
@@ -323,35 +325,6 @@ def _render_bump[
     return frame.result()
 
 
-def _render_bump_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_bump` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_bump(
-        target,
-        plot._mark,
-        plot._grouped_bar,
-        plot._categorical,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def bump(
     df: DataFrame,
     category: String,
@@ -363,7 +336,7 @@ def bump(
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Bump]:
     """`bump()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per (series, category) pair, with `value` holding the rank
     or score at that step.
@@ -386,7 +359,7 @@ def bump(
         x_title: The x-axis caption; defaults to `category`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -427,7 +400,7 @@ def bump[
     title: String = "",
     subtitle: String = "",
     x_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Bump]:
     """A bump chart: one line per series tracking its rank, not its raw
     value, over an ordered axis. Useful for showing how competitors trade
     places over time, such as sports standings, chart rankings, or
@@ -455,7 +428,7 @@ def bump[
         x_title: The x-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

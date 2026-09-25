@@ -10,6 +10,8 @@ from canvas.buffer import Canvas
 from canvas.color import Color
 from canvas.text.font_cache import FontCache
 from canvas.text.render import measure_text
+from dataviz.marks import Point
+from dataviz.chart import Chart
 from dataviz.core.text import _max_label_width
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.text import _Scaled
@@ -64,7 +66,7 @@ def _theme() -> Theme:
     return Theme(legend_position=LegendPosition.TOP)
 
 
-def _plot(labels: List[String]) raises -> Plot:
+def _plot(labels: List[String]) raises -> Chart[Point]:
     """A scatter whose color channel is `labels`, legend along the top.
 
     The row legend is the only layout that uses `_text_advance()`; the

@@ -8,6 +8,8 @@
 Both use data supplied by `encode_triplot()`; `TRIPLOT` needs only x and y.
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Tripcolor, Triplot
 from dataviz.core.chart_settings import _ChartSettings
 from std.collections import Dict
 
@@ -241,26 +243,6 @@ def _render_triplot[
     return frame.result()
 
 
-def _render_triplot_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_triplot` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_triplot(
-        target, plot._triplot, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _validate_triplot(triplot: _TriplotData) raises:
     """`Mark.TRIPLOT`'s pre-draw checks: matching x/y columns and at least
     one sample. `Mark.TRIPCOLOR` needs a `z` as well and has its own
@@ -437,26 +419,6 @@ def _render_tripcolor[
     return frame.result()
 
 
-def _render_tripcolor_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_tripcolor` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_tripcolor(
-        target, plot._triplot, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _validate_tripcolor(triplot: _TriplotData) raises:
     """`Mark.TRIPCOLOR`'s pre-draw checks: `_validate_triplot`'s, plus a
     `z` value at every sample.
@@ -615,7 +577,7 @@ def triplot(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Triplot]:
     """`triplot()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `x` and `y` column names.
@@ -637,7 +599,7 @@ def triplot(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -672,7 +634,7 @@ def triplot[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Triplot]:
     """The Delaunay triangulation of scattered points, drawn as itself:
     every edge of the mesh stroked once, with a dot at each sample -- the
     mesh-inspection view, and what you look at when a `tricontour()` or
@@ -704,7 +666,7 @@ def triplot[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: Empty data, or `x` and `y` of different lengths.
@@ -761,7 +723,7 @@ def tripcolor(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tripcolor]:
     """`tripcolor()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -784,7 +746,7 @@ def tripcolor(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -822,7 +784,7 @@ def tripcolor[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Tripcolor]:
     """A pseudocolor plot over scattered samples: the points are Delaunay-
     triangulated and every triangle filled from the values at its three
     vertices -- the unstructured counterpart of a heatmap, for a field
@@ -862,7 +824,7 @@ def tripcolor[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: Empty data, or columns of different lengths.

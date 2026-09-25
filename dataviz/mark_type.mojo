@@ -6,6 +6,7 @@ encoders it accepts, so `Chart[M].encode_x()` is a compile error on any
 other `M`, which is what `_require_mark` checked at run time."""
 
 from canvas.text.font_cache import FontCache
+from dataframe import DataFrame
 from canvas.vector.draw_target import DrawTarget
 from canvas.color import Color
 from dataviz.binned.histogram import BinRule, HistogramBins
@@ -605,3 +606,17 @@ trait MarkType(Copyable, Deinitable, Movable):
     ) raises:
         """Refused at compile time: this mark has no `encode_imshow()`."""
         comptime assert False, "encode_imshow(): not an encoder of this mark"
+
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        """Refused at compile time: this mark reads no `DataFrame` by
+        column name."""
+        comptime assert False, "encode_frame(): not an encoder of this mark"

@@ -3,6 +3,7 @@
 `PRE`, `MID`, and `POST` place the transition at different positions between
 samples. Step interpolation and line smoothing are mutually exclusive.
 """
+from dataviz.chart import AnyChart
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO
 from dataviz import Plot, save_facets, StepStyle
 from dataviz.core.theme import Theme
@@ -50,5 +51,10 @@ def main() raises:
         .theme(Theme(mark_color=CORNFLOWERBLUE))
     )
 
-    var plots: List[Plot] = [pre^, mid^, post^, none^]
+    var plots: List[AnyChart] = [
+        AnyChart(pre),
+        AnyChart(mid),
+        AnyChart(post),
+        AnyChart(none),
+    ]
     save_facets(plots, 2, "docs/src/examples/out_step_interpolation.svg")

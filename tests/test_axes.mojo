@@ -11,6 +11,9 @@ from std.testing import (
     assert_true,
 )
 from canvas.text.font_cache import FontCache
+from dataviz.marks import Point
+from dataviz.chart import Chart
+from dataviz.chart import AnyChart
 from dataviz.core.frame import _fitting_ticks, _ticks_fit
 from dataviz.core.scale import TickFormat
 from dataviz.core.text import _Scaled, _max_label_width
@@ -131,7 +134,7 @@ def _full_span_count(segs: List[_Seg]) -> Int:
     return n
 
 
-def _plot(theme: Theme) raises -> Plot:
+def _plot(theme: Theme) raises -> Chart[Point]:
     # Symmetric about zero on both axes, so `_data_extent`'s 5% padding
     # keeps zero at the exact center of the plot rect: x = 220, y = 135.
     var xs: List[Float64] = [-4.0, 0.0, 4.0]
@@ -486,15 +489,15 @@ def test_encode_time_puts_posix_seconds_on_the_axis() raises:
         days.append(Morrow.get(2026, 1, 1).shift(days=i))
         vals.append(Float64(i))
     var p = Plot().mark_line().encode_time(days, vals)
-    assert_true(p._settings.x_time, "the axis is marked temporal")
-    assert_equal(len(p._continuous.x), 5)
-    assert_equal(p._continuous.x[0], Morrow.get(2026, 1, 1).timestamp())
+    assert_true(p.settings.x_time, "the axis is marked temporal")
+    assert_equal(len(p.mark.continuous.x), 5)
+    assert_equal(p.mark.continuous.x[0], Morrow.get(2026, 1, 1).timestamp())
     assert_equal(
-        p._continuous.x[1] - p._continuous.x[0],
+        p.mark.continuous.x[1] - p.mark.continuous.x[0],
         86400.0,
         "one day apart in seconds",
     )
-    assert_equal(len(p._continuous.y), 5)
+    assert_equal(len(p.mark.continuous.y), 5)
 
 
 def test_time_bars_leave_a_weekend_gap() raises:
@@ -511,8 +514,10 @@ def test_time_bars_leave_a_weekend_gap() raises:
         width=400,
         height=300,
     )
-    assert_true(plot._settings.x_time, "bars use a time axis")
-    assert_equal(plot._continuous.x[1] - plot._continuous.x[0], 3.0 * 86400.0)
+    assert_true(plot.settings.x_time, "bars use a time axis")
+    assert_equal(
+        plot.mark.continuous.x[1] - plot.mark.continuous.x[0], 3.0 * 86400.0
+    )
     var s = render_svg(plot).to_string()
     assert_true(">Mar" in s, "x ticks show dates")
     assert_true("2024-03-04 00:00:00: 20" in s, "tooltip names its date")
@@ -551,7 +556,7 @@ def test_a_lone_time_bar_layer_keeps_its_time_geometry() raises:
     var values: List[Float64] = [10.0, 12.0]
     var plot = bar(dates, values, width=400, height=300)
     var standalone = render_svg(plot).to_string()
-    var plots: List[Plot] = [plot^]
+    var plots: List[AnyChart] = [AnyChart(plot)]
     assert_equal(
         render_layers_svg(plots).to_string(),
         standalone,
@@ -559,7 +564,7 @@ def test_a_lone_time_bar_layer_keeps_its_time_geometry() raises:
     )
     var idx: List[Float64] = [0.0, 1.0]
     var line_y: List[Float64] = [9.0, 11.0]
-    plots.append(line(idx, line_y, width=400, height=300))
+    plots.append(AnyChart(line(idx, line_y, width=400, height=300)))
     with assert_raises(contains="time-axis Mark.BAR"):
         _ = render_layers_svg(plots)
 
@@ -576,10 +581,10 @@ def test_time_gantt_spans_real_days_and_labels_dates() raises:
         width=400,
         height=300,
     )
-    assert_true(
-        plot._settings.x_time, "Gantt marks its continuous axis as time"
+    assert_true(plot.settings.x_time, "Gantt marks its continuous axis as time")
+    assert_equal(
+        plot.mark.gantt.end[0] - plot.mark.gantt.start[0], 3.0 * 86400.0
     )
-    assert_equal(plot._gantt.end[0] - plot._gantt.start[0], 3.0 * 86400.0)
     var s = render_svg(plot).to_string()
     assert_true(
         '<rect x="75" y="32" width="218" height="92"' in s,
@@ -624,9 +629,9 @@ def test_time_candles_leave_a_weekend_gap() raises:
         width=400,
         height=300,
     )
-    assert_true(plot._settings.x_time, "candlestick uses a temporal axis")
+    assert_true(plot.settings.x_time, "candlestick uses a temporal axis")
     assert_equal(
-        plot._continuous.x[1] - plot._continuous.x[0],
+        plot.mark.continuous.x[1] - plot.mark.continuous.x[0],
         3.0 * 86400.0,
         "weekend remains three real days",
     )
@@ -672,9 +677,9 @@ def test_a_layered_time_series_keeps_the_dated_axis() raises:
         days.append(Morrow.get(2026, 1, 1).shift(days=i))
         a.append(Float64(i % 7))
         b.append(Float64(i % 5) + 2.0)
-    var plots: List[Plot] = [
-        line(days, a, width=400, height=300),
-        line(days, b, width=400, height=300),
+    var plots: List[AnyChart] = [
+        AnyChart(line(days, a, width=400, height=300)),
+        AnyChart(line(days, b, width=400, height=300)),
     ]
     var s = render_layers_svg(plots).to_string()
     assert_true(s.find(">Jan 2026<") >= 0, "an overlay keeps the dates")

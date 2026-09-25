@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Gantt
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -384,34 +386,6 @@ def _render_gantt[
     return frame.result()
 
 
-def _render_gantt_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_gantt` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_gantt(
-        target,
-        plot._gantt,
-        plot._categorical,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def gantt(
     df: DataFrame,
     categories: String,
@@ -424,7 +398,7 @@ def gantt(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Gantt]:
     """`gantt()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values.
@@ -446,7 +420,7 @@ def gantt(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -506,7 +480,7 @@ def gantt[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Gantt]:
     """A gantt/span chart, the project-scheduling format popularized by
     Henry Gantt in the 1910s: one horizontal bar per category spanning
     its start and end, for visualizing overlapping durations such as a
@@ -530,7 +504,7 @@ def gantt[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -583,7 +557,7 @@ def gantt(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Gantt]:
     """Gantt tasks at real timestamps with date-aware x-axis ticks.
 
     Bars span the absolute instants supplied, including weekends and

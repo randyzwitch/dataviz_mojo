@@ -14,6 +14,8 @@ The binning behavior matches `numpy.histogram`:
 
 """
 
+from dataviz.chart import Chart
+from dataviz.marks import Area, Histogram
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import cbrt, ceil, log10, log2, pi, sqrt
@@ -1317,13 +1319,84 @@ def _label_bins(
     return _HistogramLabels(labels^, binned.values.copy())
 
 
+def stepped_histogram(
+    data: List[Float64],
+    edges: List[Float64],
+    weights: List[Float64] = List[Float64](),
+    stat: HistStat = HistStat.COUNT,
+    cumulative: Bool = False,
+    theme: Theme = Theme(),
+    width: Int = 640,
+    height: Int = 420,
+    title: String = "",
+    subtitle: String = "",
+    x_title: String = "",
+    y_title: String = "",
+) raises -> Chart[Area]:
+    """`histogram()` drawn as one filled staircase, `Mark.AREA` with
+    `StepStyle.POST`, instead of separate bars: the bins as a single
+    outline, the way a density estimate is read. Was `histogram(...,
+    stepfilled=True)`; a chart's mark is its type, so a flag cannot
+    choose it (#828). No horizontal form, since the staircase is an
+    area.
+
+    Args:
+        data: The raw values to bin.
+        edges: The bin edges, ascending, as `histogram()` takes them.
+        weights: One nonnegative weight per observation, or empty.
+        stat: What each bin's height means; see `HistStat`.
+        cumulative: Accumulate the bins left to right.
+        theme: The theme.
+        width: Figure width in points.
+        height: Figure height in points.
+        title: Chart title.
+        subtitle: Chart subtitle.
+        x_title: X-axis title.
+        y_title: Y-axis title.
+
+    Returns:
+        The finished chart, unrendered.
+
+    Raises:
+        Error: `data` is empty, `edges` is malformed, or a value is
+            `NaN`/infinite.
+
+    Example:
+        ```mojo
+        from dataviz import stepped_histogram, save
+
+
+        def main() raises:
+            var data: List[Float64] = [1.0, 2.0, 2.5, 3.0, 3.2, 4.0, 5.5]
+            var edges: List[Float64] = [0.0, 2.0, 4.0, 6.0]
+            save(
+                stepped_histogram(data, edges, title="Bins as a staircase"),
+                "docs/src/examples/out_stepped_histogram.svg",
+            )
+        ```
+    """
+    var binned = histogram_bins(
+        data, edges, weights=weights, stat=stat, cumulative=cumulative
+    )
+    var lo = binned.edges[0]
+    var hi = binned.edges[len(binned.edges) - 1]
+    var plot = (
+        Plot()
+        .mark_area(step=StepStyle.POST)
+        .encode(x=binned.step_x(), y=binned.step_y())
+        .scale_x_domain(lo, hi)
+    )
+    return _finished(
+        plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
+    )
+
+
 def histogram(
     data: List[Float64],
     bins: Int,
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1332,7 +1405,7 @@ def histogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """A histogram: continuous data grouped into bins and drawn as bar
     heights over a **numeric** x-axis, for showing a distribution's
     shape (its center, spread, and skew) rather than each individual
@@ -1368,17 +1441,11 @@ def histogram(
             raw count makes a wide bin look like a tall one.
         cumulative: Draw each bin as the running total at or below its
             right edge, turning the chart into an empirical CDF.
-        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
-            with `StepStyle.POST`)
-            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
-            default). The staircase has no separator between adjacent
-            bins of equal height, which is the shape that sits well
-            under a density overlay.
         horizontal: Bins up the y-axis and values running right: the
             transpose, for a marginal histogram beside a joint plot's
             y-axis. Standalone and in `render_facets()` only;
             `render_layers()` refuses it, since its combined domain has
-            no zero baseline on x. Not with `stepfilled`.
+            no zero baseline on x.
         theme: Full styling knobs beyond this function's own
             parameters (colors, margins, fonts, gridlines, ...) --
             see `Theme`'s docstring.
@@ -1390,7 +1457,7 @@ def histogram(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Raises:
         Error: `data` is empty, `bins` is not positive, `edges` is
@@ -1488,11 +1555,11 @@ def histogram(
             # x-domains -- are the same list. Their y-axes are separate,
             # though, so read the bar positions across panels and
             # the heights within one.
-            var panels: List[Plot] = [a^, b^]
             save_facets(
-                panels,
-                2,
-                "docs/src/examples/out_histogram_shared.svg",
+                a,
+                b,
+                cols=2,
+                path="docs/src/examples/out_histogram_shared.svg",
                 shared_y_scale=True,
             )
         ```
@@ -1547,8 +1614,7 @@ def histogram(
                 x_title="Monthly rainfall (mm)",
             )
 
-            var panels: List[Plot] = [fixed^, chosen^]
-            save_facets(panels, 2, "docs/src/examples/out_histogram_auto.svg")
+            save_facets(fixed, chosen, cols=2, path="docs/src/examples/out_histogram_auto.svg")
         ```
 
     Example (With a Density Curve):
@@ -1591,8 +1657,7 @@ def histogram(
                 reaction_ms,
                 theme=Theme(mark_color=CRIMSON, show_gridlines=False),
             )
-            var layers: List[Plot] = [bars^, curve^]
-            save_layers(layers, "docs/src/examples/out_histogram_density.svg")
+            save_layers(bars, curve, path="docs/src/examples/out_histogram_density.svg")
         ```
 
     Example (Horizontal):
@@ -1631,7 +1696,6 @@ def histogram(
         weights=weights,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,
@@ -1650,7 +1714,6 @@ def histogram(
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1659,7 +1722,7 @@ def histogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """`histogram()` over explicit bin boundaries -- the overload every
     other one delegates to once it has decided its edges.
 
@@ -1679,17 +1742,11 @@ def histogram(
             default) for one apiece.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
-            with `StepStyle.POST`)
-            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
-            default). The staircase has no separator between adjacent
-            bins of equal height, which is the shape that sits well
-            under a density overlay.
         horizontal: Bins up the y-axis and values running right: the
             transpose, for a marginal histogram beside a joint plot's
             y-axis. Standalone and in `render_facets()` only;
             `render_layers()` refuses it, since its combined domain has
-            no zero baseline on x. Not with `stepfilled`.
+            no zero baseline on x.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1699,7 +1756,7 @@ def histogram(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: `data` is empty, `edges` is malformed, or a value is
@@ -1714,31 +1771,16 @@ def histogram(
     # around it: the leftmost and rightmost bars are meant to sit on the
     # axis ends, and padding would leave a strip of empty axis that
     # reads as "no observations here" when the truth is "no bins here".
-    if stepfilled and horizontal:
-        raise Error(
-            "histogram(): stepfilled=True and horizontal=True together are not"
-            " supported -- the staircase is Mark.AREA, which has no"
-            " horizontal form"
-        )
-    var plot: Plot
-    if stepfilled:
-        plot = (
-            Plot()
-            .mark_area(step=StepStyle.POST)
-            .encode(x=binned.step_x(), y=binned.step_y())
-            .scale_x_domain(lo, hi)
-        )
+    var plot = (
+        Plot()
+        .mark_histogram(horizontal=horizontal)
+        .encode_histogram_bins(binned)
+    )
+    # The bin range is pinned on whichever axis carries the bins.
+    if horizontal:
+        plot = plot^.scale_y_domain(lo, hi)
     else:
-        plot = (
-            Plot()
-            .mark_histogram(horizontal=horizontal)
-            .encode_histogram_bins(binned)
-        )
-        # The bin range is pinned on whichever axis carries the bins.
-        if horizontal:
-            plot = plot^.scale_y_domain(lo, hi)
-        else:
-            plot = plot^.scale_x_domain(lo, hi)
+        plot = plot^.scale_x_domain(lo, hi)
     return _finished(
         plot^, theme, width, height, title, x_title, y_title, subtitle=subtitle
     )
@@ -1750,7 +1792,6 @@ def histogram(
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1759,7 +1800,7 @@ def histogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """`histogram()` with the bin count chosen by a rule instead of named
     -- `histogram(data, bins=BinRule.AUTO)`, the spelling
     `numpy.histogram(data, bins="auto")` uses.
@@ -1792,17 +1833,11 @@ def histogram(
             reads the unweighted sample, as numpy's do.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
-            with `StepStyle.POST`)
-            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
-            default). The staircase has no separator between adjacent
-            bins of equal height, which is the shape that sits well
-            under a density overlay.
         horizontal: Bins up the y-axis and values running right: the
             transpose, for a marginal histogram beside a joint plot's
             y-axis. Standalone and in `render_facets()` only;
             `render_layers()` refuses it, since its combined domain has
-            no zero baseline on x. Not with `stepfilled`.
+            no zero baseline on x.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1812,7 +1847,7 @@ def histogram(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: `data` is empty, a value is `NaN`/infinite, the rule asks
@@ -1825,7 +1860,6 @@ def histogram(
         weights=weights,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,
@@ -1844,7 +1878,6 @@ def histogram(
     weights: String = "",
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1853,7 +1886,7 @@ def histogram(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """`histogram()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `data` and `weights` column names.
@@ -1869,7 +1902,6 @@ def histogram(
             the channel is unused.
         stat: See the list overload.
         cumulative: See the list overload.
-        stepfilled: See the list overload.
         horizontal: See the list overload.
         theme: See the list overload.
         width: See the list overload.
@@ -1880,7 +1912,7 @@ def histogram(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -1898,7 +1930,6 @@ def histogram(
         bins=bins,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,
@@ -1918,7 +1949,6 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -1927,7 +1957,7 @@ def histogram[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """`histogram()` generalized over numeric element type; see `scatter()`'s
     `DType` overload (continuous.mojo). Delegates to the concrete overload
     above.
@@ -1944,17 +1974,11 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
-            with `StepStyle.POST`)
-            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
-            default). The staircase has no separator between adjacent
-            bins of equal height, which is the shape that sits well
-            under a density overlay.
         horizontal: Bins up the y-axis and values running right: the
             transpose, for a marginal histogram beside a joint plot's
             y-axis. Standalone and in `render_facets()` only;
             `render_layers()` refuses it, since its combined domain has
-            no zero baseline on x. Not with `stepfilled`.
+            no zero baseline on x.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -1964,7 +1988,7 @@ def histogram[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: Whatever the concrete overload raises.
@@ -1975,7 +1999,6 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,
@@ -1995,7 +2018,6 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -2004,7 +2026,7 @@ def histogram[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """The rule-picking `histogram()` generalized over numeric element
     type; see `scatter()`'s `DType` overload (continuous.mojo).
     Delegates to the concrete overload above.
@@ -2024,17 +2046,11 @@ def histogram[
         weights: One nonnegative weight per observation, or empty.
         stat: What a bar's height is; see `HistStat`.
         cumulative: Draw running totals instead of per-bin values.
-        stepfilled: Draw the bins as one filled staircase (`Mark.AREA`
-            with `StepStyle.POST`)
-            instead of a rectangle per bin (`Mark.HISTOGRAM`, the
-            default). The staircase has no separator between adjacent
-            bins of equal height, which is the shape that sits well
-            under a density overlay.
         horizontal: Bins up the y-axis and values running right: the
             transpose, for a marginal histogram beside a joint plot's
             y-axis. Standalone and in `render_facets()` only;
             `render_layers()` refuses it, since its combined domain has
-            no zero baseline on x. Not with `stepfilled`.
+            no zero baseline on x.
         theme: Full styling knobs -- see `Theme`'s docstring.
         width: Pixel width of the returned `Plot`.
         height: Pixel height of the returned `Plot`.
@@ -2044,7 +2060,7 @@ def histogram[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: Whatever the concrete overload raises.
@@ -2055,7 +2071,6 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,
@@ -2076,7 +2091,6 @@ def histogram[
     weights: List[Float64] = List[Float64](),
     stat: HistStat = HistStat.COUNT,
     cumulative: Bool = False,
-    stepfilled: Bool = False,
     horizontal: Bool = False,
     theme: Theme = Theme(),
     width: Int = 640,
@@ -2085,7 +2099,7 @@ def histogram[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Histogram]:
     """The explicit-edges `histogram()` generalized over `data`'s element
     type; see `scatter()`'s `DType` overload (continuous.mojo).
     Delegates to the concrete overload above.
@@ -2096,7 +2110,6 @@ def histogram[
         weights=weights,
         stat=stat,
         cumulative=cumulative,
-        stepfilled=stepfilled,
         horizontal=horizontal,
         theme=theme,
         width=width,

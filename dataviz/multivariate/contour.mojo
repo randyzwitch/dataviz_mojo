@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Contour, Contourf
 from dataviz.core.chart_settings import _ChartSettings
 from std.collections import Dict
 from std.math import isfinite
@@ -1092,26 +1094,6 @@ def _render_contour[
     return frame.result()
 
 
-def _render_contour_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_contour` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_contour(
-        target, plot._contour, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def _render_contourf[
     T: DrawTarget
 ](
@@ -1226,26 +1208,6 @@ def _render_contourf[
     return frame.result()
 
 
-def _render_contourf_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_contourf` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_contourf(
-        target, plot._contour, plot._settings, ox0, oy0, ox1, oy1, cache=cache
-    )
-
-
 def contour(
     df: DataFrame,
     row: String,
@@ -1260,7 +1222,7 @@ def contour(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Contour]:
     """`contour()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per cell, with `row` and `column` giving the cell's
     coordinates and `value` its height.
@@ -1287,7 +1249,7 @@ def contour(
         y_title: The y-axis caption; defaults to `row`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, the columns
@@ -1325,7 +1287,7 @@ def contour[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Contour]:
     """A contour plot: isolines joining equal values across a regular
     grid, the standard way to read a scalar field (terrain height,
     temperature, a fitted surface) on flat paper.
@@ -1358,7 +1320,7 @@ def contour[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -1418,7 +1380,7 @@ def contourf(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Contourf]:
     """`contourf()` over a long-form `dataframe_mojo` `DataFrame` (#743):
     one row per cell, with `row` and `column` giving the cell's
     coordinates and `value` its height.
@@ -1445,7 +1407,7 @@ def contourf(
         y_title: The y-axis caption; defaults to `row`.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, is not numeric, the columns
@@ -1483,7 +1445,7 @@ def contourf[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Contourf]:
     """A filled contour plot: the bands between consecutive levels of a
     scalar field, shaded rather than outlined -- `contour()`'s companion,
     and the better read when the field's shape matters more than its
@@ -1517,7 +1479,7 @@ def contourf[
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo

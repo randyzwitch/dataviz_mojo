@@ -22,7 +22,7 @@ def main() raises:
         .secondary_axis().series_name("Growth %")
         .labels(y_title="Growth (%)").theme(Theme(mark_color=TOMATO))
     )
-    save_layers([revenue^, growth^], "layers.svg")
+    save_layers(revenue, growth, path="layers.svg")
 ```
 
 Bar layers with identical categories in the same order share a categorical
@@ -46,7 +46,7 @@ def main() raises:
         Plot().mark_bar().encode_categorical(x=categories, y=plan)
         .series_name("Plan").theme(Theme(mark_color=TOMATO))
     )
-    save_layers([a^, b^], "bar-layers.svg")
+    save_layers(a, b, path="bar-layers.svg")
 ```
 
 A grouped or stacked bar plot can also own the categorical frame, with one
@@ -64,7 +64,7 @@ def main() raises:
     var total: List[Float64] = [17.0, 18.0, 17.0]
     var bars = Plot().mark_stacked_bar().encode_grouped_bar(categories, series, sales)
     var line = Plot().mark_line().encode(x=[0.0, 1.0, 2.0], y=total)
-    save_layers([bars^, line^], "stacked-total.svg")
+    save_layers(bars, line, path="stacked-total.svg")
 ```
 
 Pies use a separate concentric layout: pass two or more `pie()` plots to
@@ -82,7 +82,7 @@ def main() raises:
     var inner_values: List[Float64] = [2.0, 2.0]
     var outer = pie(outer_names, outer_values, title="Two breakdowns")
     var inner = pie(inner_names, inner_values)
-    save_layers([outer^, inner^], "concentric.svg")
+    save_layers(outer, inner, path="concentric.svg")
 ```
 
 Use a secondary axis only when the layers have different units, and label the

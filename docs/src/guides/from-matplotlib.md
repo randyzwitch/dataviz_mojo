@@ -28,7 +28,7 @@ returns a new `Plot`, so calls chain.
 | `ax.hist(x, bins=20)` | `histogram(x, bins=20)` |
 | `ax.hist(..., density=True)` | `histogram(..., stat=HistStat.DENSITY)` (also `PROBABILITY`, `PERCENT`, `FREQUENCY`) |
 | `ax.hist(..., cumulative=True)` | `histogram(..., cumulative=True)` |
-| `ax.hist(..., histtype="stepfilled")` | `histogram(..., stepfilled=True)` |
+| `ax.hist(..., histtype="stepfilled")` | `stepped_histogram(...)` |
 | `ax.hist(..., orientation="horizontal")` | `histogram(..., horizontal=True)` |
 | `ax.hist2d(x, y)` | `hist2d(x, y)` |
 | `ax.hexbin(x, y, gridsize=30)` | `hexbin(x, y, gridsize=30)` |
@@ -76,7 +76,7 @@ See the [annotations guide](../../guides/annotations/) for what each one draws.
 |---|---|
 | `fig, ax = plt.subplots()` | nothing: build a `Plot` |
 | `fig.set_size_inches(w, h)` / `figsize=(w, h)` | `.size_inches(w, h)` (or `.size(w, h)` in points, `.size_mm(w, h)`) |
-| several `plot()` calls on one `ax` | `render_layers([...])`, one `Plot` per layer |
+| several `plot()` calls on one `ax` | `render_layers(a, b, ...)`, one chart per layer |
 | `ax.twinx()` | `.secondary_axis()` on a layer |
 | `plt.subplots(r, c)` | `render_facets(plots, cols=c)` |
 | `GridSpec` with spans and ratios | `render_grid(plots, cells, width, height, row_weights=, col_weights=)` with `GridCell(row, col, row_span=, col_span=)` |

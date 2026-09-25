@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Polar
 from dataviz.core.plot_fields import _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import cos, pi, sin
@@ -354,34 +356,6 @@ def _render_polar[
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
 
 
-def _render_polar_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_polar` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_polar(
-        target,
-        plot._polar,
-        plot._mark_style,
-        plot._settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
 def polar(
     angle: List[Float64],
     radius: List[Float64],
@@ -392,7 +366,7 @@ def polar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Polar]:
     """A polar-coordinate line plot: a line series where `angle` and
     `radius` place each point around a circle rather than on x/y axes,
     for cyclical data (compass headings, time of day, seasonal phase)
@@ -423,7 +397,7 @@ def polar(
         y_title: The y-axis caption.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -511,7 +485,7 @@ def polar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Polar]:
     """`polar()` over named columns of a `dataframe_mojo`
     `DataFrame` (#743). Each argument names a column instead of
     holding the values. The axis titles default to the `angle` and `radius` column names.
@@ -532,7 +506,7 @@ def polar(
         y_title: See the list overload.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for
@@ -565,7 +539,7 @@ def polar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Polar]:
     """`polar()` generalized over numeric element type; see `scatter()`'s
     `DType` overload (continuous.mojo). `angle`/`radius` share one dtype.
     Delegates to the concrete overload above.
@@ -594,7 +568,7 @@ def polar(
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Polar]:
     """`polar()` for several named series sharing one angular axis: one
     trace per name, one radius scale across all of them, and a legend
     keyed by `series_names`. The single-series form is the overload
@@ -650,7 +624,7 @@ def polar[
     subtitle: String = "",
     x_title: String = "",
     y_title: String = "",
-) raises -> Plot:
+) raises -> Chart[Polar]:
     """The multi-series `polar()` generalized over `series_values`'
     element type; see `scatter()`'s `DType` overload (continuous.mojo).
     `angle` stays concrete. Delegates to the concrete overload above.

@@ -33,6 +33,7 @@ from dataviz.frame_facets import (
 from dataviz.core.tooltips import AUTO_TOOLTIP_LIMIT, Tooltips
 from dataviz.core.x_label_rotation import XAxisLabelRotation
 from dataviz.plot import Plot
+from dataviz.chart import AnyChart, Chart
 from dataviz.basic.continuous import area, line, scatter
 from dataviz.rendering import render, render_pdf, render_svg, save
 from dataviz.facets import (
@@ -106,7 +107,7 @@ from dataviz.hierarchy_marks.dendrogram import dendrogram
 from dataviz.hierarchy_marks.sunburst import sunburst
 from dataviz.hierarchy_marks.tree import tree
 from dataviz.hierarchy_marks.treemap import treemap
-from dataviz.binned.histogram import histogram
+from dataviz.binned.histogram import histogram, stepped_histogram
 from dataviz.categorical.lollipop import lollipop
 from dataviz.radial.nightingale import nightingale
 from dataviz.radial.polar import polar

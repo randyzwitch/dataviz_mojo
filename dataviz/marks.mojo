@@ -7,6 +7,7 @@ the `_render_*_plot` adapters, which stay the source of truth until
 
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
+from dataframe import DataFrame
 
 from canvas.color import Color
 from dataviz.binned.histogram import BinRule, HistogramBins
@@ -22,7 +23,12 @@ from dataviz.basic.bar import (
     _encode_time_bars,
     _render_bar_oriented,
 )
-from dataviz.basic.continuous import _encode, _encode_time
+from dataviz.basic.continuous import (
+    _encode,
+    _encode_time,
+    _encode_frame_categorical,
+    _encode_frame_continuous,
+)
 from dataviz.basic.single_axis import _encode_single_axis, _render_single_axis
 from dataviz.binned.hexbin import _HexbinData, _encode_hexbin, _render_hexbin
 from dataviz.binned.histogram import _HistogramData, _encode_histogram_bins
@@ -212,7 +218,7 @@ from dataviz.spatial.surface3d import (
 
 
 struct Point(MarkType):
-    """`Mark.POINT` as a type. Built by `Plot2.mark_point()`."""
+    """`Mark.POINT` as a type. Built by `Plot.mark_point()`."""
 
     comptime id = Mark.POINT
 
@@ -320,9 +326,34 @@ struct Point(MarkType):
     ) raises:
         _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_continuous(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.channels,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Line(MarkType):
-    """`Mark.LINE` as a type. Built by `Plot2.mark_line()`."""
+    """`Mark.LINE` as a type. Built by `Plot.mark_line()`."""
 
     comptime id = Mark.LINE
 
@@ -430,9 +461,34 @@ struct Line(MarkType):
     ) raises:
         _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_continuous(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.channels,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Bar(MarkType):
-    """`Mark.BAR` as a type. Built by `Plot2.mark_bar()`."""
+    """`Mark.BAR` as a type. Built by `Plot.mark_bar()`."""
 
     comptime id = Mark.BAR
 
@@ -553,9 +609,33 @@ struct Bar(MarkType):
             Self.id, self.continuous, self.categorical, data, rule
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Area(MarkType):
-    """`Mark.AREA` as a type. Built by `Plot2.mark_area()`."""
+    """`Mark.AREA` as a type. Built by `Plot.mark_area()`."""
 
     comptime id = Mark.AREA
 
@@ -663,9 +743,34 @@ struct Area(MarkType):
     ) raises:
         _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_continuous(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.channels,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Arc(MarkType):
-    """`Mark.ARC` as a type. Built by `Plot2.mark_arc()`."""
+    """`Mark.ARC` as a type. Built by `Plot.mark_arc()`."""
 
     comptime id = Mark.ARC
 
@@ -745,9 +850,33 @@ struct Arc(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Lollipop(MarkType):
-    """`Mark.LOLLIPOP` as a type. Built by `Plot2.mark_lollipop()`."""
+    """`Mark.LOLLIPOP` as a type. Built by `Plot.mark_lollipop()`."""
 
     comptime id = Mark.LOLLIPOP
 
@@ -826,9 +955,33 @@ struct Lollipop(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Waterfall(MarkType):
-    """`Mark.WATERFALL` as a type. Built by `Plot2.mark_waterfall()`."""
+    """`Mark.WATERFALL` as a type. Built by `Plot.mark_waterfall()`."""
 
     comptime id = Mark.WATERFALL
 
@@ -904,7 +1057,7 @@ struct Waterfall(MarkType):
 
 
 struct Box(MarkType):
-    """`Mark.BOX` as a type. Built by `Plot2.mark_box()`."""
+    """`Mark.BOX` as a type. Built by `Plot.mark_box()`."""
 
     comptime id = Mark.BOX
 
@@ -976,7 +1129,7 @@ struct Box(MarkType):
 
 
 struct Candlestick(MarkType):
-    """`Mark.CANDLESTICK` as a type. Built by `Plot2.mark_candlestick()`."""
+    """`Mark.CANDLESTICK` as a type. Built by `Plot.mark_candlestick()`."""
 
     comptime id = Mark.CANDLESTICK
 
@@ -1078,7 +1231,7 @@ struct Candlestick(MarkType):
 
 
 struct Bullet(MarkType):
-    """`Mark.BULLET` as a type. Built by `Plot2.mark_bullet()`."""
+    """`Mark.BULLET` as a type. Built by `Plot.mark_bullet()`."""
 
     comptime id = Mark.BULLET
 
@@ -1155,7 +1308,7 @@ struct Bullet(MarkType):
 
 
 struct Gantt(MarkType):
-    """`Mark.GANTT` as a type. Built by `Plot2.mark_gantt()`."""
+    """`Mark.GANTT` as a type. Built by `Plot.mark_gantt()`."""
 
     comptime id = Mark.GANTT
 
@@ -1248,7 +1401,7 @@ struct Gantt(MarkType):
 
 
 struct GroupedBar(MarkType):
-    """`Mark.GROUPED_BAR` as a type. Built by `Plot2.mark_grouped_bar()`."""
+    """`Mark.GROUPED_BAR` as a type. Built by `Plot.mark_grouped_bar()`."""
 
     comptime id = Mark.GROUPED_BAR
 
@@ -1325,7 +1478,7 @@ struct GroupedBar(MarkType):
 
 
 struct StackedBar(MarkType):
-    """`Mark.STACKED_BAR` as a type. Built by `Plot2.mark_stacked_bar()`."""
+    """`Mark.STACKED_BAR` as a type. Built by `Plot.mark_stacked_bar()`."""
 
     comptime id = Mark.STACKED_BAR
 
@@ -1402,7 +1555,7 @@ struct StackedBar(MarkType):
 
 
 struct PopulationPyramid(MarkType):
-    """`Mark.POPULATION_PYRAMID` as a type. Built by `Plot2.mark_population_pyramid()`.
+    """`Mark.POPULATION_PYRAMID` as a type. Built by `Plot.mark_population_pyramid()`.
     """
 
     comptime id = Mark.POPULATION_PYRAMID
@@ -1481,7 +1634,7 @@ struct PopulationPyramid(MarkType):
 
 
 struct Heatmap(MarkType):
-    """`Mark.HEATMAP` as a type. Built by `Plot2.mark_heatmap()`."""
+    """`Mark.HEATMAP` as a type. Built by `Plot.mark_heatmap()`."""
 
     comptime id = Mark.HEATMAP
 
@@ -1547,7 +1700,7 @@ struct Heatmap(MarkType):
 
 
 struct Chord(MarkType):
-    """`Mark.CHORD` as a type. Built by `Plot2.mark_chord()`."""
+    """`Mark.CHORD` as a type. Built by `Plot.mark_chord()`."""
 
     comptime id = Mark.CHORD
 
@@ -1621,7 +1774,7 @@ struct Chord(MarkType):
 
 
 struct SingleAxis(MarkType):
-    """`Mark.SINGLE_AXIS` as a type. Built by `Plot2.mark_single_axis()`."""
+    """`Mark.SINGLE_AXIS` as a type. Built by `Plot.mark_single_axis()`."""
 
     comptime id = Mark.SINGLE_AXIS
 
@@ -1702,7 +1855,7 @@ struct SingleAxis(MarkType):
 
 
 struct EffectScatter(MarkType):
-    """`Mark.EFFECT_SCATTER` as a type. Built by `Plot2.mark_effect_scatter()`.
+    """`Mark.EFFECT_SCATTER` as a type. Built by `Plot.mark_effect_scatter()`.
     """
 
     comptime id = Mark.EFFECT_SCATTER
@@ -1811,9 +1964,34 @@ struct EffectScatter(MarkType):
     ) raises:
         _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_continuous(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.channels,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Funnel(MarkType):
-    """`Mark.FUNNEL` as a type. Built by `Plot2.mark_funnel()`."""
+    """`Mark.FUNNEL` as a type. Built by `Plot.mark_funnel()`."""
 
     comptime id = Mark.FUNNEL
 
@@ -1892,9 +2070,33 @@ struct Funnel(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Bump(MarkType):
-    """`Mark.BUMP` as a type. Built by `Plot2.mark_bump()`."""
+    """`Mark.BUMP` as a type. Built by `Plot.mark_bump()`."""
 
     comptime id = Mark.BUMP
 
@@ -1971,7 +2173,7 @@ struct Bump(MarkType):
 
 
 struct Streamgraph(MarkType):
-    """`Mark.STREAMGRAPH` as a type. Built by `Plot2.mark_streamgraph()`."""
+    """`Mark.STREAMGRAPH` as a type. Built by `Plot.mark_streamgraph()`."""
 
     comptime id = Mark.STREAMGRAPH
 
@@ -2049,7 +2251,7 @@ struct Streamgraph(MarkType):
 
 
 struct Beeswarm(MarkType):
-    """`Mark.BEESWARM` as a type. Built by `Plot2.mark_beeswarm()`."""
+    """`Mark.BEESWARM` as a type. Built by `Plot.mark_beeswarm()`."""
 
     comptime id = Mark.BEESWARM
 
@@ -2121,7 +2323,7 @@ struct Beeswarm(MarkType):
 
 
 struct Violin(MarkType):
-    """`Mark.VIOLIN` as a type. Built by `Plot2.mark_violin()`."""
+    """`Mark.VIOLIN` as a type. Built by `Plot.mark_violin()`."""
 
     comptime id = Mark.VIOLIN
 
@@ -2194,7 +2396,7 @@ struct Violin(MarkType):
 
 
 struct Ridgeline(MarkType):
-    """`Mark.RIDGELINE` as a type. Built by `Plot2.mark_ridgeline()`."""
+    """`Mark.RIDGELINE` as a type. Built by `Plot.mark_ridgeline()`."""
 
     comptime id = Mark.RIDGELINE
 
@@ -2267,7 +2469,7 @@ struct Ridgeline(MarkType):
 
 
 struct Nightingale(MarkType):
-    """`Mark.NIGHTINGALE` as a type. Built by `Plot2.mark_nightingale()`."""
+    """`Mark.NIGHTINGALE` as a type. Built by `Plot.mark_nightingale()`."""
 
     comptime id = Mark.NIGHTINGALE
 
@@ -2349,9 +2551,33 @@ struct Nightingale(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct PolarBar(MarkType):
-    """`Mark.POLAR_BAR` as a type. Built by `Plot2.mark_polar_bar()`."""
+    """`Mark.POLAR_BAR` as a type. Built by `Plot.mark_polar_bar()`."""
 
     comptime id = Mark.POLAR_BAR
 
@@ -2431,9 +2657,33 @@ struct PolarBar(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Polar(MarkType):
-    """`Mark.POLAR` as a type. Built by `Plot2.mark_polar()`."""
+    """`Mark.POLAR` as a type. Built by `Plot.mark_polar()`."""
 
     comptime id = Mark.POLAR
 
@@ -2497,7 +2747,7 @@ struct Polar(MarkType):
 
 
 struct Radar(MarkType):
-    """`Mark.RADAR` as a type. Built by `Plot2.mark_radar()`."""
+    """`Mark.RADAR` as a type. Built by `Plot.mark_radar()`."""
 
     comptime id = Mark.RADAR
 
@@ -2559,7 +2809,7 @@ struct Radar(MarkType):
 
 
 struct Gauge(MarkType):
-    """`Mark.GAUGE` as a type. Built by `Plot2.mark_gauge()`."""
+    """`Mark.GAUGE` as a type. Built by `Plot.mark_gauge()`."""
 
     comptime id = Mark.GAUGE
 
@@ -2623,7 +2873,7 @@ struct Gauge(MarkType):
 
 
 struct Parallel(MarkType):
-    """`Mark.PARALLEL` as a type. Built by `Plot2.mark_parallel()`."""
+    """`Mark.PARALLEL` as a type. Built by `Plot.mark_parallel()`."""
 
     comptime id = Mark.PARALLEL
 
@@ -2677,7 +2927,7 @@ struct Parallel(MarkType):
 
 
 struct SpanChart(MarkType):
-    """`Mark.SPAN_CHART` as a type. Built by `Plot2.mark_span_chart()`."""
+    """`Mark.SPAN_CHART` as a type. Built by `Plot.mark_span_chart()`."""
 
     comptime id = Mark.SPAN_CHART
 
@@ -2752,7 +3002,7 @@ struct SpanChart(MarkType):
 
 
 struct CalendarHeatmap(MarkType):
-    """`Mark.CALENDAR_HEATMAP` as a type. Built by `Plot2.mark_calendar_heatmap()`.
+    """`Mark.CALENDAR_HEATMAP` as a type. Built by `Plot.mark_calendar_heatmap()`.
     """
 
     comptime id = Mark.CALENDAR_HEATMAP
@@ -2817,7 +3067,7 @@ struct CalendarHeatmap(MarkType):
 
 
 struct Corrplot(MarkType):
-    """`Mark.CORRPLOT` as a type. Built by `Plot2.mark_corrplot()`."""
+    """`Mark.CORRPLOT` as a type. Built by `Plot.mark_corrplot()`."""
 
     comptime id = Mark.CORRPLOT
 
@@ -2878,7 +3128,7 @@ struct Corrplot(MarkType):
 
 
 struct Punchcard(MarkType):
-    """`Mark.PUNCHCARD` as a type. Built by `Plot2.mark_punchcard()`."""
+    """`Mark.PUNCHCARD` as a type. Built by `Plot.mark_punchcard()`."""
 
     comptime id = Mark.PUNCHCARD
 
@@ -2944,7 +3194,7 @@ struct Punchcard(MarkType):
 
 
 struct Marimekko(MarkType):
-    """`Mark.MARIMEKKO` as a type. Built by `Plot2.mark_marimekko()`."""
+    """`Mark.MARIMEKKO` as a type. Built by `Plot.mark_marimekko()`."""
 
     comptime id = Mark.MARIMEKKO
 
@@ -3000,7 +3250,7 @@ struct Marimekko(MarkType):
 
 
 struct Sunburst(MarkType):
-    """`Mark.SUNBURST` as a type. Built by `Plot2.mark_sunburst()`."""
+    """`Mark.SUNBURST` as a type. Built by `Plot.mark_sunburst()`."""
 
     comptime id = Mark.SUNBURST
 
@@ -3054,7 +3304,7 @@ struct Sunburst(MarkType):
 
 
 struct Tree(MarkType):
-    """`Mark.TREE` as a type. Built by `Plot2.mark_tree()`."""
+    """`Mark.TREE` as a type. Built by `Plot.mark_tree()`."""
 
     comptime id = Mark.TREE
 
@@ -3108,7 +3358,7 @@ struct Tree(MarkType):
 
 
 struct Treemap(MarkType):
-    """`Mark.TREEMAP` as a type. Built by `Plot2.mark_treemap()`."""
+    """`Mark.TREEMAP` as a type. Built by `Plot.mark_treemap()`."""
 
     comptime id = Mark.TREEMAP
 
@@ -3162,7 +3412,7 @@ struct Treemap(MarkType):
 
 
 struct ArcDiagram(MarkType):
-    """`Mark.ARC_DIAGRAM` as a type. Built by `Plot2.mark_arc_diagram()`."""
+    """`Mark.ARC_DIAGRAM` as a type. Built by `Plot.mark_arc_diagram()`."""
 
     comptime id = Mark.ARC_DIAGRAM
 
@@ -3228,7 +3478,7 @@ struct ArcDiagram(MarkType):
 
 
 struct Graph(MarkType):
-    """`Mark.GRAPH` as a type. Built by `Plot2.mark_graph()`."""
+    """`Mark.GRAPH` as a type. Built by `Plot.mark_graph()`."""
 
     comptime id = Mark.GRAPH
 
@@ -3302,7 +3552,7 @@ struct Graph(MarkType):
 
 
 struct Sankey(MarkType):
-    """`Mark.SANKEY` as a type. Built by `Plot2.mark_sankey()`."""
+    """`Mark.SANKEY` as a type. Built by `Plot.mark_sankey()`."""
 
     comptime id = Mark.SANKEY
 
@@ -3376,7 +3626,7 @@ struct Sankey(MarkType):
 
 
 struct Radialbar(MarkType):
-    """`Mark.RADIALBAR` as a type. Built by `Plot2.mark_radialbar()`."""
+    """`Mark.RADIALBAR` as a type. Built by `Plot.mark_radialbar()`."""
 
     comptime id = Mark.RADIALBAR
 
@@ -3456,9 +3706,33 @@ struct Radialbar(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Barbs(MarkType):
-    """`Mark.BARBS` as a type. Built by `Plot2.mark_barbs()`."""
+    """`Mark.BARBS` as a type. Built by `Plot.mark_barbs()`."""
 
     comptime id = Mark.BARBS
 
@@ -3519,7 +3793,7 @@ struct Barbs(MarkType):
 
 
 struct Contour(MarkType):
-    """`Mark.CONTOUR` as a type. Built by `Plot2.mark_contour()`."""
+    """`Mark.CONTOUR` as a type. Built by `Plot.mark_contour()`."""
 
     comptime id = Mark.CONTOUR
 
@@ -3574,7 +3848,7 @@ struct Contour(MarkType):
 
 
 struct Contourf(MarkType):
-    """`Mark.CONTOURF` as a type. Built by `Plot2.mark_contourf()`."""
+    """`Mark.CONTOURF` as a type. Built by `Plot.mark_contourf()`."""
 
     comptime id = Mark.CONTOURF
 
@@ -3629,7 +3903,7 @@ struct Contourf(MarkType):
 
 
 struct Tricontour(MarkType):
-    """`Mark.TRICONTOUR` as a type. Built by `Plot2.mark_tricontour()`."""
+    """`Mark.TRICONTOUR` as a type. Built by `Plot.mark_tricontour()`."""
 
     comptime id = Mark.TRICONTOUR
 
@@ -3684,7 +3958,7 @@ struct Tricontour(MarkType):
 
 
 struct Tricontourf(MarkType):
-    """`Mark.TRICONTOURF` as a type. Built by `Plot2.mark_tricontourf()`."""
+    """`Mark.TRICONTOURF` as a type. Built by `Plot.mark_tricontourf()`."""
 
     comptime id = Mark.TRICONTOURF
 
@@ -3739,7 +4013,7 @@ struct Tricontourf(MarkType):
 
 
 struct Kde(MarkType):
-    """`Mark.KDE` as a type. Built by `Plot2.mark_kde()`."""
+    """`Mark.KDE` as a type. Built by `Plot.mark_kde()`."""
 
     comptime id = Mark.KDE
 
@@ -3791,7 +4065,7 @@ struct Kde(MarkType):
 
 
 struct Rug(MarkType):
-    """`Mark.RUG` as a type. Built by `Plot2.mark_rug()`."""
+    """`Mark.RUG` as a type. Built by `Plot.mark_rug()`."""
 
     comptime id = Mark.RUG
 
@@ -3851,7 +4125,7 @@ struct Rug(MarkType):
 
 
 struct Triplot(MarkType):
-    """`Mark.TRIPLOT` as a type. Built by `Plot2.mark_triplot()`."""
+    """`Mark.TRIPLOT` as a type. Built by `Plot.mark_triplot()`."""
 
     comptime id = Mark.TRIPLOT
 
@@ -3910,7 +4184,7 @@ struct Triplot(MarkType):
 
 
 struct Tripcolor(MarkType):
-    """`Mark.TRIPCOLOR` as a type. Built by `Plot2.mark_tripcolor()`."""
+    """`Mark.TRIPCOLOR` as a type. Built by `Plot.mark_tripcolor()`."""
 
     comptime id = Mark.TRIPCOLOR
 
@@ -3969,7 +4243,7 @@ struct Tripcolor(MarkType):
 
 
 struct Ecdf(MarkType):
-    """`Mark.ECDF` as a type. Built by `Plot2.mark_ecdf()`."""
+    """`Mark.ECDF` as a type. Built by `Plot.mark_ecdf()`."""
 
     comptime id = Mark.ECDF
 
@@ -4029,7 +4303,7 @@ struct Ecdf(MarkType):
 
 
 struct Imshow(MarkType):
-    """`Mark.IMSHOW` as a type. Built by `Plot2.mark_imshow()`."""
+    """`Mark.IMSHOW` as a type. Built by `Plot.mark_imshow()`."""
 
     comptime id = Mark.IMSHOW
 
@@ -4090,7 +4364,7 @@ struct Imshow(MarkType):
 
 
 struct Pcolormesh(MarkType):
-    """`Mark.PCOLORMESH` as a type. Built by `Plot2.mark_pcolormesh()`."""
+    """`Mark.PCOLORMESH` as a type. Built by `Plot.mark_pcolormesh()`."""
 
     comptime id = Mark.PCOLORMESH
 
@@ -4162,7 +4436,7 @@ struct Pcolormesh(MarkType):
 
 
 struct Eventplot(MarkType):
-    """`Mark.EVENTPLOT` as a type. Built by `Plot2.mark_eventplot()`."""
+    """`Mark.EVENTPLOT` as a type. Built by `Plot.mark_eventplot()`."""
 
     comptime id = Mark.EVENTPLOT
 
@@ -4235,7 +4509,7 @@ struct Eventplot(MarkType):
 
 
 struct Pointplot(MarkType):
-    """`Mark.POINTPLOT` as a type. Built by `Plot2.mark_pointplot()`."""
+    """`Mark.POINTPLOT` as a type. Built by `Plot.mark_pointplot()`."""
 
     comptime id = Mark.POINTPLOT
 
@@ -4314,9 +4588,33 @@ struct Pointplot(MarkType):
             y_err_upper,
         )
 
+    def encode_frame(
+        mut self,
+        mut settings: _ChartSettings,
+        df: DataFrame,
+        x: String,
+        y: String,
+        color: String,
+        size: String,
+        labels: String,
+    ) raises:
+        _encode_frame_categorical(
+            Self.id,
+            self.continuous,
+            self.categorical,
+            self.y_err,
+            settings,
+            df,
+            x,
+            y,
+            color,
+            size,
+            labels,
+        )
+
 
 struct Boxenplot(MarkType):
-    """`Mark.BOXENPLOT` as a type. Built by `Plot2.mark_boxenplot()`."""
+    """`Mark.BOXENPLOT` as a type. Built by `Plot.mark_boxenplot()`."""
 
     comptime id = Mark.BOXENPLOT
 
@@ -4388,7 +4686,7 @@ struct Boxenplot(MarkType):
 
 
 struct Hist2d(MarkType):
-    """`Mark.HIST2D` as a type. Built by `Plot2.mark_hist2d()`."""
+    """`Mark.HIST2D` as a type. Built by `Plot.mark_hist2d()`."""
 
     comptime id = Mark.HIST2D
 
@@ -4452,7 +4750,7 @@ struct Hist2d(MarkType):
 
 
 struct Hexbin(MarkType):
-    """`Mark.HEXBIN` as a type. Built by `Plot2.mark_hexbin()`."""
+    """`Mark.HEXBIN` as a type. Built by `Plot.mark_hexbin()`."""
 
     comptime id = Mark.HEXBIN
 
@@ -4506,7 +4804,7 @@ struct Hexbin(MarkType):
 
 
 struct Quiver(MarkType):
-    """`Mark.QUIVER` as a type. Built by `Plot2.mark_quiver()`."""
+    """`Mark.QUIVER` as a type. Built by `Plot.mark_quiver()`."""
 
     comptime id = Mark.QUIVER
 
@@ -4567,7 +4865,7 @@ struct Quiver(MarkType):
 
 
 struct Histogram(MarkType):
-    """`Mark.HISTOGRAM` as a type. Built by `Plot2.mark_histogram()`."""
+    """`Mark.HISTOGRAM` as a type. Built by `Plot.mark_histogram()`."""
 
     comptime id = Mark.HISTOGRAM
 
@@ -4646,7 +4944,7 @@ struct Histogram(MarkType):
 
 
 struct Streamplot(MarkType):
-    """`Mark.STREAMPLOT` as a type. Built by `Plot2.mark_streamplot()`."""
+    """`Mark.STREAMPLOT` as a type. Built by `Plot.mark_streamplot()`."""
 
     comptime id = Mark.STREAMPLOT
 
@@ -4707,7 +5005,7 @@ struct Streamplot(MarkType):
 
 
 struct DendrogramMark(MarkType):
-    """`Mark.DENDROGRAM` as a type. Built by `Plot2.mark_dendrogram()`."""
+    """`Mark.DENDROGRAM` as a type. Built by `Plot.mark_dendrogram()`."""
 
     comptime id = Mark.DENDROGRAM
 
@@ -4761,7 +5059,7 @@ struct DendrogramMark(MarkType):
 
 
 struct Scatter3d(MarkType):
-    """`Mark.SCATTER3D` as a type. Built by `Plot2.mark_scatter3d()`."""
+    """`Mark.SCATTER3D` as a type. Built by `Plot.mark_scatter3d()`."""
 
     comptime id = Mark.SCATTER3D
 
@@ -4815,7 +5113,7 @@ struct Scatter3d(MarkType):
 
 
 struct Plot3d(MarkType):
-    """`Mark.PLOT3D` as a type. Built by `Plot2.mark_plot3d()`."""
+    """`Mark.PLOT3D` as a type. Built by `Plot.mark_plot3d()`."""
 
     comptime id = Mark.PLOT3D
 
@@ -4869,7 +5167,7 @@ struct Plot3d(MarkType):
 
 
 struct Surface3d(MarkType):
-    """`Mark.SURFACE3D` as a type. Built by `Plot2.mark_surface3d()`."""
+    """`Mark.SURFACE3D` as a type. Built by `Plot.mark_surface3d()`."""
 
     comptime id = Mark.SURFACE3D
 
@@ -4923,7 +5221,7 @@ struct Surface3d(MarkType):
 
 
 struct Wire3d(MarkType):
-    """`Mark.WIRE3D` as a type. Built by `Plot2.mark_wire3d()`."""
+    """`Mark.WIRE3D` as a type. Built by `Plot.mark_wire3d()`."""
 
     comptime id = Mark.WIRE3D
 
@@ -4977,7 +5275,7 @@ struct Wire3d(MarkType):
 
 
 struct Trisurf3d(MarkType):
-    """`Mark.TRISURF3D` as a type. Built by `Plot2.mark_trisurf3d()`."""
+    """`Mark.TRISURF3D` as a type. Built by `Plot.mark_trisurf3d()`."""
 
     comptime id = Mark.TRISURF3D
 
@@ -5031,7 +5329,7 @@ struct Trisurf3d(MarkType):
 
 
 struct Bar3d(MarkType):
-    """`Mark.BAR3D` as a type. Built by `Plot2.mark_bar3d()`."""
+    """`Mark.BAR3D` as a type. Built by `Plot.mark_bar3d()`."""
 
     comptime id = Mark.BAR3D
 
@@ -5085,7 +5383,7 @@ struct Bar3d(MarkType):
 
 
 struct Voxels(MarkType):
-    """`Mark.VOXELS` as a type. Built by `Plot2.mark_voxels()`."""
+    """`Mark.VOXELS` as a type. Built by `Plot.mark_voxels()`."""
 
     comptime id = Mark.VOXELS
 
@@ -5137,7 +5435,7 @@ struct Voxels(MarkType):
 
 
 struct Stem3d(MarkType):
-    """`Mark.STEM3D` as a type. Built by `Plot2.mark_stem3d()`."""
+    """`Mark.STEM3D` as a type. Built by `Plot.mark_stem3d()`."""
 
     comptime id = Mark.STEM3D
 
@@ -5191,7 +5489,7 @@ struct Stem3d(MarkType):
 
 
 struct Quiver3d(MarkType):
-    """`Mark.QUIVER3D` as a type. Built by `Plot2.mark_quiver3d()`."""
+    """`Mark.QUIVER3D` as a type. Built by `Plot.mark_quiver3d()`."""
 
     comptime id = Mark.QUIVER3D
 
@@ -5248,7 +5546,7 @@ struct Quiver3d(MarkType):
 
 
 struct FillBetween3d(MarkType):
-    """`Mark.FILL_BETWEEN3D` as a type. Built by `Plot2.mark_fill_between3d()`.
+    """`Mark.FILL_BETWEEN3D` as a type. Built by `Plot.mark_fill_between3d()`.
     """
 
     comptime id = Mark.FILL_BETWEEN3D
@@ -5303,3 +5601,241 @@ struct FillBetween3d(MarkType):
         z2: List[Float64],
     ) raises:
         _encode_ribbon3d(Self.id, self.ribbon3d, x1, y1, z1, x2, y2, z2)
+
+
+# What the erased chart copies out of a mark for the composition code
+# (#828): the shared channel structs, empty for a mark without them.
+
+
+def _shared_continuous[M: MarkType](mark: M) -> _ContinuousData:
+    comptime if M == Point:
+        return rebind[Point](mark).continuous.copy()
+    comptime if M == Line:
+        return rebind[Line](mark).continuous.copy()
+    comptime if M == Bar:
+        return rebind[Bar](mark).continuous.copy()
+    comptime if M == Area:
+        return rebind[Area](mark).continuous.copy()
+    comptime if M == Histogram:
+        return rebind[Histogram](mark).continuous.copy()
+    comptime if M == Arc:
+        return rebind[Arc](mark).continuous.copy()
+    comptime if M == Nightingale:
+        return rebind[Nightingale](mark).continuous.copy()
+    comptime if M == PolarBar:
+        return rebind[PolarBar](mark).continuous.copy()
+    comptime if M == Radialbar:
+        return rebind[Radialbar](mark).continuous.copy()
+    comptime if M == Pointplot:
+        return rebind[Pointplot](mark).continuous.copy()
+    comptime if M == Lollipop:
+        return rebind[Lollipop](mark).continuous.copy()
+    comptime if M == Waterfall:
+        return rebind[Waterfall](mark).continuous.copy()
+    comptime if M == Boxenplot:
+        return rebind[Boxenplot](mark).continuous.copy()
+    comptime if M == Box:
+        return rebind[Box](mark).continuous.copy()
+    comptime if M == Candlestick:
+        return rebind[Candlestick](mark).continuous.copy()
+    comptime if M == Bullet:
+        return rebind[Bullet](mark).continuous.copy()
+    comptime if M == Gantt:
+        return rebind[Gantt](mark).continuous.copy()
+    comptime if M == SpanChart:
+        return rebind[SpanChart](mark).continuous.copy()
+    comptime if M == CalendarHeatmap:
+        return rebind[CalendarHeatmap](mark).continuous.copy()
+    comptime if M == Punchcard:
+        return rebind[Punchcard](mark).continuous.copy()
+    comptime if M == Barbs:
+        return rebind[Barbs](mark).continuous.copy()
+    comptime if M == Quiver:
+        return rebind[Quiver](mark).continuous.copy()
+    comptime if M == Streamplot:
+        return rebind[Streamplot](mark).continuous.copy()
+    comptime if M == GroupedBar:
+        return rebind[GroupedBar](mark).continuous.copy()
+    comptime if M == StackedBar:
+        return rebind[StackedBar](mark).continuous.copy()
+    comptime if M == PopulationPyramid:
+        return rebind[PopulationPyramid](mark).continuous.copy()
+    comptime if M == Heatmap:
+        return rebind[Heatmap](mark).continuous.copy()
+    comptime if M == Chord:
+        return rebind[Chord](mark).continuous.copy()
+    comptime if M == ArcDiagram:
+        return rebind[ArcDiagram](mark).continuous.copy()
+    comptime if M == Graph:
+        return rebind[Graph](mark).continuous.copy()
+    comptime if M == Sankey:
+        return rebind[Sankey](mark).continuous.copy()
+    comptime if M == SingleAxis:
+        return rebind[SingleAxis](mark).continuous.copy()
+    comptime if M == EffectScatter:
+        return rebind[EffectScatter](mark).continuous.copy()
+    comptime if M == Funnel:
+        return rebind[Funnel](mark).continuous.copy()
+    comptime if M == Bump:
+        return rebind[Bump](mark).continuous.copy()
+    comptime if M == Streamgraph:
+        return rebind[Streamgraph](mark).continuous.copy()
+    comptime if M == Beeswarm:
+        return rebind[Beeswarm](mark).continuous.copy()
+    comptime if M == Violin:
+        return rebind[Violin](mark).continuous.copy()
+    comptime if M == Eventplot:
+        return rebind[Eventplot](mark).continuous.copy()
+    comptime if M == Ridgeline:
+        return rebind[Ridgeline](mark).continuous.copy()
+    return _ContinuousData()
+
+
+def _shared_categorical[M: MarkType](mark: M) -> _CategoricalData:
+    comptime if M == Point:
+        return rebind[Point](mark).categorical.copy()
+    comptime if M == Line:
+        return rebind[Line](mark).categorical.copy()
+    comptime if M == Bar:
+        return rebind[Bar](mark).categorical.copy()
+    comptime if M == Area:
+        return rebind[Area](mark).categorical.copy()
+    comptime if M == Histogram:
+        return rebind[Histogram](mark).categorical.copy()
+    comptime if M == Arc:
+        return rebind[Arc](mark).categorical.copy()
+    comptime if M == Nightingale:
+        return rebind[Nightingale](mark).categorical.copy()
+    comptime if M == PolarBar:
+        return rebind[PolarBar](mark).categorical.copy()
+    comptime if M == Radialbar:
+        return rebind[Radialbar](mark).categorical.copy()
+    comptime if M == Pointplot:
+        return rebind[Pointplot](mark).categorical.copy()
+    comptime if M == Lollipop:
+        return rebind[Lollipop](mark).categorical.copy()
+    comptime if M == Waterfall:
+        return rebind[Waterfall](mark).categorical.copy()
+    comptime if M == Boxenplot:
+        return rebind[Boxenplot](mark).categorical.copy()
+    comptime if M == Box:
+        return rebind[Box](mark).categorical.copy()
+    comptime if M == Candlestick:
+        return rebind[Candlestick](mark).categorical.copy()
+    comptime if M == Bullet:
+        return rebind[Bullet](mark).categorical.copy()
+    comptime if M == Gantt:
+        return rebind[Gantt](mark).categorical.copy()
+    comptime if M == SpanChart:
+        return rebind[SpanChart](mark).categorical.copy()
+    comptime if M == CalendarHeatmap:
+        return rebind[CalendarHeatmap](mark).categorical.copy()
+    comptime if M == Punchcard:
+        return rebind[Punchcard](mark).categorical.copy()
+    comptime if M == Barbs:
+        return rebind[Barbs](mark).categorical.copy()
+    comptime if M == Quiver:
+        return rebind[Quiver](mark).categorical.copy()
+    comptime if M == Streamplot:
+        return rebind[Streamplot](mark).categorical.copy()
+    comptime if M == GroupedBar:
+        return rebind[GroupedBar](mark).categorical.copy()
+    comptime if M == StackedBar:
+        return rebind[StackedBar](mark).categorical.copy()
+    comptime if M == PopulationPyramid:
+        return rebind[PopulationPyramid](mark).categorical.copy()
+    comptime if M == Heatmap:
+        return rebind[Heatmap](mark).categorical.copy()
+    comptime if M == Chord:
+        return rebind[Chord](mark).categorical.copy()
+    comptime if M == ArcDiagram:
+        return rebind[ArcDiagram](mark).categorical.copy()
+    comptime if M == Graph:
+        return rebind[Graph](mark).categorical.copy()
+    comptime if M == Sankey:
+        return rebind[Sankey](mark).categorical.copy()
+    comptime if M == SingleAxis:
+        return rebind[SingleAxis](mark).categorical.copy()
+    comptime if M == EffectScatter:
+        return rebind[EffectScatter](mark).categorical.copy()
+    comptime if M == Funnel:
+        return rebind[Funnel](mark).categorical.copy()
+    comptime if M == Bump:
+        return rebind[Bump](mark).categorical.copy()
+    comptime if M == Streamgraph:
+        return rebind[Streamgraph](mark).categorical.copy()
+    comptime if M == Beeswarm:
+        return rebind[Beeswarm](mark).categorical.copy()
+    comptime if M == Violin:
+        return rebind[Violin](mark).categorical.copy()
+    comptime if M == Eventplot:
+        return rebind[Eventplot](mark).categorical.copy()
+    comptime if M == Ridgeline:
+        return rebind[Ridgeline](mark).categorical.copy()
+    return _CategoricalData()
+
+
+def _shared_channels[M: MarkType](mark: M) -> _ChannelData:
+    comptime if M == Point:
+        return rebind[Point](mark).channels.copy()
+    comptime if M == Line:
+        return rebind[Line](mark).channels.copy()
+    comptime if M == Area:
+        return rebind[Area](mark).channels.copy()
+    comptime if M == Histogram:
+        return rebind[Histogram](mark).channels.copy()
+    comptime if M == SingleAxis:
+        return rebind[SingleAxis](mark).channels.copy()
+    comptime if M == EffectScatter:
+        return rebind[EffectScatter](mark).channels.copy()
+    return _ChannelData()
+
+
+def _shared_y_err[M: MarkType](mark: M) -> _ErrorBarData:
+    comptime if M == Point:
+        return rebind[Point](mark).y_err.copy()
+    comptime if M == Line:
+        return rebind[Line](mark).y_err.copy()
+    comptime if M == Bar:
+        return rebind[Bar](mark).y_err.copy()
+    comptime if M == Area:
+        return rebind[Area](mark).y_err.copy()
+    comptime if M == Histogram:
+        return rebind[Histogram](mark).y_err.copy()
+    comptime if M == Arc:
+        return rebind[Arc](mark).y_err.copy()
+    comptime if M == Nightingale:
+        return rebind[Nightingale](mark).y_err.copy()
+    comptime if M == PolarBar:
+        return rebind[PolarBar](mark).y_err.copy()
+    comptime if M == Radialbar:
+        return rebind[Radialbar](mark).y_err.copy()
+    comptime if M == Pointplot:
+        return rebind[Pointplot](mark).y_err.copy()
+    comptime if M == Lollipop:
+        return rebind[Lollipop](mark).y_err.copy()
+    comptime if M == SingleAxis:
+        return rebind[SingleAxis](mark).y_err.copy()
+    comptime if M == EffectScatter:
+        return rebind[EffectScatter](mark).y_err.copy()
+    comptime if M == Funnel:
+        return rebind[Funnel](mark).y_err.copy()
+    return _ErrorBarData()
+
+
+def _shared_distribution[M: MarkType](mark: M) -> _DistributionData:
+    comptime if M == Beeswarm:
+        return rebind[Beeswarm](mark).distribution.copy()
+    comptime if M == Violin:
+        return rebind[Violin](mark).distribution.copy()
+    comptime if M == Kde:
+        return rebind[Kde](mark).distribution.copy()
+    comptime if M == Rug:
+        return rebind[Rug](mark).distribution.copy()
+    comptime if M == Ecdf:
+        return rebind[Ecdf](mark).distribution.copy()
+    comptime if M == Eventplot:
+        return rebind[Eventplot](mark).distribution.copy()
+    comptime if M == Ridgeline:
+        return rebind[Ridgeline](mark).distribution.copy()
+    return _DistributionData()

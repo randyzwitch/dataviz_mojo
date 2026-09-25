@@ -1,3 +1,5 @@
+from dataviz.chart import Chart
+from dataviz.marks import Bar
 from dataviz.core.plot_fields import (
     _CategoricalData,
     _ContinuousData,
@@ -471,7 +473,7 @@ def bar(
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Bar]:
     """`bar()` over named columns of a `dataframe_mojo` `DataFrame`
     (#364): a string `x` column is categorical, while a date or datetime
     `x` column uses a real time axis. The numeric `y` column gives bar
@@ -491,7 +493,7 @@ def bar(
         horizontal: Draw the bars left-to-right instead of upward.
 
     Returns:
-        The finished `Plot` -- unrendered.
+        The finished chart -- unrendered.
 
     Raises:
         Error: A named column is missing, has the wrong dtype for its
@@ -544,7 +546,7 @@ def bar[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Bar]:
     """A bar chart, the standard choice for comparing a value across
     discrete categories: one rectangle per category, its length
     proportional to the value, with negative values extending below the
@@ -572,7 +574,7 @@ def bar[
             vertical layout -- see `Plot.mark_bar()`'s own docstring.
 
     Returns:
-        The finished `Plot` -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
+        The finished chart -- unrendered. Call `save(plot, path)` to write it (any of .svg/.png/.bmp), or `render(plot)`/`render_svg(plot)` for the explicit two-step.
 
     Example:
         ```mojo
@@ -641,7 +643,7 @@ def bar[
     x_title: String = "",
     y_title: String = "",
     horizontal: Bool = False,
-) raises -> Plot:
+) raises -> Chart[Bar]:
     """Vertical bars one observed interval wide on a real time axis.
 
     A bar is centered on each timestamp. Its width is the shortest gap
@@ -831,36 +833,6 @@ def _render_bar_oriented[
         categorical,
         y_err,
         settings,
-        ox0,
-        oy0,
-        ox1,
-        oy1,
-        cache=cache,
-    )
-
-
-def _render_bar_oriented_plot[
-    T: DrawTarget
-](
-    mut target: T,
-    plot: Plot,
-    ox0: Int,
-    oy0: Int,
-    ox1: Int,
-    oy1: Int,
-    *,
-    mut cache: FontCache,
-) raises -> _RenderResult:
-    """`_render_bar_oriented` on `plot`'s own columns and settings: the callback
-    its `mark_*()` setter binds. This is the one place the mark's
-    renderer meets a `Plot` (#826)."""
-    return _render_bar_oriented(
-        target,
-        plot._mark,
-        plot._continuous,
-        plot._categorical,
-        plot._y_err,
-        plot._settings,
         ox0,
         oy0,
         ox1,

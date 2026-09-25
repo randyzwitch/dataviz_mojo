@@ -30,6 +30,7 @@ from dataviz.binned.histogram import bin_edges, histogram_bins
 
 from dataviz.facets import _facets_figure
 from dataviz.layout import Figure
+from dataviz.chart import AnyChart
 from dataviz.plot import Plot
 
 
@@ -72,7 +73,7 @@ def _pairplot_panels[
     cell_width: Int,
     cell_height: Int,
     bins: Int,
-) raises -> List[Plot]:
+) raises -> List[AnyChart]:
     """The n-squared panels `pairplot()` lays out, built once for both
     the raster and the vector form (#620).
 
@@ -130,7 +131,7 @@ def _pairplot_panels[
     for i in range(n):
         extents.append(_column_extent(cols[i]))
 
-    var plots = List[Plot](capacity=n * n)
+    var plots = List[AnyChart](capacity=n * n)
     for i in range(n):
         for j in range(n):
             if i == j:
@@ -138,26 +139,30 @@ def _pairplot_panels[
                 # the column's, so the diagonal lines up with the scatter
                 # panels above and below it.
                 plots.append(
-                    Plot()
-                    .mark_histogram()
-                    .encode_histogram_bins(
-                        histogram_bins(cols[i], bin_edges(cols[i], bins))
+                    AnyChart(
+                        Plot()
+                        .mark_histogram()
+                        .encode_histogram_bins(
+                            histogram_bins(cols[i], bin_edges(cols[i], bins))
+                        )
+                        .scale_x_domain(extents[i].min, extents[i].max)
+                        .theme(theme)
+                        .size(cell_width, cell_height)
+                        .labels(x_title=names[i], y_title="count")
                     )
-                    .scale_x_domain(extents[i].min, extents[i].max)
-                    .theme(theme)
-                    .size(cell_width, cell_height)
-                    .labels(x_title=names[i], y_title="count")
                 )
             else:
                 plots.append(
-                    Plot()
-                    .mark_point()
-                    .encode(x=cols[j], y=cols[i])
-                    .scale_x_domain(extents[j].min, extents[j].max)
-                    .scale_y_domain(extents[i].min, extents[i].max)
-                    .theme(theme)
-                    .size(cell_width, cell_height)
-                    .labels(x_title=names[j], y_title=names[i])
+                    AnyChart(
+                        Plot()
+                        .mark_point()
+                        .encode(x=cols[j], y=cols[i])
+                        .scale_x_domain(extents[j].min, extents[j].max)
+                        .scale_y_domain(extents[i].min, extents[i].max)
+                        .theme(theme)
+                        .size(cell_width, cell_height)
+                        .labels(x_title=names[j], y_title=names[i])
+                    )
                 )
     return plots^
 

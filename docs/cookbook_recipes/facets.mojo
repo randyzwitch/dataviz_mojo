@@ -3,6 +3,7 @@ cell is its own Plot, with its own data, theme, and even mark type;
 this is purely a grid-layout primitive, not a "split this data by a
 column" faceting feature.
 """
+from dataviz.chart import AnyChart
 from dataviz import Plot, save_facets
 from dataviz.core.colors import CORNFLOWERBLUE, SEAGREEN, TOMATO, GOLD
 from dataviz.core.theme import Theme
@@ -48,5 +49,10 @@ def main() raises:
         .theme(Theme(mark_color=GOLD))
     )
 
-    var plots: List[Plot] = [plot_north^, plot_south^, plot_east^, plot_west^]
+    var plots: List[AnyChart] = [
+        AnyChart(plot_north),
+        AnyChart(plot_south),
+        AnyChart(plot_east),
+        AnyChart(plot_west),
+    ]
     save_facets(plots, 2, "docs/src/examples/out_facets.svg")
