@@ -1,6 +1,7 @@
 """Untimed warmup, then individual render samples for two marks/backends."""
 from std.time import perf_counter
 from std.math import sin, cos
+from dataviz.chart import AnyChart
 from dataviz import Plot, line, hexbin, render, render_svg, render_pdf
 
 
@@ -10,9 +11,9 @@ def main() raises:
     for i in range(128):
         x.append(Float64(i) / 128)
         y.append(sin(Float64(i)) + cos(Float64(i) / 7))
-    var plots = List[Plot]()
-    plots.append(line(x, y))
-    plots.append(hexbin(x, y))
+    var plots = List[AnyChart]()
+    plots.append(AnyChart(line(x, y)))
+    plots.append(AnyChart(hexbin(x, y)))
     var check = 0
     for i in range(len(plots)):
         var warm_r = render(plots[i])
