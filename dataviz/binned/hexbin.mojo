@@ -713,14 +713,15 @@ def hexbin[
 
 
 def _encode_hexbin(
-    mut plot: Plot,
+    mark: Mark,
+    mut hexbin: _HexbinData,
     x: List[Float64],
     y: List[Float64],
     gridsize: Int,
 ) raises:
     """`Plot.encode_hexbin()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
-    plot._hexbin.x = x.copy()
-    plot._hexbin.y = y.copy()
-    plot._hexbin.gridsize = gridsize
+    _require_mark(mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
+    hexbin.x = x.copy()
+    hexbin.y = y.copy()
+    hexbin.gridsize = gridsize

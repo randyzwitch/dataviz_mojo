@@ -3,6 +3,7 @@ from dataviz.core.plot_fields import (
     _ContinuousData,
     _ErrorBarData,
     _MarkStyle,
+    _CategoricalData,
 )
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -429,7 +430,10 @@ def single_axis[
 
 
 def _encode_single_axis(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut channels: _ChannelData,
     x: List[Float64],
     color: List[Float64],
     color_categories: List[String],
@@ -438,16 +442,16 @@ def _encode_single_axis(
     """`Plot.encode_single_axis()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_single_axis",
         "mark_single_axis()",
         Mark.SINGLE_AXIS,
     )
-    plot._continuous.x = x.copy()
-    plot._categorical.x = List[String]()
-    plot._continuous.y = List[Float64]()
+    continuous.x = x.copy()
+    categorical.x = List[String]()
+    continuous.y = List[Float64]()
     for _ in range(len(x)):
-        plot._continuous.y.append(0.0)
-    plot._channels.color = color.copy()
-    plot._channels.color_categories = color_categories.copy()
-    plot._channels.size = size.copy()
+        continuous.y.append(0.0)
+    channels.color = color.copy()
+    channels.color_categories = color_categories.copy()
+    channels.size = size.copy()

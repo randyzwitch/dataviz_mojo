@@ -1,4 +1,4 @@
-from dataviz.core.plot_fields import _CategoricalData
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
 from canvas.text.render import TextAlign
@@ -612,7 +612,11 @@ def gantt(
 
 
 def _encode_gantt(
-    mut plot: Plot,
+    mark: Mark,
+    mut gantt: _GanttData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut settings: _ChartSettings,
     categories: List[String],
     start: List[Float64],
     end: List[Float64],
@@ -622,35 +626,39 @@ def _encode_gantt(
     var _ok_encode_gantt = List[Mark]()
     _ok_encode_gantt.append(Mark.GANTT)
     _ok_encode_gantt.append(Mark.SPAN_CHART)
-    _require_mark(plot._mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^)
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._gantt.start = start.copy()
-    plot._gantt.end = end.copy()
-    plot._settings.x_time = False
+    _require_mark(mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^)
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    gantt.start = start.copy()
+    gantt.end = end.copy()
+    settings.x_time = False
 
 
 def _encode_gantt_time(
-    mut plot: Plot,
+    mark: Mark,
+    mut gantt: _GanttData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut settings: _ChartSettings,
     categories: List[String],
     start: List[Morrow],
     end: List[Morrow],
 ) raises:
     """`Plot.encode_gantt_time()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(plot._mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT)
+    _require_mark(mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT)
     var start_seconds = List[Float64](capacity=len(start))
     var end_seconds = List[Float64](capacity=len(end))
     for value in start:
         start_seconds.append(value.timestamp())
     for value in end:
         end_seconds.append(value.timestamp())
-    plot._categorical.x = categories.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._gantt.start = start_seconds^
-    plot._gantt.end = end_seconds^
-    plot._settings.x_time = True
+    categorical.x = categories.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    gantt.start = start_seconds^
+    gantt.end = end_seconds^
+    settings.x_time = True
     if len(start) > 0:
-        plot._settings.x_tz_offset = start[0].tz.offset
+        settings.x_tz_offset = start[0].tz.offset

@@ -5,6 +5,7 @@ from dataviz.core.plot_fields import (
     _ContinuousData,
     _ErrorBarData,
     _MarkStyle,
+    _CategoricalData,
 )
 from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
@@ -1630,7 +1631,11 @@ def area(
 
 
 def _encode(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut channels: _ChannelData,
+    mut error_bars: _ErrorBarData,
     x: List[Float64],
     y: List[Float64],
     color: List[Float64],
@@ -1650,23 +1655,26 @@ def _encode(
     _ok_encode.append(Mark.LINE)
     _ok_encode.append(Mark.AREA)
     _ok_encode.append(Mark.EFFECT_SCATTER)
-    _require_mark(plot._mark, "encode", "mark_point()", _ok_encode^)
-    plot._continuous.x = x.copy()
-    plot._continuous.y = y.copy()
-    plot._categorical.x = List[String]()
-    plot._channels.color = color.copy()
-    plot._channels.color_categories = color_categories.copy()
-    plot._channels.size = size.copy()
-    plot._y_err.symmetric = y_err.copy()
-    plot._y_err.lower = y_err_lower.copy()
-    plot._y_err.upper = y_err_upper.copy()
-    plot._channels.color_map = color_map.copy()
-    plot._channels.shape_map = shape_map.copy()
-    plot._channels.point_labels = labels.copy()
+    _require_mark(mark, "encode", "mark_point()", _ok_encode^)
+    continuous.x = x.copy()
+    continuous.y = y.copy()
+    categorical.x = List[String]()
+    channels.color = color.copy()
+    channels.color_categories = color_categories.copy()
+    channels.size = size.copy()
+    error_bars.symmetric = y_err.copy()
+    error_bars.lower = y_err_lower.copy()
+    error_bars.upper = y_err_upper.copy()
+    channels.color_map = color_map.copy()
+    channels.shape_map = shape_map.copy()
+    channels.point_labels = labels.copy()
 
 
 def _encode_time(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut settings: _ChartSettings,
     x: List[Morrow],
     y: List[Float64],
 ) raises:
@@ -1677,16 +1685,16 @@ def _encode_time(
     _ok_encode_time.append(Mark.LINE)
     _ok_encode_time.append(Mark.AREA)
     _ok_encode_time.append(Mark.EFFECT_SCATTER)
-    _require_mark(plot._mark, "encode_time", "mark_line()", _ok_encode_time^)
+    _require_mark(mark, "encode_time", "mark_line()", _ok_encode_time^)
     var seconds = List[Float64](capacity=len(x))
     for i in range(len(x)):
         seconds.append(x[i].timestamp())
-    plot._categorical.x = List[String]()
-    plot._continuous.x = seconds^
-    plot._continuous.y = y.copy()
-    plot._settings.x_time = True
+    categorical.x = List[String]()
+    continuous.x = seconds^
+    continuous.y = y.copy()
+    settings.x_time = True
     if len(x) > 0:
-        plot._settings.x_tz_offset = x[0].tz.offset
+        settings.x_tz_offset = x[0].tz.offset
 
 
 def _encode_frame(

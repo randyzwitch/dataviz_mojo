@@ -647,7 +647,8 @@ def plot3d[
 
 
 def _encode_xyz(
-    mut plot: Plot,
+    mark: Mark,
+    mut xyz: _Xyz,
     x: List[Float64],
     y: List[Float64],
     z: List[Float64],
@@ -659,7 +660,7 @@ def _encode_xyz(
     _ok_encode_xyz.append(Mark.PLOT3D)
     _ok_encode_xyz.append(Mark.TRISURF3D)
     _ok_encode_xyz.append(Mark.STEM3D)
-    _require_mark(plot._mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^)
-    plot._xyz.x = x.copy()
-    plot._xyz.y = y.copy()
-    plot._xyz.z = z.copy()
+    _require_mark(mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^)
+    xyz.x = x.copy()
+    xyz.y = y.copy()
+    xyz.z = z.copy()

@@ -995,7 +995,8 @@ def voxels(
 
 
 def _encode_bars3d(
-    mut plot: Plot,
+    mark: Mark,
+    mut bars3d: _Bars3D,
     x: List[Float64],
     y: List[Float64],
     z: List[Float64],
@@ -1004,23 +1005,18 @@ def _encode_bars3d(
     every argument; see that method for the contract."""
     var _ok_encode_bars3d = List[Mark]()
     _ok_encode_bars3d.append(Mark.BAR3D)
-    _require_mark(
-        plot._mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^
-    )
-    plot._bars3d.x = x.copy()
-    plot._bars3d.y = y.copy()
-    plot._bars3d.z = z.copy()
+    _require_mark(mark, "encode_bars3d", "mark_bar3d()", _ok_encode_bars3d^)
+    bars3d.x = x.copy()
+    bars3d.y = y.copy()
+    bars3d.z = z.copy()
 
 
 def _encode_voxels(
-    mut plot: Plot,
-    filled: List[List[List[Bool]]],
+    mark: Mark, mut voxels: _Voxels, filled: List[List[List[Bool]]]
 ) raises:
     """`Plot.encode_voxels()`'s body, which forwards here with
     every argument; see that method for the contract."""
     var _ok_encode_voxels = List[Mark]()
     _ok_encode_voxels.append(Mark.VOXELS)
-    _require_mark(
-        plot._mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^
-    )
-    plot._voxels.filled = filled.copy()
+    _require_mark(mark, "encode_voxels", "mark_voxels()", _ok_encode_voxels^)
+    voxels.filled = filled.copy()

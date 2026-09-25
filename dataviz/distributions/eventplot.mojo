@@ -18,6 +18,7 @@ from dataviz.core.plot_fields import (
     _CategoricalData,
     _DistributionData,
     _MarkStyle,
+    _ContinuousData,
 )
 from dataviz.core.chart_settings import _ChartSettings
 from std.utils.numerics import isnan
@@ -384,15 +385,16 @@ def eventplot(
 
 
 def _encode_eventplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
+    mut distribution: _DistributionData,
     labels: List[String],
     positions: List[List[Float64]],
 ) raises:
     """`Plot.encode_eventplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT
-    )
+    _require_mark(mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT)
     if len(labels) != len(positions):
         raise Error(
             "Plot.encode_eventplot(): labels and positions must have"
@@ -412,7 +414,7 @@ def _encode_eventplot(
             " individual row with no events is fine, but with no"
             " event anywhere there is no x-axis to draw them on"
         )
-    plot._categorical.x = labels.copy()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._distribution.values = positions.copy()
+    categorical.x = labels.copy()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    distribution.values = positions.copy()

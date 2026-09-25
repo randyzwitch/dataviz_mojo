@@ -14,6 +14,7 @@ The binning behavior matches `numpy.histogram`:
 
 """
 
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import cbrt, ceil, log10, log2, pi, sqrt
 
@@ -2108,23 +2109,26 @@ def histogram[
 
 
 def _encode_histogram_bins(
-    mut plot: Plot,
+    mark: Mark,
+    mut histogram: _HistogramData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     bins: HistogramBins,
 ) raises:
     """`Plot.encode_histogram_bins()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_histogram_bins",
         "mark_histogram()",
         Mark.HISTOGRAM,
     )
-    plot._categorical.x = List[String]()
-    if plot._histogram.horizontal:
-        plot._continuous.x = bins.step_y()
-        plot._continuous.y = bins.step_x()
+    categorical.x = List[String]()
+    if histogram.horizontal:
+        continuous.x = bins.step_y()
+        continuous.y = bins.step_x()
     else:
-        plot._continuous.x = bins.step_x()
-        plot._continuous.y = bins.step_y()
-    plot._histogram.edges = bins.edges.copy()
-    plot._histogram.values = bins.values.copy()
+        continuous.x = bins.step_x()
+        continuous.y = bins.step_y()
+    histogram.edges = bins.edges.copy()
+    histogram.values = bins.values.copy()

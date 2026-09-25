@@ -410,14 +410,13 @@ def corrplot(
 
 
 def _encode_corrplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut corrplot: _CorrplotData,
     variables: List[String],
     matrix: List[List[Float64]],
 ) raises:
     """`Plot.encode_corrplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT
-    )
-    plot._corrplot.variables = variables.copy()
-    plot._corrplot.matrix = matrix.copy()
+    _require_mark(mark, "encode_corrplot", "mark_corrplot()", Mark.CORRPLOT)
+    corrplot.variables = variables.copy()
+    corrplot.matrix = matrix.copy()

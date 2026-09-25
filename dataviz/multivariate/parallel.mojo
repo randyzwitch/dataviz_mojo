@@ -359,16 +359,15 @@ def parallel(
 
 
 def _encode_parallel(
-    mut plot: Plot,
+    mark: Mark,
+    mut parallel: _ParallelData,
     dims: List[String],
     row_names: List[String],
     data: List[List[Float64]],
 ) raises:
     """`Plot.encode_parallel()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        plot._mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL
-    )
+    _require_mark(mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL)
     if len(row_names) != len(data):
         raise Error(
             "Plot.encode_parallel(): row_names and data must have the same"
@@ -388,6 +387,6 @@ def _encode_parallel(
                 + String(len(row))
                 + ")"
             )
-    plot._parallel.dims = dims.copy()
-    plot._parallel.row_names = row_names.copy()
-    plot._parallel.data = data.copy()
+    parallel.dims = dims.copy()
+    parallel.row_names = row_names.copy()
+    parallel.data = data.copy()

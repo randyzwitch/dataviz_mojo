@@ -18,6 +18,7 @@ than on the stroking. The three are `_rk4_step`, `_seed_order` and
 pins both against fields whose exact streamlines are known.
 """
 
+from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import sqrt
 
@@ -913,7 +914,10 @@ def streamplot[
 
 
 def _encode_streamplot(
-    mut plot: Plot,
+    mark: Mark,
+    mut stream: _StreamData,
+    mut continuous: _ContinuousData,
+    mut categorical: _CategoricalData,
     x: List[Float64],
     y: List[Float64],
     u: List[List[Float64]],
@@ -922,15 +926,15 @@ def _encode_streamplot(
     """`Plot.encode_streamplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
     _require_mark(
-        plot._mark,
+        mark,
         "encode_streamplot",
         "mark_streamplot()",
         Mark.STREAMPLOT,
     )
-    plot._categorical.x = List[String]()
-    plot._continuous.x = List[Float64]()
-    plot._continuous.y = List[Float64]()
-    plot._stream.x = x.copy()
-    plot._stream.y = y.copy()
-    plot._stream.u = u.copy()
-    plot._stream.v = v.copy()
+    categorical.x = List[String]()
+    continuous.x = List[Float64]()
+    continuous.y = List[Float64]()
+    stream.x = x.copy()
+    stream.y = y.copy()
+    stream.u = u.copy()
+    stream.v = v.copy()

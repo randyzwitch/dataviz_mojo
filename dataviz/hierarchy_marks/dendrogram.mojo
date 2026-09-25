@@ -544,7 +544,7 @@ def dendrogram(
 
 
 def _encode_dendrogram(
-    mut plot: Plot,
+    mut dendrogram: _DendrogramData,
     tree: Dendrogram,
     labels: List[String],
     horizontal: Bool,
@@ -567,8 +567,8 @@ def _encode_dendrogram(
         left.append(position_of[m.left] if m.left < n else m.left)
         right.append(position_of[m.right] if m.right < n else m.right)
         height.append(m.height)
-    plot._dendrogram.left = left^
-    plot._dendrogram.right = right^
-    plot._dendrogram.height = height^
-    plot._dendrogram.labels = labels.copy()
-    plot._dendrogram.horizontal = horizontal
+    dendrogram.left = left^
+    dendrogram.right = right^
+    dendrogram.height = height^
+    dendrogram.labels = labels.copy()
+    dendrogram.horizontal = horizontal
