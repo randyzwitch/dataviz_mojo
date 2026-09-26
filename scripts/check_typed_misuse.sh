@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Fail unless calling an encoder on a chart whose mark lacks it is a
 # compile error naming the encoder (#828), unless a log axis on a mark
-# without one is refused the same way (#829), and unless the same call on
+# without one is refused the same way (#829), unless sorting categories
+# on a mark without them is refused the same way (#843), and unless the
+# same call on
 # a mark that has it compiles (the positive control, so this cannot
 # pass by every program failing).
 set -euo pipefail
@@ -31,14 +33,34 @@ def main() raises:
     var c = Plot().mark_gantt().encode_gantt(cats, start, end).scale_y_log()
     _ = render(c)
 PROG
+cat > "$WORK/wrong_sort.mojo" <<'PROG'
+from dataviz import CategoryOrder, Plot, render
+
+
+def main() raises:
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var c = (
+        Plot()
+        .mark_line()
+        .encode(xs, ys)
+        .sort_categories(CategoryOrder.VALUE_DESCENDING)
+    )
+    _ = render(c)
+PROG
 cat > "$WORK/right_mark.mojo" <<'PROG'
-from dataviz import Plot, render
+from dataviz import CategoryOrder, Plot, render
 
 
 def main() raises:
     var cats: List[String] = ["a", "b"]
     var vals: List[Float64] = [1.0, 2.0]
-    var c = Plot().mark_bar().encode_categorical(cats, vals)
+    var c = (
+        Plot()
+        .mark_bar()
+        .encode_categorical(cats, vals)
+        .sort_categories(CategoryOrder.VALUE_DESCENDING)
+    )
     _ = render(c)
 PROG
 
@@ -57,6 +79,14 @@ if mojo build -I . "$WORK/wrong_axis.mojo" -o "$WORK/wrong_axis" > "$WORK/wrong_
 elif ! grep -q "supports_log_y" "$WORK/wrong_axis.log"; then
     echo "check_typed_misuse: the wrong-axis program failed for another reason:" >&2
     grep -E "error|constraint" "$WORK/wrong_axis.log" | head -5 >&2
+    status=1
+fi
+if mojo build -I . "$WORK/wrong_sort.mojo" -o "$WORK/wrong_sort" > "$WORK/wrong_sort.log" 2>&1; then
+    echo "check_typed_misuse: sort_categories() on a line chart compiled; it must not" >&2
+    status=1
+elif ! grep -q "sort_categories(): this mark has no categories to sort" "$WORK/wrong_sort.log"; then
+    echo "check_typed_misuse: the wrong-sort program failed for another reason:" >&2
+    grep -E "error|constraint" "$WORK/wrong_sort.log" | head -5 >&2
     status=1
 fi
 if ! mojo build -I . "$WORK/right_mark.mojo" -o "$WORK/right" > "$WORK/right.log" 2>&1; then

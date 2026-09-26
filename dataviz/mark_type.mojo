@@ -5,6 +5,7 @@ with a default body that refuses at compile time. A mark overrides the
 encoders it accepts, so `Chart[M].encode_x()` is a compile error on any
 other `M`, which is what `_require_mark` checked at run time."""
 
+from dataviz.core.category_order import CategoryOrder
 from canvas.text.font_cache import FontCache
 from dataframe import DataFrame
 from canvas.vector.draw_target import DrawTarget
@@ -151,6 +152,18 @@ trait MarkType(Copyable, Deinitable, Movable):
     ) raises:
         """Refused at compile time: this mark has no `encode_xyz()`."""
         comptime assert False, "encode_xyz(): not an encoder of this mark"
+
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        """Refused at compile time: this mark has no categories."""
+        comptime assert (
+            False
+        ), "sort_categories(): this mark has no categories to sort"
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        """Refused at compile time: this mark has no categories."""
+        comptime assert (
+            False
+        ), "sort_categories(): this mark has no categories to sort"
 
     def encode_categorical(
         mut self,

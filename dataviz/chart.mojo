@@ -6,6 +6,7 @@ it at compile time. `Plot` is the entry point: settings only, until a
 type. Beside `Plot` for now; it replaces it once every entry point is
 generic over `M`."""
 
+from dataviz.core.category_order import CategoryOrder
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.color import Color
@@ -1702,6 +1703,53 @@ struct Chart[M: MarkType](ChartLike):
             Self, for further chaining.
         """
         self.mark.encode_xyz(self.settings, x, y, z)
+        return self^
+
+    def sort_categories(var self, order: CategoryOrder) raises -> Self:
+        """Reorder a categorical chart's categories by value or by label
+        (#843): `bar(regions, sales).sort_categories(CategoryOrder.
+        VALUE_DESCENDING)` is the ranked bar chart.
+
+        Every per-category column moves together, so each category keeps
+        its value and its error bars. The sort is stable, and a missing
+        value sorts last. It reorders the data the chart holds now, so
+        it comes after `encode_categorical()`; before it there is
+        nothing to sort and it raises. A mark without categories cannot
+        call it at all: that is a compile-time error.
+
+        Args:
+            order: One of `CategoryOrder`'s constants.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: The chart has no categories yet, or its categories and
+                values differ in length.
+        """
+        self.mark.sort_categories(order)
+        return self^
+
+    def sort_categories(var self, order: List[String]) raises -> Self:
+        """Put a categorical chart's categories in the order `order`
+        names them (#843), for an order the data cannot imply: months,
+        survey scales, a region list a report always uses.
+
+        `order` must name every category exactly once. A missing name
+        would drop a bar and a repeated or unknown one is a typo, so all
+        three raise with the name at fault.
+
+        Args:
+            order: Every category's name, in the order to draw them.
+
+        Returns:
+            Self, for further chaining.
+
+        Raises:
+            Error: The chart has no categories yet, or `order` misses,
+                repeats or invents a category.
+        """
+        self.mark.sort_categories_named(order)
         return self^
 
     def encode_categorical(
