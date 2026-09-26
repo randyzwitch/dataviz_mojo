@@ -499,7 +499,7 @@ def render_facets[
     var plots = List[AnyChart]()
 
     comptime for i in range(charts.__len__()):
-        plots.append(charts[i].erased())
+        plots.append(charts[i].erased_with[canvas=True]())
     return render_facets(
         plots, cols, shared_y_scale=shared_y_scale, title=title
     )
@@ -514,7 +514,7 @@ def render_facets_svg[
     var plots = List[AnyChart]()
 
     comptime for i in range(charts.__len__()):
-        plots.append(charts[i].erased())
+        plots.append(charts[i].erased_with[svg=True]())
     return render_facets_svg(
         plots, cols, shared_y_scale=shared_y_scale, title=title
     )
