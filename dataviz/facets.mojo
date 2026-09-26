@@ -42,6 +42,7 @@ def save_facets(
     cols: Int,
     path: String,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     dpi: Float64 = 72.0,
     tight: Bool = False,
 ) raises:
@@ -84,34 +85,48 @@ def save_facets(
     if format == OutputFormat.SVG:
         var f = open(path, "w")
         if tight:
-            var box = _facets_tight_box(plots, cols, shared_y_scale)
+            var box = _facets_tight_box(
+                plots, cols, shared_y_scale, shared_x_scale
+            )
             var svg = SvgCanvas(box[2], box[3])
             svg.translate(-Float64(box[0]), -Float64(box[1]))
-            _draw_facets_figure(svg, plots, cols, shared_y_scale, "", True)
+            _draw_facets_figure(
+                svg, plots, cols, shared_y_scale, shared_x_scale, "", True
+            )
             f.write(_svg_output_string(svg^, plots[0].settings.labels))
         else:
             f.write(
                 _svg_output_string(
-                    render_facets_svg(plots, cols, shared_y_scale),
+                    render_facets_svg(
+                        plots, cols, shared_y_scale, shared_x_scale
+                    ),
                     plots[0].settings.labels,
                 )
             )
         f.close()
     elif format == OutputFormat.PDF:
         if tight:
-            var box = _facets_tight_box(plots, cols, shared_y_scale)
+            var box = _facets_tight_box(
+                plots, cols, shared_y_scale, shared_x_scale
+            )
             var doc = PdfCanvas(box[2], box[3])
             doc.translate(-Float64(box[0]), -Float64(box[1]))
-            _draw_facets_figure(doc, plots, cols, shared_y_scale, "", True)
+            _draw_facets_figure(
+                doc, plots, cols, shared_y_scale, shared_x_scale, "", True
+            )
             write_pdf(doc, path)
         else:
-            var doc = render_facets_pdf(plots, cols, shared_y_scale)
+            var doc = render_facets_pdf(
+                plots, cols, shared_y_scale, shared_x_scale
+            )
             write_pdf(doc, path)
     else:
         var scaled = _all_at_dpi(plots, dpi, "save_facets")
         var canvas = _render_facets_tight(
-            scaled, cols, shared_y_scale
-        ) if tight else render_facets(scaled, cols, shared_y_scale)
+            scaled, cols, shared_y_scale, shared_x_scale
+        ) if tight else render_facets(
+            scaled, cols, shared_y_scale, shared_x_scale
+        )
         if format == OutputFormat.PNG:
             write_png(canvas, path)
         else:
@@ -122,6 +137,7 @@ def _facets_figure(
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     title: String = "",
 ) raises -> Figure:
     """A facet grid as an unrendered `Figure` (#697): one uniform cell
@@ -139,6 +155,7 @@ def _facets_figure(
         size[0],
         size[1],
         shared_y_scale=shared_y_scale,
+        shared_x_scale=shared_x_scale,
         title=title,
     )
 
@@ -164,6 +181,7 @@ def _draw_facets_figure[
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool,
+    shared_x_scale: Bool,
     title: String,
     fill_background: Bool,
 ) raises:
@@ -176,6 +194,9 @@ def _draw_facets_figure[
         plots: The charts, one per cell.
         cols: Cells per row.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         title: A figure title above the cells.
         fill_background: Whether to paint `plots[0]`'s background first;
             off while measuring, or the crop would be the whole page.
@@ -196,6 +217,7 @@ def _draw_facets_figure[
         plots,
         cols,
         shared_y_scale,
+        shared_x_scale,
         title,
         cache=cache,
         fill_cell_backgrounds=fill_background,
@@ -204,23 +226,25 @@ def _draw_facets_figure[
 
 
 def _facets_tight_box(
-    plots: List[AnyChart], cols: Int, shared_y_scale: Bool
+    plots: List[AnyChart], cols: Int, shared_y_scale: Bool, shared_x_scale: Bool
 ) raises -> Tuple[Int, Int, Int, Int]:
     """`_tight_box` for a facet grid (#701): the box around its ink,
     measured by drawing it into a `BoundsTarget` without the background.
     """
     var size = _facets_size(plots, cols, "")
     var probe = BoundsTarget(size[0], size[1])
-    _draw_facets_figure(probe, plots, cols, shared_y_scale, "", False)
+    _draw_facets_figure(
+        probe, plots, cols, shared_y_scale, shared_x_scale, "", False
+    )
     return _ink_box(probe, size[0], size[1])
 
 
 def _render_facets_tight(
-    plots: List[AnyChart], cols: Int, shared_y_scale: Bool
+    plots: List[AnyChart], cols: Int, shared_y_scale: Bool, shared_x_scale: Bool
 ) raises -> Canvas:
     """`render_facets()` cropped to the figure's ink, laid out at full
     size and then cropped, as `render_tight()` does for one plot."""
-    var box = _facets_tight_box(plots, cols, shared_y_scale)
+    var box = _facets_tight_box(plots, cols, shared_y_scale, shared_x_scale)
     var factor = _resolve_supersample(
         plots[0].id(), plots[0].settings.theme, "save_facets"
     )
@@ -233,7 +257,9 @@ def _render_facets_tight(
     var canvas = Canvas(box[2], box[3], plots[0].settings.theme.background)
     canvas.begin_supersampled(factor, plots[0].settings.theme.background)
     canvas.translate(-Float64(box[0]), -Float64(box[1]))
-    _draw_facets_figure(canvas, plots, cols, shared_y_scale, "", True)
+    _draw_facets_figure(
+        canvas, plots, cols, shared_y_scale, shared_x_scale, "", True
+    )
     canvas.end_supersampled()
     return canvas^
 
@@ -270,6 +296,7 @@ def render_facets(
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     title: String = "",
 ) raises -> Canvas:
     """Render each of `plots` into its grid cell of a fresh `Canvas` sized
@@ -333,6 +360,7 @@ def render_facets(
         plots,
         cols,
         shared_y_scale,
+        shared_x_scale,
         title,
         cache=cache,
     )
@@ -345,6 +373,7 @@ def render_facets_svg(
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     title: String = "",
 ) raises -> SvgCanvas:
     """`render_facets()`'s counterpart for `SvgCanvas`, with the same `cols`
@@ -376,6 +405,7 @@ def render_facets_svg(
         plots,
         cols,
         shared_y_scale,
+        shared_x_scale,
         title,
         cache=cache,
     )
@@ -387,6 +417,7 @@ def render_facets_pdf(
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     title: String = "",
 ) raises -> PdfCanvas:
     """`render_facets()`'s counterpart for a one-page `PdfCanvas`, with
@@ -398,6 +429,9 @@ def render_facets_pdf(
         plots: The charts, one per cell.
         cols: Cells per row.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         title: A figure title above the cells.
 
     Returns:
@@ -430,6 +464,7 @@ def render_facets_pdf(
         plots,
         cols,
         shared_y_scale,
+        shared_x_scale,
         title,
         cache=cache,
     )
@@ -446,6 +481,7 @@ def _render_facets_generic[
     plots: List[AnyChart],
     cols: Int,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     title: String = "",
     *,
     mut cache: FontCache,
@@ -483,6 +519,7 @@ def _render_facets_generic[
         List[Float64](),
         List[Float64](),
         shared_y_scale,
+        shared_x_scale,
         title=title,
         cache=cache,
         fill_cell_backgrounds=fill_cell_backgrounds,
@@ -492,7 +529,11 @@ def _render_facets_generic[
 def render_facets[
     *Cs: ChartLike
 ](
-    *charts: *Cs, cols: Int, shared_y_scale: Bool = False, title: String = ""
+    *charts: *Cs,
+    cols: Int,
+    shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
+    title: String = "",
 ) raises -> Canvas:
     """`render_facets(plots, cols)` for charts named one by one:
     `render_facets(a, b, cols=2)`. Each is erased for the shared list."""
@@ -501,14 +542,22 @@ def render_facets[
     comptime for i in range(charts.__len__()):
         plots.append(charts[i].erased_with[canvas=True]())
     return render_facets(
-        plots, cols, shared_y_scale=shared_y_scale, title=title
+        plots,
+        cols,
+        shared_y_scale=shared_y_scale,
+        shared_x_scale=shared_x_scale,
+        title=title,
     )
 
 
 def render_facets_svg[
     *Cs: ChartLike
 ](
-    *charts: *Cs, cols: Int, shared_y_scale: Bool = False, title: String = ""
+    *charts: *Cs,
+    cols: Int,
+    shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
+    title: String = "",
 ) raises -> SvgCanvas:
     """`render_facets_svg(plots, cols)` for charts named one by one."""
     var plots = List[AnyChart]()
@@ -516,7 +565,11 @@ def render_facets_svg[
     comptime for i in range(charts.__len__()):
         plots.append(charts[i].erased_with[svg=True]())
     return render_facets_svg(
-        plots, cols, shared_y_scale=shared_y_scale, title=title
+        plots,
+        cols,
+        shared_y_scale=shared_y_scale,
+        shared_x_scale=shared_x_scale,
+        title=title,
     )
 
 
@@ -527,6 +580,7 @@ def save_facets[
     cols: Int,
     path: String,
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     dpi: Float64 = 72.0,
     tight: Bool = False,
 ) raises:
@@ -541,6 +595,7 @@ def save_facets[
         cols,
         path,
         shared_y_scale=shared_y_scale,
+        shared_x_scale=shared_x_scale,
         dpi=dpi,
         tight=tight,
     )

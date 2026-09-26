@@ -30,7 +30,12 @@ complete example.
 
 Use `shared_y_scale=True` for value-for-value comparison; independent scales
 are better when each cell's shape matters. Shared y-scales support point, line,
-and effect-scatter cells. Every plot must have the same size. The first plot's
+and effect-scatter cells. `shared_x_scale=True` does the same for x, so a row
+of panels over one time range ticks and lines up the same way. It takes point,
+line, area, histogram and effect-scatter cells, widened for any x error bars,
+and categorical cells that all name the same categories in the same order.
+A cell with its own `scale_x_domain()` is refused rather than overwritten. The
+two flags combine. Every plot must have the same size. The first plot's
 labels provide the document-level accessible title for SVG output.
 
 See [Facets](../../cookbook/facets/),
