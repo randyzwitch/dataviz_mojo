@@ -2276,7 +2276,7 @@ def render_layers[*Cs: ChartLike](*charts: *Cs) raises -> Canvas:
     var plots = List[AnyChart]()
 
     comptime for i in range(charts.__len__()):
-        plots.append(charts[i].erased())
+        plots.append(charts[i].erased_with())
     return render_layers(plots)
 
 
@@ -2285,7 +2285,7 @@ def render_layers_svg[*Cs: ChartLike](*charts: *Cs) raises -> SvgCanvas:
     var plots = List[AnyChart]()
 
     comptime for i in range(charts.__len__()):
-        plots.append(charts[i].erased())
+        plots.append(charts[i].erased_with())
     return render_layers_svg(plots)
 
 
@@ -2294,7 +2294,7 @@ def render_layers_pdf[*Cs: ChartLike](*charts: *Cs) raises -> PdfCanvas:
     var plots = List[AnyChart]()
 
     comptime for i in range(charts.__len__()):
-        plots.append(charts[i].erased())
+        plots.append(charts[i].erased_with())
     return render_layers_pdf(plots)
 
 

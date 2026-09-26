@@ -216,6 +216,18 @@ trait ChartLike(Copyable, Deinitable, Movable):
         """This chart with its mark type erased, for a `List[AnyChart]`."""
         ...
 
+    def erased_with[
+        canvas: Bool = False,
+        svg: Bool = False,
+        pdf: Bool = False,
+        bounds: Bool = False,
+    ](self) -> AnyChart:
+        """`erased()` with only the named targets' renders bound, for a
+        composition entry that knows which targets it draws marks into
+        and never hands the chart on. Drawing the mark into an unbound
+        target raises. See `AnyChart`."""
+        ...
+
     def capabilities(self) -> _Capabilities:
         """What this chart's mark honors, from its type's constants."""
         ...
@@ -332,6 +344,14 @@ struct Chart[M: MarkType](ChartLike):
     def erased(self) -> AnyChart:
         """This chart with its mark type erased, for a `List[AnyChart]`."""
         return AnyChart(self)
+
+    def erased_with[
+        canvas: Bool = False,
+        svg: Bool = False,
+        pdf: Bool = False,
+        bounds: Bool = False,
+    ](self) -> AnyChart:
+        return AnyChart.bound[canvas, svg, pdf, bounds](self)
 
     def capabilities(self) -> _Capabilities:
         return _capabilities_of_type[Self.M]()
@@ -3840,6 +3860,34 @@ def _erased_render[
     )
 
 
+def _erased_render_unbound[
+    T: DrawTarget
+](
+    ptr: Int,
+    mut target: T,
+    style: _MarkStyle,
+    annotations: _AnnotationData,
+    settings: _ChartSettings,
+    ox0: Int,
+    oy0: Int,
+    ox1: Int,
+    oy1: Int,
+    has_shared_y_domain: Bool,
+    shared_y_min: Float64,
+    shared_y_max: Float64,
+    shared_y_is_log: Bool,
+    mut cache: FontCache,
+    vector_target: Bool,
+) raises -> _RenderResult:
+    """The render slot of a target `AnyChart.bound[...]()` did not
+    bind. Reaching it is a bug in a composition entry, which erases for
+    the targets it draws marks into and must not hand the chart on."""
+    raise Error(
+        "AnyChart: this chart was erased without a render for this draw"
+        " target; use erased() for a chart that has to render everywhere"
+    )
+
+
 def _erased_copy[M: MarkType](ptr: Int) -> Int:
     """A fresh heap copy of the mark at `ptr`, for `AnyChart.__copyinit__`."""
     var pointer = alloc(Layout[M](count=1)).unsafe_leak()
@@ -3865,6 +3913,21 @@ struct AnyChart(ChartLike):
     functions that draw, copy and free it, specialized when the chart
     is erased. Only the marks a program erases get instantiated.
 
+    Erasing has to name the mark's render for every draw target it
+    may meet, since the mark type is gone by the time a target is
+    chosen, and each of those is a full render pipeline to compile:
+    the three a `render_layers()` program never uses cost it about
+    17 CPU-s (#838). `AnyChart(chart)` and `erased()` bind all four,
+    which a `List[AnyChart]` needs because any entry may consume it.
+    `bound[...]()` and `erased_with[...]()` bind only the targets named
+    and leave the other slots on a stub that raises, for the variadic
+    entries that erase inside a call that knows which targets it draws
+    marks into and never hand the chart on. Layers draw every mark
+    through their own layer renderers and bind none; facets draw each
+    cell through the slot for their output target. (`render_grid()`'s
+    `align_axes` probe draws through the `Canvas` slot whatever the
+    output, which is fine: it takes a `List[AnyChart]`.)
+
     `mark[M]()` gives the mark back to code that has checked `id`.
     """
 
@@ -3889,6 +3952,63 @@ struct AnyChart(ChartLike):
     var _free: def(Int) thin
 
     def __init__[M: MarkType](out self, chart: Chart[M]):
+        self = Self(
+            chart,
+            canvas=_erased_render[M, Canvas],
+            svg=_erased_render[M, SvgCanvas],
+            pdf=_erased_render[M, PdfCanvas],
+            bounds=_erased_render[M, BoundsTarget],
+        )
+
+    @staticmethod
+    def bound[
+        canvas: Bool, svg: Bool, pdf: Bool, bounds: Bool, M: MarkType
+    ](chart: Chart[M]) -> AnyChart:
+        """`chart` erased with only the named targets' renders bound;
+        see the struct docstring. The other slots raise if drawn into."""
+        var render_canvas: _ErasedRender[Canvas]
+        var render_svg: _ErasedRender[SvgCanvas]
+        var render_pdf: _ErasedRender[PdfCanvas]
+        var render_bounds: _ErasedRender[BoundsTarget]
+
+        comptime if canvas:
+            render_canvas = _erased_render[M, Canvas]
+        else:
+            render_canvas = _erased_render_unbound[Canvas]
+
+        comptime if svg:
+            render_svg = _erased_render[M, SvgCanvas]
+        else:
+            render_svg = _erased_render_unbound[SvgCanvas]
+
+        comptime if pdf:
+            render_pdf = _erased_render[M, PdfCanvas]
+        else:
+            render_pdf = _erased_render_unbound[PdfCanvas]
+
+        comptime if bounds:
+            render_bounds = _erased_render[M, BoundsTarget]
+        else:
+            render_bounds = _erased_render_unbound[BoundsTarget]
+        return Self(
+            chart,
+            canvas=render_canvas,
+            svg=render_svg,
+            pdf=render_pdf,
+            bounds=render_bounds,
+        )
+
+    def __init__[
+        M: MarkType
+    ](
+        out self,
+        chart: Chart[M],
+        *,
+        canvas: _ErasedRender[Canvas],
+        svg: _ErasedRender[SvgCanvas],
+        pdf: _ErasedRender[PdfCanvas],
+        bounds: _ErasedRender[BoundsTarget],
+    ):
         self.mark_id = M.id
         self.caps = _capabilities_of_type[M]()
         self.settings = chart.settings.copy()
@@ -3904,10 +4024,10 @@ struct AnyChart(ChartLike):
         var heap = alloc(Layout[M](count=1)).unsafe_leak()
         heap.unsafe_write(chart.mark.copy())
         self._ptr = Int(heap)
-        self._render_canvas = _erased_render[M, Canvas]
-        self._render_svg = _erased_render[M, SvgCanvas]
-        self._render_pdf = _erased_render[M, PdfCanvas]
-        self._render_bounds = _erased_render[M, BoundsTarget]
+        self._render_canvas = canvas
+        self._render_svg = svg
+        self._render_pdf = pdf
+        self._render_bounds = bounds
         self._copy = _erased_copy[M]
         self._free = _erased_free[M]
 
@@ -5020,6 +5140,14 @@ struct AnyChart(ChartLike):
         return self^
 
     def erased(self) -> AnyChart:
+        return self.copy()
+
+    def erased_with[
+        canvas: Bool = False,
+        svg: Bool = False,
+        pdf: Bool = False,
+        bounds: Bool = False,
+    ](self) -> AnyChart:
         return self.copy()
 
     def capabilities(self) -> _Capabilities:
