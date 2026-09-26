@@ -84,6 +84,9 @@ trait MarkType(Copyable, Deinitable, Movable):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises:
         """Refused at compile time: this mark has no `encode()`."""
         comptime assert False, "encode(): not an encoder of this mark"

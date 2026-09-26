@@ -1456,6 +1456,9 @@ struct Chart[M: MarkType](ChartLike):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """Map data columns onto channels. `x`/`y` are required; the optional
         channels must match their length, checked at render() time (a
@@ -1472,15 +1475,20 @@ struct Chart[M: MarkType](ChartLike):
         `y_err` draws a capped vertical whisker of `+/- y_err[i]` around each
         point (`Theme.error_bar_cap_width`); `y_err_lower`/`y_err_upper`,
         given together, draw an asymmetric one. The two forms are mutually
-        exclusive and every value must be `>= 0`. Error bars use the point's
-        own resolved color. `labels` draws each row's text above its point;
+        exclusive and every value must be `>= 0`. `x_err`, or
+        `x_err_lower`/`x_err_upper` together, draw the horizontal
+        counterpart under the same rules, independently of the y bars, so a
+        point with both reads as a cross; the x domain widens to span them
+        as the y domain does for `y_err`. Error bars use the point's own
+        resolved color. `labels` draws each row's text above its point;
         `""` skips a row.
 
         Mark support: `color`/`color_categories`/`size`/`color_map` on
         `POINT`/`SINGLE_AXIS`/`EFFECT_SCATTER`; `labels` on `POINT`/
-        `EFFECT_SCATTER`; `y_err` on `POINT`/`LINE`/`EFFECT_SCATTER`;
-        `y_err_lower`/`y_err_upper` on `POINT`/`EFFECT_SCATTER`. For a
-        categorical x-axis use `encode_categorical()`.
+        `EFFECT_SCATTER`; `y_err`, `y_err_lower`/`y_err_upper`, `x_err`
+        and `x_err_lower`/`x_err_upper` on `POINT`/`LINE`/
+        `EFFECT_SCATTER`. For a categorical x-axis use
+        `encode_categorical()`.
 
         Args:
             x: The continuous x column, one entry per point.
@@ -1502,12 +1510,12 @@ struct Chart[M: MarkType](ChartLike):
                 `EFFECT_SCATTER` only (not `SINGLE_AXIS`).
             y_err_lower: Optional asymmetric error-bar downward extent
                 per point; must be given together with `y_err_upper`,
-                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only
-                (not yet `Mark.LINE`).
+                every value `>= 0`. `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
+                only.
             y_err_upper: Optional asymmetric error-bar upward extent
                 per point; must be given together with `y_err_lower`,
-                every value `>= 0`. `Mark.POINT`/`EFFECT_SCATTER` only
-                (not yet `Mark.LINE`).
+                every value `>= 0`. `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
+                only.
             color_map: Optional explicit category-to-color overrides,
                 keyed by the category's own name; only meaningful
                 alongside `color_categories`. `Mark.POINT`/`SINGLE_
@@ -1522,6 +1530,16 @@ struct Chart[M: MarkType](ChartLike):
             labels: Optional per-point text, drawn above each point;
                 an entry of `""` skips that one point's label.
                 `Mark.POINT`/`EFFECT_SCATTER` only.
+            x_err: Optional symmetric horizontal error-bar half-width
+                per point, every value `>= 0`; mutually exclusive with
+                `x_err_lower`/`x_err_upper`. `Mark.POINT`/`LINE`/
+                `EFFECT_SCATTER` only.
+            x_err_lower: Optional asymmetric horizontal error-bar
+                leftward extent per point; must be given together with
+                `x_err_upper`, every value `>= 0`.
+            x_err_upper: Optional asymmetric horizontal error-bar
+                rightward extent per point; must be given together with
+                `x_err_lower`, every value `>= 0`.
 
         Returns:
             Self, for further chaining.
@@ -1542,6 +1560,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map,
             shape_map,
             labels,
+            x_err,
+            x_err_lower,
+            x_err_upper,
         )
         return self^
 
@@ -2968,6 +2989,9 @@ struct Chart[M: MarkType](ChartLike):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to anything conforming to
         `Float64Sequence` (array_like.mojo), for data in a custom buffer
@@ -2994,6 +3018,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
             labels: See `encode()`'s own docstring.
+            x_err: See `encode()`'s own docstring.
+            x_err_lower: See `encode()`'s own docstring.
+            x_err_upper: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -3010,6 +3037,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map=color_map,
             shape_map=shape_map,
             labels=labels,
+            x_err=x_err,
+            x_err_lower=x_err_lower,
+            x_err_upper=x_err_upper,
         )
 
     def encode[
@@ -3027,6 +3057,9 @@ struct Chart[M: MarkType](ChartLike):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized over numeric element type
         (`List[Int]`, `List[Float32]`, any `List[Scalar[dtype]]`), a
@@ -3053,6 +3086,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
             labels: See `encode()`'s own docstring.
+            x_err: See `encode()`'s own docstring.
+            x_err_lower: See `encode()`'s own docstring.
+            x_err_upper: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -3069,6 +3105,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map=color_map,
             shape_map=shape_map,
             labels=labels,
+            x_err=x_err,
+            x_err_lower=x_err_lower,
+            x_err_upper=x_err_upper,
         )
 
     def encode(
@@ -3084,6 +3123,9 @@ struct Chart[M: MarkType](ChartLike):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises -> Self:
         """`encode()`'s `x`/`y` generalized to a numpy `ndarray`, a pandas
         `Series`, a MAX Tensor/Buffer, or a plain Python list of numbers
@@ -3109,6 +3151,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map: See `encode()`'s own docstring.
             shape_map: See `encode()`'s own docstring.
             labels: See `encode()`'s own docstring.
+            x_err: See `encode()`'s own docstring.
+            x_err_lower: See `encode()`'s own docstring.
+            x_err_upper: See `encode()`'s own docstring.
 
         Returns:
             Self, for further chaining.
@@ -3131,6 +3176,9 @@ struct Chart[M: MarkType](ChartLike):
             color_map=color_map,
             shape_map=shape_map,
             labels=labels,
+            x_err=x_err,
+            x_err_lower=x_err_lower,
+            x_err_upper=x_err_upper,
         )
 
     def encode_categorical[

@@ -370,7 +370,7 @@ def _draws_bulk_markers(
         len(channels.color_categories) > 0 and theme.shape_by_category
     )
     var tooltips_on = settings.tooltips_on(len(continuous.y))
-    var has_error_bars = len(y_err.symmetric) > 0 or len(y_err.lower) > 0
+    var has_error_bars = y_err.has_y() or y_err.has_x()
     return not (
         len(channels.size) > 0
         or has_shapes
@@ -575,6 +575,40 @@ def _draw_point_layer[
                 py_lo,
                 bar_x + cap_half,
                 py_lo,
+                color,
+                width=sc.scale,
+            )
+        if y_err.has_x() and len(band_px) == 0:
+            # The horizontal counterpart (#840), drawn after the vertical
+            # one so a point with both reads as a cross. Its ends are data
+            # like the vertical whisker's, shifted by the point's x jitter
+            # so the bar stays centered on the marker it belongs to.
+            var x_extent = _x_err_extent(continuous, y_err, i)
+            var jitter_px = px - _axis_pixel_f(x_scale, continuous.x[i])
+            var bar_y = snap_to_pixel_center(py)
+            var px_lo = snap_to_pixel_center(
+                _axis_pixel_f(x_scale, x_extent[0]) + jitter_px
+            )
+            var px_hi = snap_to_pixel_center(
+                _axis_pixel_f(x_scale, x_extent[1]) + jitter_px
+            )
+            var x_cap_half = Float64(round_to_int(sc.error_bar_cap_width))
+            target.draw_line_aa(
+                px_lo, bar_y, px_hi, bar_y, color, width=sc.scale
+            )
+            target.draw_line_aa(
+                px_lo,
+                bar_y - x_cap_half,
+                px_lo,
+                bar_y + x_cap_half,
+                color,
+                width=sc.scale,
+            )
+            target.draw_line_aa(
+                px_hi,
+                bar_y - x_cap_half,
+                px_hi,
+                bar_y + x_cap_half,
                 color,
                 width=sc.scale,
             )
@@ -784,6 +818,56 @@ def _y_err_extent(
     )
 
 
+def _x_err_extent(
+    continuous: _ContinuousData, y_err: _ErrorBarData, i: Int
+) -> Tuple[Float64, Float64]:
+    """`_y_err_extent`'s x counterpart (#840): one point's x error-bar
+    span in data units, `(lo, hi)` around `continuous.x[i]`, from
+    whichever of `x_err` and `x_err_lower`/`x_err_upper` was given.
+
+    Args:
+        continuous: The x and y columns.
+        y_err: The error-bar columns, both axes.
+        i: The point's index.
+
+    Returns:
+        `(lo, hi)` in data units.
+    """
+    if len(y_err.x_symmetric) > 0:
+        var err = y_err.x_symmetric[i]
+        return (continuous.x[i] - err, continuous.x[i] + err)
+    return (
+        continuous.x[i] - y_err.x_lower[i],
+        continuous.x[i] + y_err.x_upper[i],
+    )
+
+
+def _err_domain_data(
+    values: List[Float64],
+    symmetric: List[Float64],
+    lower: List[Float64],
+    upper: List[Float64],
+) -> List[Float64]:
+    """The values a domain has to span for one axis: every whisker end
+    when that axis has error bars, else the values themselves. Shared by
+    the x and y domains of a continuous render so both span everything
+    drawn (#702, #840).
+    """
+    var out = List[Float64]()
+    if len(symmetric) > 0:
+        for i in range(len(values)):
+            out.append(values[i] - symmetric[i])
+            out.append(values[i] + symmetric[i])
+    elif len(lower) > 0:
+        for i in range(len(values)):
+            out.append(values[i] - lower[i])
+            out.append(values[i] + upper[i])
+    else:
+        for v in values:
+            out.append(v)
+    return out^
+
+
 def _draw_line_layer[
     T: DrawTarget
 ](
@@ -840,6 +924,36 @@ def _draw_line_layer[
                 py_lo,
                 px_i + cap_half,
                 py_lo,
+                theme.mark_color,
+                width=sc.scale,
+            )
+    if y_err.has_x() and len(band_px) == 0:
+        # The horizontal counterpart (#840), under the line like the
+        # vertical whisker and in the same color.
+        var x_cap_half = round_to_int(sc.error_bar_cap_width)
+        for i in range(len(continuous.x)):
+            if _is_missing(continuous.x[i]) or _is_missing(continuous.y[i]):
+                continue
+            var py_i = _axis_pixel(y_scale, continuous.y[i])
+            var x_extent = _x_err_extent(continuous, y_err, i)
+            var px_lo = _axis_pixel(x_scale, x_extent[0])
+            var px_hi = _axis_pixel(x_scale, x_extent[1])
+            target.draw_line_aa(
+                px_lo, py_i, px_hi, py_i, theme.mark_color, width=sc.scale
+            )
+            target.draw_line_aa(
+                px_lo,
+                py_i - x_cap_half,
+                px_lo,
+                py_i + x_cap_half,
+                theme.mark_color,
+                width=sc.scale,
+            )
+            target.draw_line_aa(
+                px_hi,
+                py_i - x_cap_half,
+                px_hi,
+                py_i + x_cap_half,
                 theme.mark_color,
                 width=sc.scale,
             )
@@ -1650,6 +1764,9 @@ def _encode(
     color_map: Dict[String, Color],
     shape_map: Dict[String, PointShape],
     labels: List[String],
+    x_err: List[Float64],
+    x_err_lower: List[Float64],
+    x_err_upper: List[Float64],
 ) raises:
     """`Plot.encode()`'s body, which forwards here with
     every argument; see that method for the contract."""
@@ -1668,6 +1785,9 @@ def _encode(
     error_bars.symmetric = y_err.copy()
     error_bars.lower = y_err_lower.copy()
     error_bars.upper = y_err_upper.copy()
+    error_bars.x_symmetric = x_err.copy()
+    error_bars.x_lower = x_err_lower.copy()
+    error_bars.x_upper = x_err_upper.copy()
     channels.color_map = color_map.copy()
     channels.shape_map = shape_map.copy()
     channels.point_labels = labels.copy()
@@ -1799,6 +1919,9 @@ def _encode_frame_continuous(
         Dict[String, Color](),
         Dict[String, PointShape](),
         read.labels,
+        List[Float64](),
+        List[Float64](),
+        List[Float64](),
     )
 
 
