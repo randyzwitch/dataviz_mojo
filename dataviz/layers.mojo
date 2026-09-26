@@ -55,6 +55,7 @@ from dataviz.basic.continuous import (
     _draw_area_layer,
     _draw_line_layer,
     _draw_point_layer,
+    _err_domain_data,
     _step_points,
     area,
     line,
@@ -660,11 +661,12 @@ def _render_bar_combo_layers[
             or len(plots[i].y_err.symmetric) > 0
             or len(plots[i].y_err.lower) > 0
             or len(plots[i].y_err.upper) > 0
+            or plots[i].y_err.has_x()
             or len(plots[i].channels.point_labels) > 0
         ):
             raise Error(
                 "render_layers():"
-                " color/color_categories/size/y_err/y_err_lower/y_err_upper/labels"
+                " color/color_categories/size/y_err/y_err_lower/y_err_upper/x_err/labels"
                 " encoding isn't supported yet on a Mark.BAR combo chart's"
                 " non-bar layers (layer "
                 + String(i)
@@ -1187,19 +1189,20 @@ def _layer_domain(plot: AnyChart) raises -> _LayerDomain:
     # Mark.POINT/LINE/AREA/EFFECT_SCATTER: Plot.encode()'s own columns.
     # A layer's y_err/y_err_lower+y_err_upper widens its contribution to
     # each whisker's endpoints, so the shared axis spans everything
-    # drawn, exactly as _render_generic's y_domain_data does.
-    var ys = List[Float64]()
-    if len(plot.y_err.symmetric) > 0:
-        for i in range(len(plot.continuous.y)):
-            ys.append(plot.continuous.y[i] - plot.y_err.symmetric[i])
-            ys.append(plot.continuous.y[i] + plot.y_err.symmetric[i])
-    elif len(plot.y_err.lower) > 0:
-        for i in range(len(plot.continuous.y)):
-            ys.append(plot.continuous.y[i] - plot.y_err.lower[i])
-            ys.append(plot.continuous.y[i] + plot.y_err.upper[i])
-    else:
-        for v in plot.continuous.y:
-            ys.append(v)
+    # drawn, exactly as _render_generic's y_domain_data does; x_err does
+    # the same for x (#840).
+    var ys = _err_domain_data(
+        plot.continuous.y,
+        plot.y_err.symmetric,
+        plot.y_err.lower,
+        plot.y_err.upper,
+    )
+    var xs = _err_domain_data(
+        plot.continuous.x,
+        plot.y_err.x_symmetric,
+        plot.y_err.x_lower,
+        plot.y_err.x_upper,
+    )
     if mark == Mark.HISTOGRAM and plot.mark[Histogram]().histogram.horizontal:
         raise Error(
             "render_layers(): a horizontal Mark.HISTOGRAM layer isn't"
@@ -1207,7 +1210,7 @@ def _layer_domain(plot: AnyChart) raises -> _LayerDomain:
             " Use render_facets(), or a vertical histogram."
         )
     return _LayerDomain(
-        plot.continuous.x.copy(),
+        xs^,
         ys^,
         mark == Mark.AREA or mark == Mark.HISTOGRAM,
     )

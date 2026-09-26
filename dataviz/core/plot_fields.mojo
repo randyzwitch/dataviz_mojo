@@ -94,22 +94,41 @@ struct _ChannelData(Copyable, Movable):
 
 
 struct _ErrorBarData(Copyable, Movable):
-    """Error-bar half-widths on the y channel. Stored on `Plot._y_err`.
+    """Error-bar extents on the y channel and, for the continuous marks,
+    the x channel. Stored on each mark as `y_err`, the name it had
+    before x bars existed (#840).
 
     `symmetric` is `encode()`'s `y_err`, one half-width per row drawn
     both ways. `lower`/`upper` are `y_err_lower`/`y_err_upper`, set
     together and mutually exclusive with `symmetric`; `_validate_*`
-    rejects giving both.
+    rejects giving both. `x_symmetric`/`x_lower`/`x_upper` are the same
+    three for `x_err`/`x_err_lower`/`x_err_upper`, under the same rules,
+    and independent of the y three: a point may have either, both or
+    neither.
     """
 
     var symmetric: List[Float64]
     var lower: List[Float64]
     var upper: List[Float64]
+    var x_symmetric: List[Float64]
+    var x_lower: List[Float64]
+    var x_upper: List[Float64]
 
     def __init__(out self):
         self.symmetric = List[Float64]()
         self.lower = List[Float64]()
         self.upper = List[Float64]()
+        self.x_symmetric = List[Float64]()
+        self.x_lower = List[Float64]()
+        self.x_upper = List[Float64]()
+
+    def has_y(self) -> Bool:
+        """Whether any y error bar is set, in either form."""
+        return len(self.symmetric) > 0 or len(self.lower) > 0
+
+    def has_x(self) -> Bool:
+        """Whether any x error bar is set, in either form."""
+        return len(self.x_symmetric) > 0 or len(self.x_lower) > 0
 
 
 struct _DistributionData(Copyable, Movable):

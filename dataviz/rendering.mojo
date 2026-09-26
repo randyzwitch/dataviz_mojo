@@ -21,6 +21,7 @@ from dataviz.basic.continuous import (
     _draw_area_layer,
     _draw_line_layer,
     _draw_point_layer,
+    _err_domain_data,
 )
 from dataviz.core.point_channels import _PointChannels
 from dataviz.layout import (
@@ -1562,18 +1563,14 @@ def _render_continuous[
     # set, so the domain spans everything drawn. has_shared_y_domain
     # (render_facets(shared_y_scale=True)) short-circuits that with the
     # caller's precomputed domain.
-    var y_domain_data = List[Float64]()
-    if len(y_err.symmetric) > 0:
-        for i in range(len(continuous.y)):
-            y_domain_data.append(continuous.y[i] - y_err.symmetric[i])
-            y_domain_data.append(continuous.y[i] + y_err.symmetric[i])
-    elif len(y_err.lower) > 0:
-        for i in range(len(continuous.y)):
-            y_domain_data.append(continuous.y[i] - y_err.lower[i])
-            y_domain_data.append(continuous.y[i] + y_err.upper[i])
-    else:
-        for v in continuous.y:
-            y_domain_data.append(v)
+    var y_domain_data = _err_domain_data(
+        continuous.y, y_err.symmetric, y_err.lower, y_err.upper
+    )
+    # The same for x when x_err (or x_err_lower/x_err_upper) is set
+    # (#840); the plain x column otherwise.
+    var x_domain_data = _err_domain_data(
+        continuous.x, y_err.x_symmetric, y_err.x_lower, y_err.x_upper
+    )
     var y_scale = _domain_override_scale(
         settings.y_domain, settings.y_log
     ) if settings.y_domain.has else (
@@ -1597,13 +1594,13 @@ def _render_continuous[
     var x_scale = _domain_override_scale(
         settings.x_domain, settings.x_log
     ) if settings.x_domain.has else (
-        _log_data_extent(continuous.x) if settings.x_log else (
+        _log_data_extent(x_domain_data) if settings.x_log else (
             _symlog_data_extent(
-                continuous.x, settings.x_symlog_linthresh
+                x_domain_data, settings.x_symlog_linthresh
             ) if settings.x_symlog else (
-                _zero_baseline_y_extent(continuous.x) if (
+                _zero_baseline_y_extent(x_domain_data) if (
                     mark == Mark.HISTOGRAM and histogram.horizontal
-                ) else _data_extent(continuous.x)
+                ) else _data_extent(x_domain_data)
             )
         )
     )

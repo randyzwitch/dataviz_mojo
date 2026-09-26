@@ -166,6 +166,118 @@ def _require_some_positive(
     return largest
 
 
+def _validate_error_bar_axis(
+    axis: String,
+    symmetric: List[Float64],
+    lower: List[Float64],
+    upper: List[Float64],
+    n: Int,
+    mark: Mark,
+    context: String,
+) raises:
+    """One axis's error-bar checks for `_validate_continuous_encoding`:
+    the symmetric form and the lower/upper pair are mutually exclusive,
+    the pair comes together, every column matches the data's length,
+    every value is `>= 0`, and only `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
+    take them. `axis` is `"y"` or `"x"` and names the parameters in each
+    message (`y_err`, `x_err_lower`, ...).
+    """
+    var name = axis + "_err"
+    var has_sym = len(symmetric) > 0
+    var marks_ok = (
+        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
+    )
+    if has_sym and len(symmetric) != n:
+        raise Error(
+            context
+            + ": "
+            + name
+            + " must be the same length as x/y (got "
+            + String(len(symmetric))
+            + " and "
+            + String(n)
+            + ")"
+        )
+    if has_sym:
+        for v in symmetric:
+            if v < 0.0:
+                raise Error(
+                    context
+                    + ": "
+                    + name
+                    + " values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
+    if has_sym and not marks_ok:
+        raise Error(
+            context
+            + ": "
+            + name
+            + " is only supported for Mark.POINT/LINE/EFFECT_SCATTER today"
+        )
+
+    var has_lower = len(lower) > 0
+    var has_upper = len(upper) > 0
+    if has_lower != has_upper:
+        raise Error(
+            context
+            + ": "
+            + name
+            + "_lower and "
+            + name
+            + "_upper must be given together (got only one)"
+        )
+    if (has_lower or has_upper) and has_sym:
+        raise Error(
+            context
+            + ": "
+            + name
+            + " and "
+            + name
+            + "_lower/"
+            + name
+            + "_upper are mutually exclusive -- pass one or the other, not both"
+        )
+    for side in range(2):
+        var values = lower.copy() if side == 0 else upper.copy()
+        var label = name + ("_lower" if side == 0 else "_upper")
+        if len(values) > 0 and len(values) != n:
+            raise Error(
+                context
+                + ": "
+                + label
+                + " must be the same length as x/y (got "
+                + String(len(values))
+                + " and "
+                + String(n)
+                + ")"
+            )
+    for side in range(2):
+        var values = lower.copy() if side == 0 else upper.copy()
+        var label = name + ("_lower" if side == 0 else "_upper")
+        for v in values:
+            if v < 0.0:
+                raise Error(
+                    context
+                    + ": "
+                    + label
+                    + " values must be >= 0 (got "
+                    + String(v)
+                    + ")"
+                )
+    if (has_lower or has_upper) and not marks_ok:
+        raise Error(
+            context
+            + ": "
+            + name
+            + "_lower/"
+            + name
+            + "_upper are only supported for"
+            " Mark.POINT/LINE/EFFECT_SCATTER today"
+        )
+
+
 def _validate_continuous_encoding(
     continuous: _ContinuousData,
     channels: _ChannelData,
@@ -237,96 +349,29 @@ def _validate_continuous_encoding(
             + "Mark.POINT"
             + " today"
         )
-    var has_y_err = len(y_err.symmetric) > 0
-    if has_y_err and len(y_err.symmetric) != len(continuous.x):
-        raise Error(
-            context
-            + ": y_err must be the same length as x/y (got "
-            + String(len(y_err.symmetric))
-            + " and "
-            + String(len(continuous.x))
-            + ")"
-        )
-    if has_y_err:
-        for v in y_err.symmetric:
-            if v < 0.0:
-                raise Error(
-                    context
-                    + ": y_err values must be >= 0 (got "
-                    + String(v)
-                    + ")"
-                )
     # No Mark.SINGLE_AXIS here: a single-axis plot has no y-domain for an
     # error bar. Mark.LINE is included, unlike color/size, since a
     # per-point confidence whisker on a line is common (see
-    # _draw_line_layer).
-    if has_y_err and not (
-        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
-    ):
-        raise Error(
-            context
-            + ": y_err is only supported for Mark.POINT/LINE/EFFECT_SCATTER"
-            " today"
-        )
-
-    var has_y_err_lower = len(y_err.lower) > 0
-    var has_y_err_upper = len(y_err.upper) > 0
-    if has_y_err_lower != has_y_err_upper:
-        raise Error(
-            context
-            + ": y_err_lower and y_err_upper must be given together (got only"
-            " one)"
-        )
-    if (has_y_err_lower or has_y_err_upper) and has_y_err:
-        raise Error(
-            context
-            + ": y_err and y_err_lower/y_err_upper are mutually exclusive --"
-            " pass one or the other, not both"
-        )
-    if has_y_err_lower and len(y_err.lower) != len(continuous.x):
-        raise Error(
-            context
-            + ": y_err_lower must be the same length as x/y (got "
-            + String(len(y_err.lower))
-            + " and "
-            + String(len(continuous.x))
-            + ")"
-        )
-    if has_y_err_upper and len(y_err.upper) != len(continuous.x):
-        raise Error(
-            context
-            + ": y_err_upper must be the same length as x/y (got "
-            + String(len(y_err.upper))
-            + " and "
-            + String(len(continuous.x))
-            + ")"
-        )
-    if has_y_err_lower:
-        for v in y_err.lower:
-            if v < 0.0:
-                raise Error(
-                    context
-                    + ": y_err_lower values must be >= 0 (got "
-                    + String(v)
-                    + ")"
-                )
-    if has_y_err_upper:
-        for v in y_err.upper:
-            if v < 0.0:
-                raise Error(
-                    context
-                    + ": y_err_upper values must be >= 0 (got "
-                    + String(v)
-                    + ")"
-                )
-    if (has_y_err_lower or has_y_err_upper) and not (
-        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
-    ):
-        raise Error(
-            context
-            + ": y_err_lower/y_err_upper are only supported for"
-            " Mark.POINT/LINE/EFFECT_SCATTER today"
-        )
+    # _draw_line_layer). x bars follow the same rules on the same marks
+    # (#840).
+    _validate_error_bar_axis(
+        "y",
+        y_err.symmetric,
+        y_err.lower,
+        y_err.upper,
+        len(continuous.x),
+        mark,
+        context,
+    )
+    _validate_error_bar_axis(
+        "x",
+        y_err.x_symmetric,
+        y_err.x_lower,
+        y_err.x_upper,
+        len(continuous.x),
+        mark,
+        context,
+    )
 
     if len(channels.color_map) > 0 and not has_color_categories:
         raise Error(

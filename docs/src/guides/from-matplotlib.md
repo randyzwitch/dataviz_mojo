@@ -24,7 +24,7 @@ returns a new `Plot`, so calls chain.
 | `ax.fill_between(x, y)` | `area(x, y)` |
 | `ax.stackplot(x, ys)` | `stacked_area(...)`, or `streamgraph(...)` for a centered baseline |
 | `ax.bar(cats, vals)` / `ax.barh(...)` | `bar(cats, vals)` / `bar(cats, vals, horizontal=True)` |
-| `ax.errorbar(x, y, yerr=e)` | `Plot().mark_point().encode(x=x, y=y, y_err=e)`; asymmetric: `y_err_lower=`, `y_err_upper=` |
+| `ax.errorbar(x, y, yerr=e, xerr=f)` | `Plot().mark_point().encode(x=x, y=y, y_err=e, x_err=f)`; asymmetric: `y_err_lower=`/`y_err_upper=`, `x_err_lower=`/`x_err_upper=` |
 | `ax.hist(x, bins=20)` | `histogram(x, bins=20)` |
 | `ax.hist(..., density=True)` | `histogram(..., stat=HistStat.DENSITY)` (also `PROBABILITY`, `PERCENT`, `FREQUENCY`) |
 | `ax.hist(..., cumulative=True)` | `histogram(..., cumulative=True)` |

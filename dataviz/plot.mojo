@@ -1201,6 +1201,9 @@ struct Plot(Copyable, Movable):
         color_map: Dict[String, Color] = Dict[String, Color](),
         shape_map: Dict[String, PointShape] = Dict[String, PointShape](),
         labels: List[String] = List[String](),
+        x_err: List[Float64] = List[Float64](),
+        x_err_lower: List[Float64] = List[Float64](),
+        x_err_upper: List[Float64] = List[Float64](),
     ) raises -> Chart[Point]:
         """`encode()` with the default mark: a point chart. The same as
         `Plot().mark_point().encode(...)`."""
@@ -1216,6 +1219,9 @@ struct Plot(Copyable, Movable):
             color_map,
             shape_map,
             labels,
+            x_err,
+            x_err_lower,
+            x_err_upper,
         )
 
     def mark_point(
