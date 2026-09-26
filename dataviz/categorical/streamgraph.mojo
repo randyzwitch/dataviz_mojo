@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index, _hatch_path
 from dataviz.marks import Streamgraph
 from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
@@ -276,6 +277,15 @@ def _render_streamgraph[
         target.fill_path_aa(
             path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
         )
+        if theme.fill_pattern_by_category:
+            _hatch_path(
+                target,
+                path,
+                _hatch_for_index(j),
+                palette[j % len(palette)],
+                theme.background,
+                theme.scale,
+            )
         if tooltips_on:
             target.end_annotated_group()
 
@@ -292,6 +302,7 @@ def _render_streamgraph[
             frame.py1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return frame.result()

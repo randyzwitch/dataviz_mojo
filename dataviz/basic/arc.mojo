@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index, _hatch_sector
 from dataviz.marks import Arc
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -124,6 +125,20 @@ def _draw_arc_wedges[
             )
         else:
             target.fill_arc_aa(cx, cy, radius, start, end, color)
+        if theme.fill_pattern_by_category:
+            _hatch_sector(
+                target,
+                cx,
+                cy,
+                inner_radius,
+                radius,
+                start,
+                end,
+                _hatch_for_index(i),
+                color,
+                theme.background,
+                theme.scale,
+            )
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
@@ -224,6 +239,7 @@ def _render_arc[
             plot_y1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

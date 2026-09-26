@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index, _hatch_rect
 from dataviz.marks import Treemap
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -75,6 +76,18 @@ def _draw_treemap_node[
         if tooltips_on:
             target.begin_annotated_group(_treemap_leaf_label(ids, idx, node))
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
+        if theme.fill_pattern_by_category and branch[node] >= 0:
+            _hatch_rect(
+                target,
+                x0,
+                y0,
+                x1 - x0,
+                y1 - y0,
+                _hatch_for_index(branch[node]),
+                color,
+                theme.background,
+                theme.scale,
+            )
         if tooltips_on:
             target.end_annotated_group()
         text_requests.append(
@@ -251,6 +264,7 @@ def _render_treemap[
             plot_y1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

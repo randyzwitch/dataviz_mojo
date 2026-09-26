@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index
 from dataviz.marks import StackedBar
 from dataviz.core.plot_fields import _CategoricalData
 from dataviz.core.mark import Mark
@@ -172,6 +173,16 @@ def _draw_stacked_segments[
             orient.fill_band_rect(
                 target, extent, band_pos, band_size, palette[j % len(palette)]
             )
+            if theme.fill_pattern_by_category:
+                orient.hatch_band_rect(
+                    target,
+                    extent,
+                    band_pos,
+                    band_size,
+                    _hatch_for_index(j),
+                    palette[j % len(palette)],
+                    theme,
+                )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:

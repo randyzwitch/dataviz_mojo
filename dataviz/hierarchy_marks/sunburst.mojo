@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import HatchStyle, _hatch_for_index, _hatch_sector
 from dataviz.marks import Sunburst
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
@@ -98,6 +99,8 @@ def _draw_sunburst_node[
     separator: Color,
     separator_width: Float64,
     tooltips_on: Bool,
+    hatch: HatchStyle = HatchStyle.NONE,
+    scale: Float64 = 1.0,
 ) raises:
     """Draw a node sector and recursively divide it among its children.
 
@@ -123,6 +126,20 @@ def _draw_sunburst_node[
         start_angle,
         end_angle,
         _lighten(color, UInt8(fade), background),
+    )
+    # The branch's pattern on every ring it spans, like its hue (#842).
+    _hatch_sector(
+        target,
+        cx,
+        cy,
+        inner,
+        outer,
+        start_angle,
+        end_angle,
+        hatch,
+        _lighten(color, UInt8(fade), background),
+        background,
+        scale,
     )
 
     # A radial line at the sector's leading edge, in the background
@@ -160,6 +177,8 @@ def _draw_sunburst_node[
             separator,
             separator_width,
             tooltips_on,
+            hatch,
+            scale,
         )
         a = a_end
 
@@ -264,6 +283,10 @@ def _render_sunburst[
             theme.background,
             sc.scale,
             settings.tooltips_on(len(hierarchy.ids) - 1),
+            _hatch_for_index(
+                i
+            ) if theme.fill_pattern_by_category else HatchStyle.NONE,
+            theme.scale,
         )
         start = end
 
@@ -280,6 +303,7 @@ def _render_sunburst[
             plot_y1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

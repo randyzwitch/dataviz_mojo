@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import HatchStyle, _hatch_for_index, _hatch_path
 from dataviz.marks import Funnel
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -61,6 +62,9 @@ def _fill_trapezoid[
     y0: Int,
     y1: Int,
     color: Color,
+    hatch: HatchStyle = HatchStyle.NONE,
+    background: Color = Color(255, 255, 255),
+    scale: Float64 = 1.0,
 ) raises:
     var path = Path()
     path.move_to(top_left, Float64(y0))
@@ -69,6 +73,7 @@ def _fill_trapezoid[
     path.line_to(bottom_left, Float64(y1))
     path.close()
     target.fill_path_aa(path, color, fill_rule=FillRule.NONZERO)
+    _hatch_path(target, path, hatch, color, background, scale)
 
 
 def _render_funnel[
@@ -153,6 +158,11 @@ def _render_funnel[
             y0,
             y1,
             palette[i % len(palette)],
+            _hatch_for_index(
+                i
+            ) if theme.fill_pattern_by_category else HatchStyle.NONE,
+            theme.background,
+            theme.scale,
         )
         if tooltips_on:
             target.end_annotated_group()
@@ -187,6 +197,7 @@ def _render_funnel[
             plot_y1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
