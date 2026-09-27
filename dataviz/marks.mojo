@@ -5,6 +5,11 @@ mark shares. Generated from `Plot`'s setters, `encode_*()` methods and
 the `_render_*_plot` adapters, which stay the source of truth until
 `Plot` itself becomes `Chart`."""
 
+from dataviz.core.category_order import (
+    CategoryOrder,
+    _sort_categories,
+    _sort_categories_named,
+)
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 from dataframe import DataFrame
@@ -590,6 +595,14 @@ struct Bar(MarkType):
             cache=cache,
         )
 
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
+        )
+
     def encode_categorical(
         mut self,
         mut settings: _ChartSettings,
@@ -900,6 +913,14 @@ struct Arc(MarkType):
             cache=cache,
         )
 
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
+        )
+
     def encode_categorical(
         mut self,
         mut settings: _ChartSettings,
@@ -1013,6 +1034,14 @@ struct Lollipop(MarkType):
             ox1,
             oy1,
             cache=cache,
+        )
+
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
         )
 
     def encode_categorical(
@@ -2267,6 +2296,14 @@ struct Funnel(MarkType):
             cache=cache,
         )
 
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
+        )
+
     def encode_categorical(
         mut self,
         mut settings: _ChartSettings,
@@ -2808,6 +2845,14 @@ struct Nightingale(MarkType):
             cache=cache,
         )
 
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
+        )
+
     def encode_categorical(
         mut self,
         mut settings: _ChartSettings,
@@ -2922,6 +2967,14 @@ struct PolarBar(MarkType):
             ox1,
             oy1,
             cache=cache,
+        )
+
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
         )
 
     def encode_categorical(
@@ -4133,6 +4186,14 @@ struct Radialbar(MarkType):
             cache=cache,
         )
 
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
+        )
+
     def encode_categorical(
         mut self,
         mut settings: _ChartSettings,
@@ -5153,6 +5214,14 @@ struct Pointplot(MarkType):
             ox1,
             oy1,
             cache=cache,
+        )
+
+    def sort_categories(mut self, order: CategoryOrder) raises:
+        _sort_categories(self.categorical, self.continuous, self.y_err, order)
+
+    def sort_categories_named(mut self, names: List[String]) raises:
+        _sort_categories_named(
+            self.categorical, self.continuous, self.y_err, names
         )
 
     def encode_categorical(

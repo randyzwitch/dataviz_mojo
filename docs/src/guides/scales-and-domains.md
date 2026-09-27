@@ -131,3 +131,28 @@ def main() raises:
     var orders: List[Float64] = [12.0, 18.0, 15.0]
     save(bar(dates, orders), "orders.svg")
 ```
+
+## Category order
+
+A categorical chart draws its categories in the order it was given them.
+`sort_categories()` reorders them after `encode_categorical()`, by value or by
+label, and every value and error bar moves with its category:
+
+```mojo
+from dataviz import CategoryOrder, bar, save
+
+
+def main() raises:
+    var regions: List[String] = ["north", "east", "south", "west"]
+    var sales: List[Float64] = [3.0, 7.0, 1.0, 5.0]
+    save(
+        bar(regions, sales).sort_categories(CategoryOrder.VALUE_DESCENDING),
+        "ranked.svg",
+    )
+```
+
+Ties keep their input order and a missing value sorts last. For an order the
+data cannot imply, such as months or a survey scale, pass the names instead:
+`sort_categories(["low", "medium", "high"])`. The list must name every
+category exactly once. Horizontal bars draw the first category at the top, so
+`VALUE_DESCENDING` reads as a ranked list there too.

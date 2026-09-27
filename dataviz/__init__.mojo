@@ -24,6 +24,7 @@ from dataviz.core.delaunay import Triangulation, delaunay
 from dataviz.core.legend_position import LegendPosition
 from dataviz.core.line_style import LineStyle
 from dataviz.core.step_style import StepStyle
+from dataviz.core.category_order import CategoryOrder
 from dataviz.frame_facets import (
     FacetPart,
     facet_by,
