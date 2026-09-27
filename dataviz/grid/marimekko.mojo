@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_rect
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import _hatch_rect
 from dataviz.marks import Marimekko
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -124,7 +125,7 @@ def _render_marimekko[
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
     var text_requests = List[_TextRequest]()
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, marimekko.subcategories)
     var plot_width = Float64(plot_x1 - plot_x0)
     var plot_height = Float64(plot_y1 - plot_y0)
 
@@ -161,18 +162,17 @@ def _render_marimekko[
                     seg_bottom - seg_top,
                     palette[i % len(palette)],
                 )
-                if theme.fill_pattern_by_category:
-                    _hatch_rect(
-                        target,
-                        col_x0,
-                        seg_top,
-                        col_x1 - col_x0,
-                        seg_bottom - seg_top,
-                        _hatch_for_index(i),
-                        palette[i % len(palette)],
-                        theme.background,
-                        theme.scale,
-                    )
+                _hatch_rect(
+                    target,
+                    col_x0,
+                    seg_top,
+                    col_x1 - col_x0,
+                    seg_bottom - seg_top,
+                    _fill_hatch(settings, marimekko.subcategories[i], i),
+                    palette[i % len(palette)],
+                    theme.background,
+                    theme.scale,
+                )
                 if tooltips_on:
                     target.end_annotated_group()
 
@@ -201,7 +201,7 @@ def _render_marimekko[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, marimekko.subcategories),
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

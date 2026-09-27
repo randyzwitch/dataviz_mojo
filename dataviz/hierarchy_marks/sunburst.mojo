@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import HatchStyle, _hatch_for_index, _hatch_sector
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import HatchStyle, _hatch_sector
 from dataviz.marks import Sunburst
 from dataviz.core.chart_settings import _ChartSettings
 from std.math import pi
@@ -204,8 +205,9 @@ def _render_sunburst[
     Rendering starts from each of the root's direct children, each
     claiming an angular slice proportional to its share of the root's
     subtree total and a palette color (`categorical_palette_for(theme)` by
-    position among siblings, the same palette `_draw_legend` uses) that
-    stays fixed through all of its descendants.
+    position among siblings, unless `fill_colors()` pins the branch's
+    name; the legend uses the same resolved list) that stays fixed
+    through all of its descendants.
 
     Every value must be non-negative and the root's subtree total
     positive, the same validation `Mark.ARC` applies to its
@@ -262,7 +264,7 @@ def _render_sunburst[
     )
     var ring_width = max_radius / Float64(max(idx.max_depth, 1))
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, legend_labels)
     var root_total = idx.subtree_value[idx.root]
     var start = -pi / 2.0
     for i in range(len(root_children)):
@@ -283,9 +285,7 @@ def _render_sunburst[
             theme.background,
             sc.scale,
             settings.tooltips_on(len(hierarchy.ids) - 1),
-            _hatch_for_index(
-                i
-            ) if theme.fill_pattern_by_category else HatchStyle.NONE,
+            _fill_hatch(settings, hierarchy.ids[c], i),
             theme.scale,
         )
         start = end
@@ -303,7 +303,7 @@ def _render_sunburst[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, legend_labels),
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

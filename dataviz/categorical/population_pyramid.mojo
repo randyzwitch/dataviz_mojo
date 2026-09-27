@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_rect
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import _hatch_rect
 from dataviz.marks import PopulationPyramid
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
@@ -126,7 +127,7 @@ def _render_population_pyramid[
         cache=cache,
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, [left_name, right_name])
     var center_px = _axis_pixel_f(frame.x_scale, 0.0)
     var row_height = frame.y_scale.bandwidth()
     var orient = _Orientation(True)  # bars grow horizontally from center
@@ -153,18 +154,17 @@ def _render_population_pyramid[
             var ly0 = snap_to_pixel_edge(row_y)
             var ly1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(lx0, ly0, lx1 - lx0, ly1 - ly0, palette[0])
-            if theme.fill_pattern_by_category:
-                _hatch_rect(
-                    target,
-                    lx0,
-                    ly0,
-                    lx1 - lx0,
-                    ly1 - ly0,
-                    _hatch_for_index(0),
-                    palette[0],
-                    theme.background,
-                    theme.scale,
-                )
+            _hatch_rect(
+                target,
+                lx0,
+                ly0,
+                lx1 - lx0,
+                ly1 - ly0,
+                _fill_hatch(settings, left_name, 0),
+                palette[0],
+                theme.background,
+                theme.scale,
+            )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
@@ -214,18 +214,17 @@ def _render_population_pyramid[
             var ry0 = snap_to_pixel_edge(row_y)
             var ry1 = snap_to_pixel_edge(row_y + row_height)
             target.fill_rect(rx0, ry0, rx1 - rx0, ry1 - ry0, palette[1])
-            if theme.fill_pattern_by_category:
-                _hatch_rect(
-                    target,
-                    rx0,
-                    ry0,
-                    rx1 - rx0,
-                    ry1 - ry0,
-                    _hatch_for_index(1),
-                    palette[1],
-                    theme.background,
-                    theme.scale,
-                )
+            _hatch_rect(
+                target,
+                rx0,
+                ry0,
+                rx1 - rx0,
+                ry1 - ry0,
+                _fill_hatch(settings, right_name, 1),
+                palette[1],
+                theme.background,
+                theme.scale,
+            )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
@@ -267,7 +266,7 @@ def _render_population_pyramid[
             frame.py1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, [left_name, right_name]),
         )
 
     return frame.result()

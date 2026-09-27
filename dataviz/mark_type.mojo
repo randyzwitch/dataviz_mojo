@@ -156,6 +156,15 @@ trait MarkType(Copyable, Deinitable, Movable):
         """Refused at compile time: this mark has no `encode_xyz()`."""
         comptime assert False, "encode_xyz(): not an encoder of this mark"
 
+    def accepts_fill_maps(self):
+        """Refused at compile time: this mark does not fill one shape per
+        category or series, so `fill_colors()`/`fill_patterns()` have
+        nothing to pin."""
+        comptime assert False, (
+            "fill_colors()/fill_patterns(): this mark does not fill one"
+            " shape per category or series"
+        )
+
     def sort_categories(mut self, order: CategoryOrder) raises:
         """Refused at compile time: this mark has no categories."""
         comptime assert (

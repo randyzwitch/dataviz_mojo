@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_sector
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import _hatch_sector
 from dataviz.marks import Nightingale
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -101,7 +102,7 @@ def _render_nightingale[
         Float64(min(plot_x1 - plot_x0, plot_y1 - plot_y0)) / 2.0 * 0.9
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, categorical.x)
     var n = len(categorical.x)
     var span = 2.0 * pi / Float64(n)
     var start = -pi / 2.0
@@ -116,20 +117,19 @@ def _render_nightingale[
                 _tooltip_label(categorical.x[i], continuous.y[i])
             )
         target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if theme.fill_pattern_by_category:
-            _hatch_sector(
-                target,
-                cx,
-                cy,
-                0.0,
-                radius,
-                start,
-                end,
-                _hatch_for_index(i),
-                color,
-                theme.background,
-                theme.scale,
-            )
+        _hatch_sector(
+            target,
+            cx,
+            cy,
+            0.0,
+            radius,
+            start,
+            end,
+            _fill_hatch(settings, categorical.x[i], i),
+            color,
+            theme.background,
+            theme.scale,
+        )
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
@@ -158,7 +158,7 @@ def _render_nightingale[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, categorical.x),
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

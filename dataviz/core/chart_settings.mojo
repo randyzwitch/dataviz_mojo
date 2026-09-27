@@ -8,6 +8,9 @@ from dataviz.core.color_scale import _ColorDomainOverride
 from dataviz.core.plot_fields import _DomainOverride, _LabelData
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
+from dataviz.core.hatch import HatchStyle
+from std.collections import Dict
+from canvas.color import Color
 
 
 struct _ChartSettings(Copyable, Movable):
@@ -66,6 +69,15 @@ struct _ChartSettings(Copyable, Movable):
     # drawn on the right edge. render() raises if it's set on a
     # standalone plot.
     var secondary_axis: Bool
+    var fill_colors: Dict[String, Color]
+    """`Chart.fill_colors()`: category or series name to fill color, for
+    the marks that fill one shape per name (#848). A name absent here
+    takes the palette color for its position."""
+    var fill_patterns: Dict[String, HatchStyle]
+    """`Chart.fill_patterns()`: name to `HatchStyle`, drawn whether or
+    not `Theme.fill_pattern_by_category` is on (#848). A name absent
+    here takes the pattern for its position when the flag is on, and
+    none when it is off."""
 
     def __init__(out self):
         self.theme = Theme.default()
@@ -89,6 +101,8 @@ struct _ChartSettings(Copyable, Movable):
         self.color_domain = _ColorDomainOverride()
         self.horizontal = False
         self.secondary_axis = False
+        self.fill_colors = Dict[String, Color]()
+        self.fill_patterns = Dict[String, HatchStyle]()
 
     def tooltip_policy(self) -> Tooltips:
         """The policy in force: `tooltips()`'s if it was called, else

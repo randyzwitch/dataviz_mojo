@@ -6,6 +6,7 @@ it at compile time. `Plot` is the entry point: settings only, until a
 type. Beside `Plot` for now; it replaces it once every entry point is
 generic over `M`."""
 
+from dataviz.core.hatch import HatchStyle
 from dataviz.core.category_order import CategoryOrder
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
@@ -1724,6 +1725,52 @@ struct Chart[M: MarkType](ChartLike):
             Self, for further chaining.
         """
         self.mark.encode_xyz(self.settings, x, y, z)
+        return self^
+
+    def fill_colors(var self, colors: Dict[String, Color]) -> Self:
+        """Pin named categories or series to fill colors (#848), for the
+        marks that fill one shape per name: pie and donut, stacked and
+        grouped bars, funnel, streamgraph, treemap and sunburst branches,
+        marimekko, nightingale, polar bar and population pyramid sides.
+
+        A name absent from `colors` takes the palette color for its
+        position, as before. A name in `colors` that the chart does not
+        have is ignored, so one map can cover every panel of a figure,
+        the way `encode()`'s `color_map` does for points. The legend
+        shows the pinned colors. A mark that does not fill by name
+        cannot call it: that is a compile-time error.
+
+        Args:
+            colors: Category or series name to color. Replaces any map
+                given before.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.mark.accepts_fill_maps()
+        self.settings.fill_colors = colors.copy()
+        return self^
+
+    def fill_patterns(var self, patterns: Dict[String, HatchStyle]) -> Self:
+        """Pin named categories or series to `HatchStyle` patterns
+        (#848), on the same marks as `fill_colors()`.
+
+        A pinned pattern is drawn whether or not
+        `Theme.fill_pattern_by_category` is on. With the flag on, a name
+        absent here takes the pattern for its position; with it off, it
+        takes none. So a caller can pattern one highlighted slice and
+        leave the rest solid. Unknown names are ignored, as in
+        `fill_colors()`, and the legend shows the patterns.
+
+        Args:
+            patterns: Category or series name to pattern. Replaces any
+                map given before.
+
+        Returns:
+            Self, for further chaining.
+        """
+        self.mark.accepts_fill_maps()
+        self.settings.fill_patterns = patterns.copy()
         return self^
 
     def sort_categories(var self, order: CategoryOrder) raises -> Self:

@@ -41,6 +41,13 @@ by the same index as its color, legend swatches included, and the first
 category stays solid. The patterns are drawn as ordinary lines and dots, so
 PNG, SVG and PDF output match.
 
+Colors and patterns are dealt by position, so a category's look changes when
+the list does: after `sort_categories()`, or in a facet missing one series.
+`fill_colors()` and `fill_patterns()` pin them by name instead, and the legend
+follows. A pinned pattern is drawn even with `fill_pattern_by_category` off,
+which is how to mark one slice and leave the rest solid. Names a chart does
+not have are ignored, so one map can serve every panel of a figure.
+
 See [SVG accessibility](../../cookbook/svg_accessibility/),
 [High-contrast theme](../../cookbook/high_contrast_theme/), and
 [accessible SVG helpers](../../dataviz/rendering/).

@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_sector
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import _hatch_sector
 from dataviz.marks import Arc
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -108,7 +109,7 @@ def _draw_arc_wedges[
     """The same wedge geometry for standalone arcs and concentric layers."""
     var theme = settings.theme
     var sc = _Scaled(theme)
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, categorical.x)
     var start = -pi / 2.0
     var tooltips_on = settings.tooltips_on(len(categorical.x))
     for i in range(len(categorical.x)):
@@ -125,20 +126,19 @@ def _draw_arc_wedges[
             )
         else:
             target.fill_arc_aa(cx, cy, radius, start, end, color)
-        if theme.fill_pattern_by_category:
-            _hatch_sector(
-                target,
-                cx,
-                cy,
-                inner_radius,
-                radius,
-                start,
-                end,
-                _hatch_for_index(i),
-                color,
-                theme.background,
-                theme.scale,
-            )
+        _hatch_sector(
+            target,
+            cx,
+            cy,
+            inner_radius,
+            radius,
+            start,
+            end,
+            _fill_hatch(settings, categorical.x[i], i),
+            color,
+            theme.background,
+            theme.scale,
+        )
         if tooltips_on:
             target.end_annotated_group()
         if theme.show_data_labels:
@@ -224,7 +224,7 @@ def _render_arc[
         total,
         text_requests,
     )
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, categorical.x)
 
     if show_legend:
         _draw_legend_at(
@@ -239,7 +239,7 @@ def _render_arc[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, categorical.x),
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
