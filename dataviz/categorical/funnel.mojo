@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import HatchStyle, _hatch_for_index, _hatch_path
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import HatchStyle, _hatch_path
 from dataviz.marks import Funnel
 from dataviz.core.plot_fields import (
     _CategoricalData,
@@ -131,7 +132,7 @@ def _render_funnel[
     var max_width = Float64(plot_x1 - plot_x0)
     var row_height = Float64(plot_y1 - plot_y0) / Float64(n)
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, sorted_categories)
 
     var top_width = List[Float64]()
     for i in range(n):
@@ -158,9 +159,7 @@ def _render_funnel[
             y0,
             y1,
             palette[i % len(palette)],
-            _hatch_for_index(
-                i
-            ) if theme.fill_pattern_by_category else HatchStyle.NONE,
+            _fill_hatch(settings, sorted_categories[i], i),
             theme.background,
             theme.scale,
         )
@@ -197,7 +196,7 @@ def _render_funnel[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, sorted_categories),
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

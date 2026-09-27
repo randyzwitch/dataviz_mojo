@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_path
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import _hatch_path
 from dataviz.marks import Streamgraph
 from dataviz.core.plot_fields import _CategoricalData, _MarkStyle
 from dataviz.core.chart_settings import _ChartSettings
@@ -225,7 +226,7 @@ def _render_streamgraph[
     for i in range(n_categories):
         running.append(0.0 if zero_baseline else -totals[i] / 2.0)
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, grouped_bar.series_names)
     var tooltips_on = settings.tooltips_on(n_series)
     for j in range(n_series):
         var top = List[Float64](capacity=n_categories)
@@ -277,15 +278,14 @@ def _render_streamgraph[
         target.fill_path_aa(
             path, palette[j % len(palette)], fill_rule=FillRule.NONZERO
         )
-        if theme.fill_pattern_by_category:
-            _hatch_path(
-                target,
-                path,
-                _hatch_for_index(j),
-                palette[j % len(palette)],
-                theme.background,
-                theme.scale,
-            )
+        _hatch_path(
+            target,
+            path,
+            _fill_hatch(settings, grouped_bar.series_names[j], j),
+            palette[j % len(palette)],
+            theme.background,
+            theme.scale,
+        )
         if tooltips_on:
             target.end_annotated_group()
 
@@ -302,7 +302,7 @@ def _render_streamgraph[
             frame.py1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=_fill_hatches(settings, grouped_bar.series_names),
         )
 
     return frame.result()

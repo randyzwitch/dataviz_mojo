@@ -862,6 +862,10 @@ struct Arc(MarkType):
     var categorical: _CategoricalData
     var y_err: _ErrorBarData
 
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
+
     def __init__(out self):
         self.continuous = _ContinuousData()
         self.categorical = _CategoricalData()
@@ -1579,6 +1583,10 @@ struct GroupedBar(MarkType):
     var categorical: _CategoricalData
     var continuous: _ContinuousData
 
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
+
     def __init__(out self):
         self.grouped_bar = _GroupedBarData()
         self.categorical = _CategoricalData()
@@ -1665,6 +1673,10 @@ struct StackedBar(MarkType):
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
     var continuous: _ContinuousData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.grouped_bar = _GroupedBarData()
@@ -1753,6 +1765,10 @@ struct PopulationPyramid(MarkType):
     var pyramid: _PyramidData
     var categorical: _CategoricalData
     var continuous: _ContinuousData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.pyramid = _PyramidData()
@@ -2246,6 +2262,10 @@ struct Funnel(MarkType):
     var categorical: _CategoricalData
     var y_err: _ErrorBarData
 
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
+
     def __init__(out self):
         self.continuous = _ContinuousData()
         self.categorical = _CategoricalData()
@@ -2455,6 +2475,10 @@ struct Streamgraph(MarkType):
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
     var continuous: _ContinuousData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.grouped_bar = _GroupedBarData()
@@ -2793,6 +2817,10 @@ struct Nightingale(MarkType):
     var categorical: _CategoricalData
     var y_err: _ErrorBarData
 
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
+
     def __init__(out self):
         self.nightingale = _NightingaleData()
         self.continuous = _ContinuousData()
@@ -2917,6 +2945,10 @@ struct PolarBar(MarkType):
     var continuous: _ContinuousData
     var categorical: _CategoricalData
     var y_err: _ErrorBarData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.continuous = _ContinuousData()
@@ -3631,6 +3663,10 @@ struct Marimekko(MarkType):
 
     var marimekko: _MarimekkoData
 
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
+
     def __init__(out self):
         self.marimekko = _MarimekkoData()
 
@@ -3696,6 +3732,10 @@ struct Sunburst(MarkType):
     comptime supports_color_size = False
 
     var hierarchy: _HierarchyData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.hierarchy = _HierarchyData()
@@ -3824,6 +3864,10 @@ struct Treemap(MarkType):
     comptime supports_color_size = False
 
     var hierarchy: _HierarchyData
+
+    def accepts_fill_maps(self):
+        """This mark fills one shape per name; see `Chart.fill_colors()`."""
+        pass
 
     def __init__(out self):
         self.hierarchy = _HierarchyData()

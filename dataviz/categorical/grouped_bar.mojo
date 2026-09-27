@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import HatchStyle
 from dataviz.marks import GroupedBar
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
@@ -178,6 +179,7 @@ def _draw_series_legend[
     theme: Theme,
     *,
     mut cache: FontCache,
+    hatches: List[HatchStyle] = List[HatchStyle](),
 ) raises:
     """The one legend call `Mark.GROUPED_BAR`/`STACKED_BAR` make in both
     orientations, against the plot rect the legend was already reserved
@@ -195,7 +197,7 @@ def _draw_series_legend[
         plot_y1,
         theme,
         cache=cache,
-        hatched=theme.fill_pattern_by_category,
+        hatches=hatches,
     )
 
 
@@ -308,16 +310,15 @@ def _draw_grouped_bars[
                     sc.scale,
                 )
             orient.fill_band_rect(target, extent, near, far - near, color)
-            if theme.fill_pattern_by_category:
-                orient.hatch_band_rect(
-                    target,
-                    extent,
-                    near,
-                    far - near,
-                    _hatch_for_index(j),
-                    color,
-                    theme,
-                )
+            orient.hatch_band_rect(
+                target,
+                extent,
+                near,
+                far - near,
+                _fill_hatch(settings, grouped_bar.series_names[j], j),
+                color,
+                theme,
+            )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
@@ -365,8 +366,8 @@ def _render_grouped_bar[
     zero-baseline y-axis (`_draw_categorical_axis_frame`), with each
     category's band subdivided into `len(series_names)` equal-width
     sub-bars, one per series, colored by `categorical_palette_for(theme)`
-    (`j % len(palette)`). No sign coloring: series are told apart by
-    color.
+    (`j % len(palette)`) unless `fill_colors()` pins the series' name.
+    No sign coloring: series are told apart by color.
 
     The series-name legend is reserved via `Theme.show_legend` by
     subtracting its width from the outer `ox1` passed to
@@ -399,7 +400,7 @@ def _render_grouped_bar[
         cache=cache,
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, grouped_bar.series_names)
     _draw_grouped_bars(
         target,
         grouped_bar,
@@ -427,6 +428,7 @@ def _render_grouped_bar[
             frame.py1,
             theme,
             cache=cache,
+            hatches=_fill_hatches(settings, grouped_bar.series_names),
         )
 
     return frame.result()
@@ -485,7 +487,7 @@ def _render_horizontal_grouped_bar[
         cache=cache,
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, grouped_bar.series_names)
     _draw_grouped_bars(
         target,
         grouped_bar,
@@ -513,6 +515,7 @@ def _render_horizontal_grouped_bar[
             frame.py1,
             theme,
             cache=cache,
+            hatches=_fill_hatches(settings, grouped_bar.series_names),
         )
 
     return frame.result()

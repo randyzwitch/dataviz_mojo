@@ -2,7 +2,9 @@
 # Fail unless calling an encoder on a chart whose mark lacks it is a
 # compile error naming the encoder (#828), unless a log axis on a mark
 # without one is refused the same way (#829), unless sorting categories
-# on a mark without them is refused the same way (#843), and unless the
+# on a mark without them is refused the same way (#843), unless pinning
+# fill colors on a mark that does not fill by name is too (#848), and
+# unless the
 # same call on
 # a mark that has it compiles (the positive control, so this cannot
 # pass by every program failing).
@@ -48,6 +50,19 @@ def main() raises:
     )
     _ = render(c)
 PROG
+cat > "$WORK/wrong_fill.mojo" <<'PROG'
+from std.collections import Dict
+from canvas.color import Color
+from dataviz import Plot, render
+
+
+def main() raises:
+    var xs: List[Float64] = [1.0, 2.0]
+    var ys: List[Float64] = [1.0, 2.0]
+    var colors = Dict[String, Color]()
+    var c = Plot().mark_line().encode(xs, ys).fill_colors(colors)
+    _ = render(c)
+PROG
 cat > "$WORK/right_mark.mojo" <<'PROG'
 from dataviz import CategoryOrder, Plot, render
 
@@ -87,6 +102,14 @@ if mojo build -I . "$WORK/wrong_sort.mojo" -o "$WORK/wrong_sort" > "$WORK/wrong_
 elif ! grep -q "sort_categories(): this mark has no categories to sort" "$WORK/wrong_sort.log"; then
     echo "check_typed_misuse: the wrong-sort program failed for another reason:" >&2
     grep -E "error|constraint" "$WORK/wrong_sort.log" | head -5 >&2
+    status=1
+fi
+if mojo build -I . "$WORK/wrong_fill.mojo" -o "$WORK/wrong_fill" > "$WORK/wrong_fill.log" 2>&1; then
+    echo "check_typed_misuse: fill_colors() on a line chart compiled; it must not" >&2
+    status=1
+elif ! grep -q "fill_colors()/fill_patterns(): this mark does not fill one" "$WORK/wrong_fill.log"; then
+    echo "check_typed_misuse: the wrong-fill program failed for another reason:" >&2
+    grep -E "error|constraint" "$WORK/wrong_fill.log" | head -5 >&2
     status=1
 fi
 if ! mojo build -I . "$WORK/right_mark.mojo" -o "$WORK/right" > "$WORK/right.log" 2>&1; then

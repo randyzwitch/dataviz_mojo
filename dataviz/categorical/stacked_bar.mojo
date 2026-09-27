@@ -1,5 +1,5 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
 from dataviz.marks import StackedBar
 from dataviz.core.plot_fields import _CategoricalData
 from dataviz.core.mark import Mark
@@ -173,16 +173,15 @@ def _draw_stacked_segments[
             orient.fill_band_rect(
                 target, extent, band_pos, band_size, palette[j % len(palette)]
             )
-            if theme.fill_pattern_by_category:
-                orient.hatch_band_rect(
-                    target,
-                    extent,
-                    band_pos,
-                    band_size,
-                    _hatch_for_index(j),
-                    palette[j % len(palette)],
-                    theme,
-                )
+            orient.hatch_band_rect(
+                target,
+                extent,
+                band_pos,
+                band_size,
+                _fill_hatch(settings, grouped_bar.series_names[j], j),
+                palette[j % len(palette)],
+                theme,
+            )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:
@@ -256,7 +255,7 @@ def _render_stacked_bar[
         cache=cache,
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, grouped_bar.series_names)
     _draw_stacked_segments(
         target,
         grouped_bar,
@@ -284,6 +283,7 @@ def _render_stacked_bar[
             frame.py1,
             theme,
             cache=cache,
+            hatches=_fill_hatches(settings, grouped_bar.series_names),
         )
 
     return frame.result()
@@ -338,7 +338,7 @@ def _render_horizontal_stacked_bar[
         cache=cache,
     )
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, grouped_bar.series_names)
     _draw_stacked_segments(
         target,
         grouped_bar,
@@ -366,6 +366,7 @@ def _render_horizontal_stacked_bar[
             frame.py1,
             theme,
             cache=cache,
+            hatches=_fill_hatches(settings, grouped_bar.series_names),
         )
 
     return frame.result()

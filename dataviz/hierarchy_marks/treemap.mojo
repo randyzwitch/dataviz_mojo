@@ -1,5 +1,6 @@
 from dataviz.chart import Chart
-from dataviz.core.hatch import _hatch_for_index, _hatch_rect
+from dataviz.core.fill_maps import _fill_hatch, _fill_hatches, _fill_palette
+from dataviz.core.hatch import HatchStyle, _hatch_rect
 from dataviz.marks import Treemap
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -58,6 +59,7 @@ def _draw_treemap_node[
     ids: List[String],
     branch: List[Int],
     palette: List[Color],
+    hatches: List[HatchStyle],
     theme: Theme,
     tooltips_on: Bool,
     sc: _Scaled,
@@ -76,14 +78,14 @@ def _draw_treemap_node[
         if tooltips_on:
             target.begin_annotated_group(_treemap_leaf_label(ids, idx, node))
         target.fill_rect(x0, y0, x1 - x0, y1 - y0, color)
-        if theme.fill_pattern_by_category and branch[node] >= 0:
+        if branch[node] >= 0:
             _hatch_rect(
                 target,
                 x0,
                 y0,
                 x1 - x0,
                 y1 - y0,
-                _hatch_for_index(branch[node]),
+                hatches[branch[node] % len(hatches)],
                 color,
                 theme.background,
                 theme.scale,
@@ -128,6 +130,7 @@ def _draw_treemap_node[
                 ids,
                 branch,
                 palette,
+                hatches,
                 theme,
                 tooltips_on,
                 sc,
@@ -146,6 +149,7 @@ def _draw_treemap_node[
                 ids,
                 branch,
                 palette,
+                hatches,
                 theme,
                 tooltips_on,
                 sc,
@@ -227,7 +231,8 @@ def _render_treemap[
     var plot_x1 = ox1 - sc.margin_right - legend.right
     var plot_y1 = oy1 - sc.margin_bottom - legend.bottom
 
-    var palette = categorical_palette_for(theme)
+    var palette = _fill_palette(settings, legend_labels)
+    var hatches = _fill_hatches(settings, legend_labels)
     # Only leaves are titled; an inner node is covered by its children.
     var leaves = 0
     for kids in idx.children:
@@ -245,6 +250,7 @@ def _render_treemap[
         hierarchy.ids,
         branch,
         palette,
+        hatches,
         theme,
         settings.tooltips_on(leaves),
         sc,
@@ -264,7 +270,7 @@ def _render_treemap[
             plot_y1,
             theme,
             cache=cache,
-            hatched=theme.fill_pattern_by_category,
+            hatches=hatches,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)
