@@ -32,6 +32,15 @@ Check contrast in the final destination and use `high_contrast()` or
 colors, but color alone is still insufficient. For categorical series, combine
 shape, position, labels, or line patterns with color. See the [named palettes](../../dataviz/core/palettes/).
 
+Filled shapes have no marker or dash to fall back on, so
+`Theme(fill_pattern_by_category=True)` draws a pattern over each category's
+fill: pie and donut slices, stacked and grouped bars, funnel steps, streamgraph
+bands, treemap and sunburst branches, marimekko cells, nightingale and polar
+bar wedges, and population pyramid sides. Each category's `HatchStyle` is dealt
+by the same index as its color, legend swatches included, and the first
+category stays solid. The patterns are drawn as ordinary lines and dots, so
+PNG, SVG and PDF output match.
+
 See [SVG accessibility](../../cookbook/svg_accessibility/),
 [High-contrast theme](../../cookbook/high_contrast_theme/), and
 [accessible SVG helpers](../../dataviz/rendering/).

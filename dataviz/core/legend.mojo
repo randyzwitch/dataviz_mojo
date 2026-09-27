@@ -11,6 +11,7 @@ Four kinds: the categorical swatch column (`_draw_legend`, and
 and size ramps, each in a vertical and a horizontal form.
 """
 
+from dataviz.core.hatch import _hatch_for_index, _hatch_rect
 from canvas.color import Color
 from canvas.geometry import round_to_int
 from canvas.gradient import LinearGradient
@@ -265,6 +266,7 @@ def _draw_legend_at[
     shapes: List[PointShape] = List[PointShape](),
     *,
     mut cache: FontCache,
+    hatched: Bool = False,
 ) raises:
     """Draw `labels` on whichever edge `layout` reserved, against a plot
     rect that already has that reserve taken out of it.
@@ -287,6 +289,9 @@ def _draw_legend_at[
         theme: Supplies colors and font.
         shapes: Per-entry `PointShape`s, when the mark draws shapes.
         cache: The render's shared font cache.
+        hatched: Draw each square swatch's `HatchStyle` over it, the
+            pattern its category's fill got (#842). The filled marks
+            pass `theme.fill_pattern_by_category`.
     """
     if not layout.active:
         return
@@ -304,6 +309,7 @@ def _draw_legend_at[
             theme,
             shapes,
             cache=cache,
+            hatched=hatched,
         )
         return
 
@@ -339,6 +345,18 @@ def _draw_legend_at[
             target.fill_rect(
                 x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
             )
+            if hatched:
+                _hatch_rect(
+                    target,
+                    x,
+                    row_y,
+                    sc.legend_swatch_size,
+                    sc.legend_swatch_size,
+                    _hatch_for_index(i),
+                    color,
+                    theme.background,
+                    theme.scale,
+                )
         _extend_text_requests(
             text_requests,
             _label_requests(
@@ -370,6 +388,7 @@ def _draw_legend[
     shapes: List[PointShape] = List[PointShape](),
     *,
     mut cache: FontCache,
+    hatched: Bool = False,
 ) raises:
     """A swatch+label legend, one row per entry in `labels`, starting at
     (x, y) and growing downward; shared by every mark with a categorical
@@ -399,6 +418,18 @@ def _draw_legend[
             target.fill_rect(
                 x, row_y, sc.legend_swatch_size, sc.legend_swatch_size, color
             )
+            if hatched:
+                _hatch_rect(
+                    target,
+                    x,
+                    row_y,
+                    sc.legend_swatch_size,
+                    sc.legend_swatch_size,
+                    _hatch_for_index(i),
+                    color,
+                    theme.background,
+                    theme.scale,
+                )
         _extend_text_requests(
             text_requests,
             _label_requests(

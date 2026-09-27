@@ -15,6 +15,7 @@ furniture, and a hairline is crisp only on a pixel center -- unlike the
 marks, whose geometry stays in `Float64`.
 """
 
+from dataviz.core.hatch import HatchStyle, _hatch_rect
 from std.collections import Dict
 from std.math import ceil, cos, pi, sin
 
@@ -242,6 +243,88 @@ struct _Orientation(Copyable, ImplicitlyCopyable, Movable):
         else:
             target.fill_rect(
                 across0, along0, across1 - across0, along1 - along0, color
+            )
+
+    def hatch_band_rect[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        extent: _BaselineRect,
+        band_pos: Int,
+        band_size: Int,
+        style: HatchStyle,
+        fill: Color,
+        theme: Theme,
+    ):
+        """`style` over the rect `fill_band_rect` fills for the same
+        arguments (#842)."""
+        if self.horizontal:
+            _hatch_rect(
+                target,
+                extent.y,
+                band_pos,
+                extent.height,
+                band_size,
+                style,
+                fill,
+                theme.background,
+                theme.scale,
+            )
+        else:
+            _hatch_rect(
+                target,
+                band_pos,
+                extent.y,
+                band_size,
+                extent.height,
+                style,
+                fill,
+                theme.background,
+                theme.scale,
+            )
+
+    def hatch_band_rect[
+        T: DrawTarget
+    ](
+        self,
+        mut target: T,
+        extent: _BaselineRectF,
+        band_pos: Float64,
+        band_size: Float64,
+        style: HatchStyle,
+        fill: Color,
+        theme: Theme,
+    ):
+        """`style` over the snapped rect the `Float64` `fill_band_rect`
+        fills for the same arguments (#842)."""
+        var along0 = snap_to_pixel_edge(extent.y)
+        var along1 = snap_to_pixel_edge(extent.y + extent.height)
+        var across0 = snap_to_pixel_edge(band_pos)
+        var across1 = snap_to_pixel_edge(band_pos + band_size)
+        if self.horizontal:
+            _hatch_rect(
+                target,
+                along0,
+                across0,
+                along1 - along0,
+                across1 - across0,
+                style,
+                fill,
+                theme.background,
+                theme.scale,
+            )
+        else:
+            _hatch_rect(
+                target,
+                across0,
+                along0,
+                across1 - across0,
+                along1 - along0,
+                style,
+                fill,
+                theme.background,
+                theme.scale,
             )
 
     def value_line[

@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index
 from dataviz.marks import GroupedBar
 from dataviz.core.plot_fields import _CategoricalData, _ContinuousData
 from dataviz.core.chart_settings import _ChartSettings
@@ -194,6 +195,7 @@ def _draw_series_legend[
         plot_y1,
         theme,
         cache=cache,
+        hatched=theme.fill_pattern_by_category,
     )
 
 
@@ -306,6 +308,16 @@ def _draw_grouped_bars[
                     sc.scale,
                 )
             orient.fill_band_rect(target, extent, near, far - near, color)
+            if theme.fill_pattern_by_category:
+                orient.hatch_band_rect(
+                    target,
+                    extent,
+                    near,
+                    far - near,
+                    _hatch_for_index(j),
+                    color,
+                    theme,
+                )
             if tooltips_on:
                 target.end_annotated_group()
             if theme.show_data_labels:

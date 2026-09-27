@@ -1,4 +1,5 @@
 from dataviz.chart import Chart
+from dataviz.core.hatch import _hatch_for_index, _hatch_rect
 from dataviz.marks import Marimekko
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.text.font_cache import FontCache
@@ -160,6 +161,18 @@ def _render_marimekko[
                     seg_bottom - seg_top,
                     palette[i % len(palette)],
                 )
+                if theme.fill_pattern_by_category:
+                    _hatch_rect(
+                        target,
+                        col_x0,
+                        seg_top,
+                        col_x1 - col_x0,
+                        seg_bottom - seg_top,
+                        _hatch_for_index(i),
+                        palette[i % len(palette)],
+                        theme.background,
+                        theme.scale,
+                    )
                 if tooltips_on:
                     target.end_annotated_group()
 
@@ -188,6 +201,7 @@ def _render_marimekko[
             plot_y1,
             theme,
             cache=cache,
+            hatched=theme.fill_pattern_by_category,
         )
 
     return _RenderResult(text_requests^, plot_x0, plot_y0, plot_x1, plot_y1)

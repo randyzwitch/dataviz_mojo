@@ -257,6 +257,17 @@ struct Theme(ImplicitlyCopyable, Movable):
     without reliable color: a legend row's shape and color identify the
     same category.
     """
+    var fill_pattern_by_category: Bool
+    """Whether the marks that fill one shape per category or series
+    (`Mark.ARC`, `STACKED_BAR`, `GROUPED_BAR`, `FUNNEL`, `STREAMGRAPH`,
+    `TREEMAP`, `MARIMEKKO`, `NIGHTINGALE`, `POLAR_BAR`,
+    `POPULATION_PYRAMID`, `SUNBURST`) draw a `HatchStyle` pattern over
+    each fill, dealt by the same index as its color, legend swatches
+    included (#842). Defaults to `False`. `shape_by_category`'s
+    counterpart for fills: a grayscale printout or a reader with a
+    color-vision deficiency can still tell the series apart. The first
+    category stays solid.
+    """
     var line_smoothing: Float64
     """How much `Mark.LINE`/`AREA` curves through its data points, via
     a Catmull-Rom-derived spline -- `0.0` (the default) draws plain
@@ -531,6 +542,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         radar_fill_alpha: UInt8 = 90,
         sankey_flow_alpha: UInt8 = 160,
         shape_by_category: Bool = False,
+        fill_pattern_by_category: Bool = False,
         line_smoothing: Float64 = 0.0,
         title_font_size: Float64 = 18.0,
         subtitle_font_size: Float64 = 14.0,
@@ -612,6 +624,7 @@ struct Theme(ImplicitlyCopyable, Movable):
         self.radar_fill_alpha = radar_fill_alpha
         self.sankey_flow_alpha = sankey_flow_alpha
         self.shape_by_category = shape_by_category
+        self.fill_pattern_by_category = fill_pattern_by_category
         self.line_smoothing = line_smoothing
         self.title_font_size = title_font_size
         self.subtitle_font_size = subtitle_font_size
