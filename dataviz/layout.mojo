@@ -73,6 +73,8 @@ from dataviz.core.extent import (
     _log_data_extent,
     _zero_baseline_y_extent,
 )
+from dataviz.core.plot_fields import _DomainOverride
+from dataviz.basic.continuous import _err_domain_data
 
 
 struct GridCell(Copyable, ImplicitlyCopyable, Movable):
@@ -417,6 +419,125 @@ def _measure_alignment_insets(
         inset_bottom[i] = row_bottom[c.row + c.row_span - 1] - own_bottom[i]
 
 
+def _with_shared_x_domain(plots: List[AnyChart]) raises -> List[AnyChart]:
+    """`plots` with every cell's x-domain pinned to one pooled domain,
+    for `shared_x_scale` (#841).
+
+    Continuous cells (`Mark.POINT`/`LINE`/`AREA`/`HISTOGRAM`/
+    `EFFECT_SCATTER`, the marks a shared y-scale takes) pool their x
+    columns, widened for x error bars, into one padded extent: log when
+    every cell is `scale_x_log()`, zero-based when any cell is a
+    horizontal histogram. Each copy then gets that extent as its
+    `scale_x_domain()`, so each cell's own renderer draws it with no
+    knowledge of the grid. Categorical cells must all name the same
+    categories in the same order, which already lines them up; the list
+    comes back unchanged.
+
+    Raises, naming the cell, for a mark with no x domain to share, a mix
+    of categorical and continuous cells, categories that differ, a mix
+    of log and linear or of time and plain x axes, and a cell with its
+    own `scale_x_domain()`, which a shared domain would silently
+    overwrite.
+    """
+    var context = String("shared_x_scale=True")
+    var categorical = len(plots[0].categorical.x) > 0
+    for i in range(len(plots)):
+        if (len(plots[i].categorical.x) > 0) != categorical:
+            raise Error(
+                context
+                + ": cell "
+                + String(i)
+                + " mixes a categorical x axis with cell 0's continuous"
+                " one, or the reverse; a category and a number share no"
+                " domain"
+            )
+    if categorical:
+        for i in range(1, len(plots)):
+            if plots[i].categorical.x != plots[0].categorical.x:
+                raise Error(
+                    context
+                    + ": cell "
+                    + String(i)
+                    + " names different categories from cell 0 -- a"
+                    " shared categorical x needs the same categories in"
+                    " the same order in every cell"
+                )
+        return plots.copy()
+
+    var x_log = plots[0].settings.x_log
+    var x_time = plots[0].settings.x_time
+    var any_horizontal_histogram = False
+    var pooled = List[Float64]()
+    for i in range(len(plots)):
+        var mark = plots[i].id()
+        if not (
+            mark == Mark.POINT
+            or mark == Mark.LINE
+            or mark == Mark.AREA
+            or mark == Mark.HISTOGRAM
+            or mark == Mark.EFFECT_SCATTER
+        ):
+            raise Error(
+                context
+                + ": cell "
+                + String(i)
+                + " is "
+                + mark.name()
+                + "; only Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER"
+                " and categorical cells support a shared x-scale today"
+            )
+        if plots[i].settings.x_domain.has:
+            raise Error(
+                context
+                + ": cell "
+                + String(i)
+                + " sets its own scale_x_domain(), which a shared x-scale"
+                " would overwrite; drop one or the other"
+            )
+        if plots[i].settings.x_log != x_log:
+            raise Error(
+                context
+                + ": cell "
+                + String(i)
+                + " disagrees with cell 0 on scale_x_log(); every cell"
+                " must be log or every cell linear"
+            )
+        if plots[i].settings.x_time != x_time:
+            raise Error(
+                context
+                + ": cell "
+                + String(i)
+                + " disagrees with cell 0 on a time x axis; every cell"
+                " must use encode_time() or none"
+            )
+        if (
+            mark == Mark.HISTOGRAM
+            and plots[i].mark[Histogram]().histogram.horizontal
+        ):
+            any_horizontal_histogram = True
+        for v in _err_domain_data(
+            plots[i].continuous.x,
+            plots[i].y_err.x_symmetric,
+            plots[i].y_err.x_lower,
+            plots[i].y_err.x_upper,
+        ):
+            pooled.append(v)
+    var domain = _log_data_extent(pooled) if x_log else (
+        _zero_baseline_y_extent(
+            pooled
+        ) if any_horizontal_histogram else _data_extent(pooled)
+    )
+    var lo = domain.domain_min
+    var hi = domain.domain_max
+    if x_log:
+        lo = 10.0**lo
+        hi = 10.0**hi
+    var out = plots.copy()
+    for i in range(len(out)):
+        out[i].settings.x_domain = _DomainOverride(lo, hi)
+    return out^
+
+
 def _render_cells_generic[
     T: DrawTarget
 ](
@@ -428,6 +549,7 @@ def _render_cells_generic[
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
     *,
@@ -446,6 +568,13 @@ def _render_cells_generic[
     every cell reads the same two numbers. Only the continuous marks
     support it; `_render_generic` raises per cell for the rest, including
     a log/linear mix, so the error names the cell that disagrees.
+
+    `shared_x_scale` does the same for x (#841), by a different route:
+    it pins every cell's `scale_x_domain()` to the pooled domain on a
+    copy of `plots` (see `_with_shared_x_domain`), which every
+    continuous renderer already honors, so no mark's signature carries
+    it. Categorical cells share their x only when every cell names the
+    same categories in the same order, which they then already do.
 
     `align_axes` is its pixel counterpart (#569). A shared domain puts
     two cells on the same numbers; it does not put them on the same
@@ -480,6 +609,7 @@ def _render_cells_generic[
         row_weights: Relative row heights, empty for equal.
         col_weights: Relative column widths, empty for equal.
         shared_y_scale: One y-domain across every cell.
+        shared_x_scale: One x-domain across every cell; see above.
         align_axes: Give every cell in a column the same left and right
             plot-rect edges, and every cell in a row the same top and
             bottom.
@@ -497,6 +627,23 @@ def _render_cells_generic[
         Error: A bad cell or weight, or anything `_render_generic` raises
             for a cell.
     """
+    if shared_x_scale:
+        var pinned = _with_shared_x_domain(plots)
+        return _render_cells_generic(
+            target,
+            width,
+            height,
+            pinned,
+            cells,
+            row_weights,
+            col_weights,
+            shared_y_scale,
+            False,
+            align_axes,
+            title,
+            cache=cache,
+            fill_cell_backgrounds=fill_cell_backgrounds,
+        )
     var text_requests = List[_TextRequest]()
     if len(plots) == 0:
         return text_requests^
@@ -822,6 +969,8 @@ struct Figure(Copyable, Movable):
     """Relative column widths, empty for equal columns."""
     var shared_y_scale: Bool
     """Give every cell one y-domain."""
+    var shared_x_scale: Bool
+    """Give every cell one x-domain."""
     var align_axes: Bool
     """Share plot-rect edges down each column and across each row."""
     var title: String
@@ -836,6 +985,7 @@ struct Figure(Copyable, Movable):
         var row_weights: List[Float64] = List[Float64](),
         var col_weights: List[Float64] = List[Float64](),
         shared_y_scale: Bool = False,
+        shared_x_scale: Bool = False,
         align_axes: Bool = False,
         title: String = "",
     ):
@@ -851,6 +1001,9 @@ struct Figure(Copyable, Movable):
             col_weights: Relative column widths, empty for equal
                 columns.
             shared_y_scale: Give every cell one y-domain.
+            shared_x_scale: Give every cell one x-domain. The continuous
+                marks pool their x extents; categorical cells must name the
+                same categories in the same order.
             align_axes: Share plot-rect edges, as `render_grid()`.
             title: A figure title above the cells; empty for none.
         """
@@ -861,6 +1014,7 @@ struct Figure(Copyable, Movable):
         self.row_weights = row_weights^
         self.col_weights = col_weights^
         self.shared_y_scale = shared_y_scale
+        self.shared_x_scale = shared_x_scale
         self.align_axes = align_axes
         self.title = title
 
@@ -873,6 +1027,7 @@ def render_grid(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
 ) raises -> Canvas:
@@ -909,6 +1064,9 @@ def render_grid(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         align_axes: Share plot-rect edges down each column and across
             each row, so a cell lines up with its neighbors rather than
             with whatever its own tick labels happened to need (#569).
@@ -953,6 +1111,7 @@ def render_grid(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         cache=cache,
@@ -970,6 +1129,7 @@ def render_grid_svg(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
 ) raises -> SvgCanvas:
@@ -983,6 +1143,9 @@ def render_grid_svg(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         align_axes: Share plot-rect edges, as `render_grid()`.
         title: A figure title above the cells, as `render_grid()`.
 
@@ -1006,6 +1169,7 @@ def render_grid_svg(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         cache=cache,
@@ -1022,6 +1186,7 @@ def render_grid_pdf(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
 ) raises -> PdfCanvas:
@@ -1037,6 +1202,9 @@ def render_grid_pdf(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         align_axes: Share plot-rect edges, as `render_grid()`.
         title: A figure title above the cells, as `render_grid()`.
 
@@ -1059,6 +1227,7 @@ def render_grid_pdf(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         cache=cache,
@@ -1076,6 +1245,7 @@ def save_grid(
     row_weights: List[Float64] = List[Float64](),
     col_weights: List[Float64] = List[Float64](),
     shared_y_scale: Bool = False,
+    shared_x_scale: Bool = False,
     align_axes: Bool = False,
     title: String = "",
     dpi: Float64 = 72.0,
@@ -1097,6 +1267,9 @@ def save_grid(
         row_weights: Relative row heights, empty for equal rows.
         col_weights: Relative column widths, empty for equal columns.
         shared_y_scale: Give every cell one y-domain.
+        shared_x_scale: Give every cell one x-domain. The continuous
+            marks pool their x extents; categorical cells must name the
+            same categories in the same order.
         align_axes: Share plot-rect edges, as `render_grid()`.
         title: A figure title above the cells, as `render_grid()`.
         dpi: Pixels per inch for a raster export, as `save()`'s (#701):
@@ -1123,6 +1296,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                shared_x_scale,
                 align_axes,
                 title,
             )
@@ -1137,6 +1311,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                shared_x_scale,
                 align_axes,
                 title,
                 True,
@@ -1153,6 +1328,7 @@ def save_grid(
                         row_weights,
                         col_weights,
                         shared_y_scale,
+                        shared_x_scale,
                         align_axes,
                         title,
                     ),
@@ -1170,6 +1346,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                shared_x_scale,
                 align_axes,
                 title,
             )
@@ -1184,6 +1361,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                shared_x_scale,
                 align_axes,
                 title,
                 True,
@@ -1198,6 +1376,7 @@ def save_grid(
                 row_weights,
                 col_weights,
                 shared_y_scale,
+                shared_x_scale,
                 align_axes,
                 title,
             )
@@ -1215,6 +1394,7 @@ def save_grid(
             row_weights,
             col_weights,
             shared_y_scale,
+            shared_x_scale,
             align_axes,
             title,
         ) if tight else render_grid(
@@ -1225,6 +1405,7 @@ def save_grid(
             row_weights,
             col_weights,
             shared_y_scale,
+            shared_x_scale,
             align_axes,
             title,
         )
@@ -1245,6 +1426,7 @@ def _draw_grid_figure[
     row_weights: List[Float64],
     col_weights: List[Float64],
     shared_y_scale: Bool,
+    shared_x_scale: Bool,
     align_axes: Bool,
     title: String,
     fill_background: Bool,
@@ -1268,6 +1450,7 @@ def _draw_grid_figure[
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         cache=cache,
@@ -1284,6 +1467,7 @@ def _grid_tight_box(
     row_weights: List[Float64],
     col_weights: List[Float64],
     shared_y_scale: Bool,
+    shared_x_scale: Bool,
     align_axes: Bool,
     title: String,
 ) raises -> Tuple[Int, Int, Int, Int]:
@@ -1300,6 +1484,7 @@ def _grid_tight_box(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         False,
@@ -1315,6 +1500,7 @@ def _render_grid_tight(
     row_weights: List[Float64],
     col_weights: List[Float64],
     shared_y_scale: Bool,
+    shared_x_scale: Bool,
     align_axes: Bool,
     title: String,
 ) raises -> Canvas:
@@ -1328,6 +1514,7 @@ def _render_grid_tight(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
     )
@@ -1352,6 +1539,7 @@ def _render_grid_tight(
         row_weights,
         col_weights,
         shared_y_scale,
+        shared_x_scale,
         align_axes,
         title,
         True,

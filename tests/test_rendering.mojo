@@ -1714,7 +1714,7 @@ def test_a_tight_composite_keeps_all_of_its_ink() raises:
     var tight_l = _render_layers_tight(plots)
     assert_true(_inked(tight_l, bg) >= _inked(full_l, bg), "layers lost ink")
     var full_f = render_facets(plots, 2)
-    var tight_f = _render_facets_tight(plots, 2, False)
+    var tight_f = _render_facets_tight(plots, 2, False, False)
     assert_true(_inked(tight_f, bg) >= _inked(full_f, bg), "facets lost ink")
     var cells = _two_cells()
     var no_weights = List[Float64]()
@@ -1726,6 +1726,7 @@ def test_a_tight_composite_keeps_all_of_its_ink() raises:
         400,
         no_weights,
         no_weights,
+        False,
         False,
         False,
         "A figure title",

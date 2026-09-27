@@ -1100,6 +1100,7 @@ def render(figure: Figure) raises -> Canvas:
         figure.row_weights,
         figure.col_weights,
         figure.shared_y_scale,
+        figure.shared_x_scale,
         figure.align_axes,
         figure.title,
     )
@@ -1126,6 +1127,7 @@ def render_svg(figure: Figure) raises -> SvgCanvas:
         figure.row_weights,
         figure.col_weights,
         figure.shared_y_scale,
+        figure.shared_x_scale,
         figure.align_axes,
         figure.title,
     )
@@ -1152,6 +1154,7 @@ def render_pdf(figure: Figure) raises -> PdfCanvas:
         figure.row_weights,
         figure.col_weights,
         figure.shared_y_scale,
+        figure.shared_x_scale,
         figure.align_axes,
         figure.title,
     )
@@ -1182,6 +1185,7 @@ def save(
         figure.row_weights,
         figure.col_weights,
         figure.shared_y_scale,
+        figure.shared_x_scale,
         figure.align_axes,
         figure.title,
         dpi=dpi,
