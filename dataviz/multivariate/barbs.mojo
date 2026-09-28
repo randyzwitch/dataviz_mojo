@@ -23,7 +23,6 @@ from dataviz.core.array_like import _materialize_scalar_list
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BarbsData(Copyable, Movable):
@@ -539,7 +538,6 @@ def barbs[
 
 
 def _encode_barbs(
-    mark: Mark,
     mut barbs: _BarbsData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -552,10 +550,6 @@ def _encode_barbs(
     every argument; see that method for the contract."""
     # QUIVER is here because `encode_quiver()` delegates to this;
     # both marks read `_barbs`, differing only in the glyph drawn.
-    var _ok_encode_barbs = List[Mark]()
-    _ok_encode_barbs.append(Mark.BARBS)
-    _ok_encode_barbs.append(Mark.QUIVER)
-    _require_mark(mark, "encode_barbs", "mark_barbs()", _ok_encode_barbs^)
     categorical.x = List[String]()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

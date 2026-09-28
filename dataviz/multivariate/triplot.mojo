@@ -35,7 +35,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _TriplotData(Copyable, Movable):
@@ -887,7 +886,6 @@ def tripcolor[
 
 
 def _encode_triplot(
-    mark: Mark,
     mut triplot: _TriplotData,
     x: List[Float64],
     y: List[Float64],
@@ -914,10 +912,6 @@ def _encode_triplot(
             " Pass triangulation=delaunay(x, y), or build a"
             " Triangulation from your own triangle list (#397)"
         )
-    var _ok_encode_triplot = List[Mark]()
-    _ok_encode_triplot.append(Mark.TRIPLOT)
-    _ok_encode_triplot.append(Mark.TRIPCOLOR)
-    _require_mark(mark, "encode_triplot", "mark_triplot()", _ok_encode_triplot^)
     triplot.x = x.copy()
     triplot.y = y.copy()
     triplot.z = z.copy()

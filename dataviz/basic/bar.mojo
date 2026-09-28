@@ -36,7 +36,7 @@ from dataviz.core.validate import _validate_categorical_encoding
 from dataviz.categorical.gantt import _draw_horizontal_categorical_axis_frame
 from dataviz.core.theme import Theme
 from std.collections import Dict
-from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.mark import Mark
 from dataviz.binned.histogram import BinRule, _bin_histogram
 
 
@@ -677,7 +677,6 @@ def bar[
 
 
 def _encode_categorical(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut error_bars: _ErrorBarData,
@@ -690,21 +689,6 @@ def _encode_categorical(
 ) raises:
     """`Plot.encode_categorical()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_categorical = List[Mark]()
-    _ok_encode_categorical.append(Mark.BAR)
-    _ok_encode_categorical.append(Mark.LOLLIPOP)
-    _ok_encode_categorical.append(Mark.POINTPLOT)
-    _ok_encode_categorical.append(Mark.ARC)
-    _ok_encode_categorical.append(Mark.FUNNEL)
-    _ok_encode_categorical.append(Mark.NIGHTINGALE)
-    _ok_encode_categorical.append(Mark.POLAR_BAR)
-    _ok_encode_categorical.append(Mark.RADIALBAR)
-    _require_mark(
-        mark,
-        "encode_categorical",
-        "mark_bar()",
-        _ok_encode_categorical^,
-    )
     var first_position = Dict[String, Int]()
     for i in range(len(x)):
         var category = x[i]
@@ -728,7 +712,6 @@ def _encode_categorical(
 
 
 def _encode_time_bars(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut error_bars: _ErrorBarData,
@@ -741,7 +724,6 @@ def _encode_time_bars(
 ) raises:
     """`Plot.encode_time_bars()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_time_bars", "mark_bar()", Mark.BAR)
     if settings.horizontal:
         raise Error(
             "Plot.encode_time_bars(): horizontal bars cannot use a time x-axis"
@@ -763,7 +745,6 @@ def _encode_time_bars(
 
 
 def _encode_binned_categories(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     data: List[Float64],
@@ -771,7 +752,6 @@ def _encode_binned_categories(
 ) raises:
     """`Plot.encode_binned_categories()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_binned_categories", "mark_bar()", Mark.BAR)
     var binned = _bin_histogram(data, bins)
     categorical.x = binned.labels.copy()
     continuous.x = List[Float64]()
@@ -779,7 +759,6 @@ def _encode_binned_categories(
 
 
 def _encode_binned_categories(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     data: List[Float64],
@@ -787,7 +766,6 @@ def _encode_binned_categories(
 ) raises:
     """`Plot.encode_binned_categories()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_binned_categories", "mark_bar()", Mark.BAR)
     var binned = _bin_histogram(data, rule)
     categorical.x = binned.labels.copy()
     continuous.x = List[Float64]()

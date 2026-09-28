@@ -37,7 +37,6 @@ from dataviz.core.scale import (
     _label_decimals,
 )
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _WaterfallData(Copyable, Movable):
@@ -563,7 +562,6 @@ def waterfall[
 
 
 def _encode_waterfall(
-    mark: Mark,
     mut waterfall: _WaterfallData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -573,7 +571,6 @@ def _encode_waterfall(
 ) raises:
     """`Plot.encode_waterfall()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_waterfall", "mark_waterfall()", Mark.WATERFALL)
     categorical.x = categories.copy()
     continuous.x = List[Float64]()
     continuous.y = deltas.copy()

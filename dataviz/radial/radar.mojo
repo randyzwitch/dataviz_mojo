@@ -30,7 +30,6 @@ from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.core.validate import _require_non_empty
 from dataviz.radial.polar import _polar_point
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _RadarData(Copyable, Movable):
@@ -489,7 +488,6 @@ def radar[
 
 
 def _encode_radar(
-    mark: Mark,
     mut radar: _RadarData,
     indicators: List[String],
     max_values: List[Float64],
@@ -498,7 +496,6 @@ def _encode_radar(
 ) raises:
     """`Plot.encode_radar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_radar", "mark_radar()", Mark.RADAR)
     if len(indicators) != len(max_values):
         raise Error(
             "Plot.encode_radar(): indicators and max_values must have the"

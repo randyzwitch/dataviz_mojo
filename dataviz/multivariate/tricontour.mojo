@@ -23,7 +23,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _TriContourData(Copyable, Movable):
@@ -967,7 +966,6 @@ def tricontour[
 
 
 def _encode_tricontour(
-    mark: Mark,
     mut tricontour: _TriContourData,
     x: List[Float64],
     y: List[Float64],
@@ -976,15 +974,6 @@ def _encode_tricontour(
 ) raises:
     """`Plot.encode_tricontour()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_tricontour = List[Mark]()
-    _ok_encode_tricontour.append(Mark.TRICONTOUR)
-    _ok_encode_tricontour.append(Mark.TRICONTOURF)
-    _require_mark(
-        mark,
-        "encode_tricontour",
-        "mark_tricontour()",
-        _ok_encode_tricontour^,
-    )
     tricontour.x = x.copy()
     tricontour.y = y.copy()
     tricontour.z = z.copy()

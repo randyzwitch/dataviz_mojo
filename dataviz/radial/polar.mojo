@@ -30,7 +30,6 @@ from dataviz.core.text import _Scaled, _TextRequest
 from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
-from dataviz.core.mark import _require_mark
 
 
 struct _PolarData(Copyable, Movable):
@@ -644,14 +643,12 @@ def polar[
 
 
 def _encode_polar(
-    mark: Mark,
     mut polar: _PolarData,
     angle: List[Float64],
     radius: List[Float64],
 ) raises:
     """`Plot.encode_polar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_polar", "mark_polar()", Mark.POLAR)
     polar.angle = angle.copy()
     polar.radius = radius.copy()
     polar.series_names = List[String]()
@@ -659,7 +656,6 @@ def _encode_polar(
 
 
 def _encode_polar_series(
-    mark: Mark,
     mut polar: _PolarData,
     angle: List[Float64],
     series_names: List[String],
@@ -667,7 +663,6 @@ def _encode_polar_series(
 ) raises:
     """`Plot.encode_polar_series()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_polar_series", "mark_polar()", Mark.POLAR)
     polar.angle = angle.copy()
     polar.radius = List[Float64]()
     polar.series_names = series_names.copy()

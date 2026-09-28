@@ -39,7 +39,6 @@ from dataviz.core.frame import _push_plot_clip
 from dataviz.core.scale import _format_fixed, _label_decimals, _min_max
 from dataviz.core.step_style import StepStyle
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct HistStat(Copyable, ImplicitlyCopyable, Movable):
@@ -2122,7 +2121,6 @@ def histogram[
 
 
 def _encode_histogram_bins(
-    mark: Mark,
     mut histogram: _HistogramData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -2130,12 +2128,6 @@ def _encode_histogram_bins(
 ) raises:
     """`Plot.encode_histogram_bins()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        mark,
-        "encode_histogram_bins",
-        "mark_histogram()",
-        Mark.HISTOGRAM,
-    )
     categorical.x = List[String]()
     if histogram.horizontal:
         continuous.x = bins.step_y()

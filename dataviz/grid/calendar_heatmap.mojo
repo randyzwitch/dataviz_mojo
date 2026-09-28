@@ -26,7 +26,6 @@ from dataviz.core.legend import (
 from dataviz.core.scale import _min_max
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _CalendarData(Copyable, Movable):
@@ -522,7 +521,6 @@ def calendar_heatmap[
 
 
 def _encode_calendar(
-    mark: Mark,
     mut calendar: _CalendarData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -531,12 +529,6 @@ def _encode_calendar(
 ) raises:
     """`Plot.encode_calendar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        mark,
-        "encode_calendar",
-        "mark_calendar_heatmap()",
-        Mark.CALENDAR_HEATMAP,
-    )
     categorical.x = List[String]()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

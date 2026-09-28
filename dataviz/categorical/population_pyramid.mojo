@@ -23,7 +23,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.tooltip_labels import _series_tooltip_label
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _PyramidData(Copyable, Movable):
@@ -430,7 +429,6 @@ def population_pyramid[
 
 
 def _encode_population_pyramid(
-    mark: Mark,
     mut pyramid: _PyramidData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -442,12 +440,6 @@ def _encode_population_pyramid(
 ) raises:
     """`Plot.encode_population_pyramid()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        mark,
-        "encode_population_pyramid",
-        "mark_population_pyramid()",
-        Mark.POPULATION_PYRAMID,
-    )
     categorical.x = categories.copy()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

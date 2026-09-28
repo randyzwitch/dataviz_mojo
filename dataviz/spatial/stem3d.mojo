@@ -55,7 +55,6 @@ from dataviz.spatial.scatter3d import (
     _validate_xyz,
     _Xyz,
 )
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Vectors3D(Copyable, Movable):
@@ -980,7 +979,6 @@ def fill_between3d[
 
 
 def _encode_vectors3d(
-    mark: Mark,
     mut vectors3d: _Vectors3D,
     x: List[Float64],
     y: List[Float64],
@@ -991,14 +989,6 @@ def _encode_vectors3d(
 ) raises:
     """`Plot.encode_vectors3d()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_vectors3d = List[Mark]()
-    _ok_encode_vectors3d.append(Mark.QUIVER3D)
-    _require_mark(
-        mark,
-        "encode_vectors3d",
-        "mark_quiver3d()",
-        _ok_encode_vectors3d^,
-    )
     vectors3d.x = x.copy()
     vectors3d.y = y.copy()
     vectors3d.z = z.copy()
@@ -1008,7 +998,6 @@ def _encode_vectors3d(
 
 
 def _encode_ribbon3d(
-    mark: Mark,
     mut ribbon3d: _Ribbon3D,
     x1: List[Float64],
     y1: List[Float64],
@@ -1019,14 +1008,6 @@ def _encode_ribbon3d(
 ) raises:
     """`Plot.encode_ribbon3d()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_ribbon3d = List[Mark]()
-    _ok_encode_ribbon3d.append(Mark.FILL_BETWEEN3D)
-    _require_mark(
-        mark,
-        "encode_ribbon3d",
-        "mark_fill_between3d()",
-        _ok_encode_ribbon3d^,
-    )
     ribbon3d.x1 = x1.copy()
     ribbon3d.y1 = y1.copy()
     ribbon3d.z1 = z1.copy()

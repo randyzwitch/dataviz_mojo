@@ -47,7 +47,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.tooltip_labels import _xyz_tooltip_label
 from dataviz.core.theme import Theme
 from canvas.text.render import TextAlign
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Xyz(Copyable, Movable):
@@ -609,7 +608,6 @@ def plot3d[
 
 
 def _encode_xyz(
-    mark: Mark,
     mut xyz: _Xyz,
     x: List[Float64],
     y: List[Float64],
@@ -617,12 +615,6 @@ def _encode_xyz(
 ) raises:
     """`Plot.encode_xyz()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_xyz = List[Mark]()
-    _ok_encode_xyz.append(Mark.SCATTER3D)
-    _ok_encode_xyz.append(Mark.PLOT3D)
-    _ok_encode_xyz.append(Mark.TRISURF3D)
-    _ok_encode_xyz.append(Mark.STEM3D)
-    _require_mark(mark, "encode_xyz", "mark_scatter3d()", _ok_encode_xyz^)
     xyz.x = x.copy()
     xyz.y = y.copy()
     xyz.z = z.copy()

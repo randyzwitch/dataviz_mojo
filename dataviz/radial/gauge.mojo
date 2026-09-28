@@ -19,7 +19,6 @@ from dataviz.core.text import _Scaled, _TextRequest
 from dataviz.radial.polar import _polar_point
 from dataviz.core.scale import _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _GaugeData(Copyable, Movable):
@@ -365,7 +364,6 @@ def gauge(
 
 
 def _encode_gauge(
-    mark: Mark,
     mut gauge: _GaugeData,
     value: Float64,
     min_value: Float64,
@@ -375,7 +373,6 @@ def _encode_gauge(
 ) raises:
     """`Plot.encode_gauge()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_gauge", "mark_gauge()", Mark.GAUGE)
     gauge.value = value
     gauge.min_value = min_value
     gauge.max_value = max_value

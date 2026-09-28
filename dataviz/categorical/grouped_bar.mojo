@@ -32,7 +32,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.extent import _zero_baseline_y_extent
 from dataviz.core.scale import LinearScale, _format_tick, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import _require_mark
 
 
 struct _GroupedBarData(Copyable, Movable):
@@ -677,7 +676,6 @@ def grouped_bar[
 
 
 def _encode_grouped_bar(
-    mark: Mark,
     mut grouped_bar: _GroupedBarData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -688,17 +686,6 @@ def _encode_grouped_bar(
 ) raises:
     """`Plot.encode_grouped_bar()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_grouped_bar = List[Mark]()
-    _ok_encode_grouped_bar.append(Mark.GROUPED_BAR)
-    _ok_encode_grouped_bar.append(Mark.STACKED_BAR)
-    _ok_encode_grouped_bar.append(Mark.BUMP)
-    _ok_encode_grouped_bar.append(Mark.STREAMGRAPH)
-    _require_mark(
-        mark,
-        "encode_grouped_bar",
-        "mark_grouped_bar()",
-        _ok_encode_grouped_bar^,
-    )
     categorical.x = categories.copy()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()
