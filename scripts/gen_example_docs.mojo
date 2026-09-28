@@ -31,8 +31,84 @@ A Mojo script rather than Python, using `.strip()`/`.startswith()`/
 from std.collections import Dict
 from std.os import listdir, makedirs
 
+from dataviz.core.capabilities import _Capabilities
 from dataviz.core.mark import Mark
-from dataviz.marks import _capabilities_of
+from dataviz.mark_type import MarkType, _capabilities_of_type
+from dataviz.marks import (
+    Arc,
+    ArcDiagram,
+    Area,
+    Bar,
+    Bar3d,
+    Barbs,
+    Beeswarm,
+    Box,
+    Boxenplot,
+    Bullet,
+    Bump,
+    CalendarHeatmap,
+    Candlestick,
+    Chord,
+    Contour,
+    Contourf,
+    Corrplot,
+    DendrogramMark,
+    Ecdf,
+    EffectScatter,
+    Eventplot,
+    FillBetween3d,
+    Funnel,
+    Gantt,
+    Gauge,
+    Graph,
+    GroupedBar,
+    Heatmap,
+    Hexbin,
+    Hist2d,
+    Histogram,
+    Imshow,
+    Kde,
+    Line,
+    Lollipop,
+    Marimekko,
+    Nightingale,
+    Parallel,
+    Pcolormesh,
+    Plot3d,
+    Point,
+    Pointplot,
+    Polar,
+    PolarBar,
+    PopulationPyramid,
+    Punchcard,
+    Quiver,
+    Quiver3d,
+    Radar,
+    Radialbar,
+    Ridgeline,
+    Rug,
+    Sankey,
+    Scatter3d,
+    SingleAxis,
+    SpanChart,
+    StackedBar,
+    Stem3d,
+    Streamgraph,
+    Streamplot,
+    Sunburst,
+    Surface3d,
+    Tree,
+    Treemap,
+    Tricontour,
+    Tricontourf,
+    Tripcolor,
+    Triplot,
+    Trisurf3d,
+    Violin,
+    Voxels,
+    Waterfall,
+    Wire3d,
+)
 
 from _example_docstrings import (
     ExamplePage,
@@ -388,7 +464,136 @@ def _categories() -> List[Category]:
     return cats^
 
 
-def _feature_support_page() -> String:
+def _append_capabilities[
+    M: MarkType
+](mut out: List[_Capabilities], mark: M) raises:
+    """Append `M`'s constants as row `len(out)`, raising unless `M` is
+    the mark with that id, so a list out of order cannot put one mark's
+    flags on another's row."""
+    var expected = Mark(len(out))
+    if not (M.id == expected):
+        raise Error(
+            "_every_mark_capabilities(): position "
+            + String(len(out))
+            + " holds "
+            + M.id.name()
+            + ", expected "
+            + expected.name()
+        )
+    out.append(_capabilities_of_type[M]())
+
+
+def _mark_capabilities[
+    *Ms: MarkType
+](*marks: *Ms) raises -> List[_Capabilities]:
+    """Each mark type's constants, in the order given."""
+    var out = List[_Capabilities]()
+    comptime for i in range(marks.__len__()):
+        _append_capabilities(out, marks[i])
+    return out^
+
+
+def _every_mark_capabilities() raises -> List[_Capabilities]:
+    """Every mark type's `supports_*` constants, indexed by its `Mark`
+    id: row `i` is `Mark(i)`.
+
+    The list of types is the one place this page names them. It cannot
+    drift silently: `_append_capabilities` refuses a type out of id
+    order, and a list shorter than `Mark.COUNT` raises here naming the
+    first mark it is missing (longer, and `Mark.COUNT` is behind).
+    """
+    var out = _mark_capabilities(
+        Point(),
+        Line(),
+        Bar(),
+        Area(),
+        Arc(),
+        Lollipop(),
+        Waterfall(),
+        Box(),
+        Candlestick(),
+        Bullet(),
+        Gantt(),
+        GroupedBar(),
+        StackedBar(),
+        PopulationPyramid(),
+        Heatmap(),
+        Chord(),
+        SingleAxis(),
+        EffectScatter(),
+        Funnel(),
+        Bump(),
+        Streamgraph(),
+        Beeswarm(),
+        Violin(),
+        Ridgeline(),
+        Nightingale(),
+        PolarBar(),
+        Polar(),
+        Radar(),
+        Gauge(),
+        Parallel(),
+        SpanChart(),
+        CalendarHeatmap(),
+        Corrplot(),
+        Punchcard(),
+        Marimekko(),
+        Sunburst(),
+        Tree(),
+        Treemap(),
+        ArcDiagram(),
+        Graph(),
+        Sankey(),
+        Radialbar(),
+        Barbs(),
+        Contour(),
+        Contourf(),
+        Tricontour(),
+        Tricontourf(),
+        Kde(),
+        Rug(),
+        Triplot(),
+        Tripcolor(),
+        Ecdf(),
+        Imshow(),
+        Pcolormesh(),
+        Eventplot(),
+        Pointplot(),
+        Boxenplot(),
+        Hist2d(),
+        Hexbin(),
+        Quiver(),
+        Histogram(),
+        Streamplot(),
+        DendrogramMark(),
+        Scatter3d(),
+        Plot3d(),
+        Surface3d(),
+        Wire3d(),
+        Trisurf3d(),
+        Bar3d(),
+        Voxels(),
+        Stem3d(),
+        Quiver3d(),
+        FillBetween3d(),
+    )
+    if len(out) < Mark.COUNT:
+        raise Error(
+            "_every_mark_capabilities(): no type for "
+            + Mark(len(out)).name()
+            + "; add it to the list"
+        )
+    if len(out) > Mark.COUNT:
+        raise Error(
+            "_every_mark_capabilities(): lists "
+            + String(len(out))
+            + " marks but Mark.COUNT is "
+            + String(Mark.COUNT)
+        )
+    return out^
+
+
+def _feature_support_page() raises -> String:
     """The per-mark feature-support matrix: one row per mark, one column
     per `MarkType.supports_*` constant (#213, #829). Generated from the
     constants so it cannot drift from the code;
@@ -467,9 +672,10 @@ def _feature_support_page() -> String:
         rule += " :---: |"
     out.append(header)
     out.append(rule)
+    var every = _every_mark_capabilities()
     for value in range(Mark.COUNT):
         var mark = Mark(value)
-        var caps = _capabilities_of(mark)
+        var caps = every[value]
         var flags: List[Bool] = [
             caps.tooltips,
             caps.data_labels,
@@ -492,8 +698,7 @@ def _feature_support_page() -> String:
         out.append("- " + labels[i] + ": " + summaries[i])
     out.append("")
     out.append(
-        "The same table from code: each mark type's `supports_*` constants,"
-        " or `_capabilities_of(mark)` for a runtime `Mark`."
+        "The same table from code: each mark type's `supports_*` constants."
     )
     out.append("")
     return "\n".join(out)
