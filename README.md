@@ -17,6 +17,14 @@ the early design history, up to v0.11.0.
 ```toml
 [workspace]
 preview = ["pixi-build"]  # git-source pixi dependencies are still a preview feature
+# Mojo 1.2 is only on the nightly channel so far, and dataviz_mojo pins
+# 1.2.0.dev2026092105. The cutoff keeps its source dependencies building
+# with that same compiler rather than a newer nightly.
+channels = [
+    { channel = "https://conda.modular.com/max-nightly", exclude-newer = "2026-09-21T12:00:00Z" },
+    "https://conda.modular.com/max",
+    "conda-forge",
+]
 
 [dependencies]
 dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.13.0" }

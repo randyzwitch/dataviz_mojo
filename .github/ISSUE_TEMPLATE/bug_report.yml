@@ -53,7 +53,7 @@ body:
     attributes:
       label: Mojo version
       description: The output of `pixi run mojo --version`.
-      placeholder: Mojo 1.1.0 (8189361e)
+      placeholder: Mojo 1.2.0.dev2026092105 (e9569894)
     validations:
       required: true
   - type: input
