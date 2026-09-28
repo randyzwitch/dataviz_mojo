@@ -33,7 +33,6 @@ from dataviz.core.frame import _draw_continuous_axis_frame
 from dataviz.core.scale import LinearScale
 from dataviz.core.text import _Scaled
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _HexbinData(Copyable, Movable):
@@ -695,7 +694,6 @@ def hexbin[
 
 
 def _encode_hexbin(
-    mark: Mark,
     mut hexbin: _HexbinData,
     x: List[Float64],
     y: List[Float64],
@@ -703,7 +701,6 @@ def _encode_hexbin(
 ) raises:
     """`Plot.encode_hexbin()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_hexbin", "mark_hexbin()", Mark.HEXBIN)
     hexbin.x = x.copy()
     hexbin.y = y.copy()
     hexbin.gridsize = gridsize

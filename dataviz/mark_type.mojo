@@ -3,7 +3,7 @@ id for the tables and messages that still key on it, a renderer over
 the mark's own columns, and every `encode_*()` the package has, each
 with a default body that refuses at compile time. A mark overrides the
 encoders it accepts, so `Chart[M].encode_x()` is a compile error on any
-other `M`, which is what `_require_mark` checked at run time."""
+other `M`."""
 
 from dataviz.core.category_order import CategoryOrder
 from canvas.text.font_cache import FontCache

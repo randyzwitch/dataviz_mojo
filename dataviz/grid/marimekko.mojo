@@ -21,7 +21,6 @@ from dataviz.core.text import _Scaled, _TextRequest
 from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
-from dataviz.core.mark import _require_mark
 
 
 struct _MarimekkoData(Copyable, Movable):
@@ -358,7 +357,6 @@ def marimekko[
 
 
 def _encode_marimekko(
-    mark: Mark,
     mut marimekko: _MarimekkoData,
     categories: List[String],
     subcategories: List[String],
@@ -366,7 +364,6 @@ def _encode_marimekko(
 ) raises:
     """`Plot.encode_marimekko()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_marimekko", "mark_marimekko()", Mark.MARIMEKKO)
     marimekko.categories = categories.copy()
     marimekko.subcategories = subcategories.copy()
     marimekko.values = values.copy()

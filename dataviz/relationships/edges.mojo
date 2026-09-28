@@ -17,7 +17,6 @@ from dataviz.plot import Plot
 from dataviz.core.frame import _categorical_indices
 from dataviz.core.validate import _require_non_empty, _require_non_negative
 from dataviz.core.graph_layout import GraphLayout
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _EdgeData(Copyable, Movable):
@@ -116,7 +115,6 @@ def _validate_edge_encoding(edge_data: _EdgeData, mark_name: String) raises:
 
 
 def _encode_chord(
-    mark: Mark,
     mut edge_data: _EdgeData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -126,12 +124,6 @@ def _encode_chord(
 ) raises:
     """`Plot.encode_chord()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_chord = List[Mark]()
-    _ok_encode_chord.append(Mark.CHORD)
-    _ok_encode_chord.append(Mark.ARC_DIAGRAM)
-    _ok_encode_chord.append(Mark.GRAPH)
-    _ok_encode_chord.append(Mark.SANKEY)
-    _require_mark(mark, "encode_chord", "mark_chord()", _ok_encode_chord^)
     categorical.x = List[String]()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

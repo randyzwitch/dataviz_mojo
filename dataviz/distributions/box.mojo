@@ -26,7 +26,6 @@ from dataviz.core.extent import _data_extent
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _require_non_empty
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BoxData(Copyable, Movable):
@@ -551,7 +550,6 @@ def box[
 
 
 def _encode_boxplot(
-    mark: Mark,
     mut box: _BoxData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -560,7 +558,6 @@ def _encode_boxplot(
 ) raises:
     """`Plot.encode_boxplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_boxplot", "mark_box()", Mark.BOX)
     if len(categories) != len(values):
         raise Error(
             "Plot.encode_boxplot(): categories and values must have"

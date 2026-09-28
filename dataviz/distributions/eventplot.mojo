@@ -42,7 +42,6 @@ from dataviz.core.validate import _require_non_empty
 from dataviz.core.frame_input import _frame_groups
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 def _eventplot_tick_label(row: String, v: Float64) -> String:
@@ -358,7 +357,6 @@ def eventplot(
 
 
 def _encode_eventplot(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut distribution: _DistributionData,
@@ -367,7 +365,6 @@ def _encode_eventplot(
 ) raises:
     """`Plot.encode_eventplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_eventplot", "mark_eventplot()", Mark.EVENTPLOT)
     if len(labels) != len(positions):
         raise Error(
             "Plot.encode_eventplot(): labels and positions must have"

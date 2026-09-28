@@ -29,7 +29,6 @@ from dataviz.core.render_result import _RenderResult
 from dataviz.core.extent import _data_extent
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _BoxenData(Copyable, Movable):
@@ -478,7 +477,6 @@ def boxenplot[
 
 
 def _encode_boxenplot(
-    mark: Mark,
     mut boxen: _BoxenData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -487,7 +485,6 @@ def _encode_boxenplot(
 ) raises:
     """`Plot.encode_boxenplot()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_boxenplot", "mark_boxenplot()", Mark.BOXENPLOT)
     if len(categories) != len(values):
         raise Error(
             "Plot.encode_boxenplot(): categories and values must have"

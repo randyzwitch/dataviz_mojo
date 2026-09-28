@@ -67,7 +67,7 @@ from dataviz.core.annotations import (
 )
 from dataviz.core.chart_settings import _ChartSettings
 from dataframe import DataFrame
-from dataviz.core.mark import Mark, _require_mark
+from dataviz.core.mark import Mark
 from std.memory import Allocation, Layout, Pointer, alloc, dealloc
 from dataviz.core.capabilities import _Capabilities
 from dataviz.mark_type import MarkType, _capabilities_of_type
@@ -3253,12 +3253,6 @@ struct Chart[M: MarkType](ChartLike):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode = List[Mark]()
-        _ok_encode.append(Mark.POINT)
-        _ok_encode.append(Mark.LINE)
-        _ok_encode.append(Mark.AREA)
-        _ok_encode.append(Mark.EFFECT_SCATTER)
-        _require_mark(Self.M.id, "encode", "mark_point()", _ok_encode^)
         return self^.encode(
             _materialize_python_floats(x),
             _materialize_python_floats(y),
@@ -3373,21 +3367,6 @@ struct Chart[M: MarkType](ChartLike):
         Returns:
             Self, for further chaining.
         """
-        var _ok_encode_categorical = List[Mark]()
-        _ok_encode_categorical.append(Mark.BAR)
-        _ok_encode_categorical.append(Mark.LOLLIPOP)
-        _ok_encode_categorical.append(Mark.POINTPLOT)
-        _ok_encode_categorical.append(Mark.ARC)
-        _ok_encode_categorical.append(Mark.FUNNEL)
-        _ok_encode_categorical.append(Mark.NIGHTINGALE)
-        _ok_encode_categorical.append(Mark.POLAR_BAR)
-        _ok_encode_categorical.append(Mark.RADIALBAR)
-        _require_mark(
-            Self.M.id,
-            "encode_categorical",
-            "mark_bar()",
-            _ok_encode_categorical^,
-        )
         return self^.encode_categorical(
             x,
             _materialize_python_floats(y),
@@ -3648,7 +3627,9 @@ struct Chart[M: MarkType](ChartLike):
         Returns:
             Self, for further chaining.
         """
-        _require_mark(Self.M.id, "encode_quiver", "mark_quiver()", Mark.QUIVER)
+        comptime assert (
+            Self.M.id == Mark.QUIVER
+        ), "encode_quiver(): not an encoder of this mark"
         return self^.encode_barbs(x, y, u, v)
 
     def encode_quiver[
@@ -3886,7 +3867,9 @@ struct Chart[M: MarkType](ChartLike):
         Raises:
             Error: `values` is empty.
         """
-        _require_mark(Self.M.id, "encode_ecdf", "mark_ecdf()", Mark.ECDF)
+        comptime assert (
+            Self.M.id == Mark.ECDF
+        ), "encode_ecdf(): not an encoder of this mark"
         _require_non_empty(len(values), "Plot.encode_ecdf()")
         return self^.encode_kde(values)
 

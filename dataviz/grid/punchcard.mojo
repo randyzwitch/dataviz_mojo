@@ -18,7 +18,6 @@ from dataviz.core.tooltip_labels import _cell_tooltip_label
 from dataviz.core.frame import _categorical_indices
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
-from dataviz.core.mark import _require_mark
 
 
 struct _PunchcardData(Copyable, Movable):
@@ -285,7 +284,6 @@ def punchcard[
 
 
 def _encode_punchcard(
-    mark: Mark,
     mut punchcard: _PunchcardData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -295,7 +293,6 @@ def _encode_punchcard(
 ) raises:
     """`Plot.encode_punchcard()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_punchcard", "mark_punchcard()", Mark.PUNCHCARD)
     categorical.x = List[String]()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

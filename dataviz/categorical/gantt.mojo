@@ -32,7 +32,6 @@ from dataviz.core.extent import _data_extent
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _GanttData(Copyable, Movable):
@@ -586,7 +585,6 @@ def gantt(
 
 
 def _encode_gantt(
-    mark: Mark,
     mut gantt: _GanttData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -597,10 +595,6 @@ def _encode_gantt(
 ) raises:
     """`Plot.encode_gantt()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_gantt = List[Mark]()
-    _ok_encode_gantt.append(Mark.GANTT)
-    _ok_encode_gantt.append(Mark.SPAN_CHART)
-    _require_mark(mark, "encode_gantt", "mark_gantt()", _ok_encode_gantt^)
     categorical.x = categories.copy()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()
@@ -610,7 +604,6 @@ def _encode_gantt(
 
 
 def _encode_gantt_time(
-    mark: Mark,
     mut gantt: _GanttData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -621,7 +614,6 @@ def _encode_gantt_time(
 ) raises:
     """`Plot.encode_gantt_time()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_gantt_time", "mark_gantt()", Mark.GANTT)
     var start_seconds = List[Float64](capacity=len(start))
     var end_seconds = List[Float64](capacity=len(end))
     for value in start:

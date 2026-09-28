@@ -20,7 +20,6 @@ from dataviz.core.legend import _LegendLayout, _draw_legend_at, _legend_layout
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import _min_max
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _ParallelData(Copyable, Movable):
@@ -341,7 +340,6 @@ def parallel(
 
 
 def _encode_parallel(
-    mark: Mark,
     mut parallel: _ParallelData,
     dims: List[String],
     row_names: List[String],
@@ -349,7 +347,6 @@ def _encode_parallel(
 ) raises:
     """`Plot.encode_parallel()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_parallel", "mark_parallel()", Mark.PARALLEL)
     if len(row_names) != len(data):
         raise Error(
             "Plot.encode_parallel(): row_names and data must have the same"

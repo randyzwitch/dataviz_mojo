@@ -37,7 +37,6 @@ from dataviz.core.scale import (
 )
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _require_non_empty
-from dataviz.core.mark import Mark, _require_mark
 
 
 def _draw_violin_silhouettes[
@@ -449,7 +448,6 @@ def violin[
 
 
 def _encode_distribution(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut distribution: _DistributionData,
@@ -458,16 +456,6 @@ def _encode_distribution(
 ) raises:
     """`Plot.encode_distribution()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_distribution = List[Mark]()
-    _ok_encode_distribution.append(Mark.VIOLIN)
-    _ok_encode_distribution.append(Mark.BEESWARM)
-    _ok_encode_distribution.append(Mark.RIDGELINE)
-    _require_mark(
-        mark,
-        "encode_distribution",
-        "mark_violin()",
-        _ok_encode_distribution^,
-    )
     if len(categories) != len(values):
         raise Error(
             "Plot.encode_distribution(): categories and values must"

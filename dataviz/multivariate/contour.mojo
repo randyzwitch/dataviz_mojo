@@ -36,7 +36,6 @@ from dataviz.core.scale import _format_tick
 from dataviz.core.text import _Scaled
 from dataviz.core.scale import LinearScale
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _ContourData(Copyable, Movable):
@@ -1526,7 +1525,6 @@ def contourf[
 
 
 def _encode_contour(
-    mark: Mark,
     mut contour: _ContourData,
     z: List[List[Float64]],
     levels: List[Float64],
@@ -1535,10 +1533,6 @@ def _encode_contour(
 ) raises:
     """`Plot.encode_contour()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_contour = List[Mark]()
-    _ok_encode_contour.append(Mark.CONTOUR)
-    _ok_encode_contour.append(Mark.CONTOURF)
-    _require_mark(mark, "encode_contour", "mark_contour()", _ok_encode_contour^)
     contour.z = z.copy()
     contour.levels = levels.copy()
     contour.x = x.copy()

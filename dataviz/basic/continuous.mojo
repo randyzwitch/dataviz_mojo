@@ -71,7 +71,6 @@ from dataviz.core.text import _Scaled, _TextRequest, _text_advance
 from dataviz.core.theme import Theme
 from dataviz.core.validate import _check_line_smoothing, _check_step_smoothing
 from std.collections import Dict
-from dataviz.core.mark import _require_mark
 
 
 def _is_missing(value: Float64) -> Bool:
@@ -1748,7 +1747,6 @@ def area(
 
 
 def _encode(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut channels: _ChannelData,
@@ -1770,12 +1768,6 @@ def _encode(
 ) raises:
     """`Plot.encode()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode = List[Mark]()
-    _ok_encode.append(Mark.POINT)
-    _ok_encode.append(Mark.LINE)
-    _ok_encode.append(Mark.AREA)
-    _ok_encode.append(Mark.EFFECT_SCATTER)
-    _require_mark(mark, "encode", "mark_point()", _ok_encode^)
     continuous.x = x.copy()
     continuous.y = y.copy()
     categorical.x = List[String]()
@@ -1794,7 +1786,6 @@ def _encode(
 
 
 def _encode_time(
-    mark: Mark,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
     mut settings: _ChartSettings,
@@ -1803,12 +1794,6 @@ def _encode_time(
 ) raises:
     """`Plot.encode_time()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_time = List[Mark]()
-    _ok_encode_time.append(Mark.POINT)
-    _ok_encode_time.append(Mark.LINE)
-    _ok_encode_time.append(Mark.AREA)
-    _ok_encode_time.append(Mark.EFFECT_SCATTER)
-    _require_mark(mark, "encode_time", "mark_line()", _ok_encode_time^)
     var seconds = List[Float64](capacity=len(x))
     for i in range(len(x)):
         seconds.append(x[i].timestamp())
@@ -1903,7 +1888,6 @@ def _encode_frame_continuous(
         )
     var read = _frame_channels(settings, df, x, y, color, size, labels)
     _encode(
-        mark,
         continuous,
         categorical,
         channels,
@@ -1959,7 +1943,6 @@ def _encode_frame_categorical(
             + '") takes no size= or labels= channel'
         )
     _encode_categorical(
-        mark,
         continuous,
         categorical,
         error_bars,

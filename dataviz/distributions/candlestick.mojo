@@ -34,7 +34,6 @@ from dataviz.core.legend import _LegendLayout
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.scale import LinearScale, _format_fixed, _label_decimals
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _CandleData(Copyable, Movable):
@@ -555,7 +554,6 @@ def candlestick[
 
 
 def _encode_candlestick(
-    mark: Mark,
     mut candle: _CandleData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -568,12 +566,6 @@ def _encode_candlestick(
 ) raises:
     """`Plot.encode_candlestick()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        mark,
-        "encode_candlestick",
-        "mark_candlestick()",
-        Mark.CANDLESTICK,
-    )
     categorical.x = categories.copy()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()
@@ -585,7 +577,6 @@ def _encode_candlestick(
 
 
 def _encode_candlestick_time(
-    mark: Mark,
     mut candle: _CandleData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -598,12 +589,6 @@ def _encode_candlestick_time(
 ) raises:
     """`Plot.encode_candlestick_time()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(
-        mark,
-        "encode_candlestick_time",
-        "mark_candlestick()",
-        Mark.CANDLESTICK,
-    )
     var seconds = List[Float64](capacity=len(dates))
     var labels = List[String](capacity=len(dates))
     for i in range(len(dates)):

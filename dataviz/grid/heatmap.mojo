@@ -28,7 +28,6 @@ from dataviz.core.legend import (
 from dataviz.core.scale import _min_max
 from dataviz.core.validate import _require_non_empty
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _HeatmapData(Copyable, Movable):
@@ -516,7 +515,6 @@ def heatmap[
 
 
 def _encode_heatmap(
-    mark: Mark,
     mut heatmap: _HeatmapData,
     mut continuous: _ContinuousData,
     mut categorical: _CategoricalData,
@@ -526,7 +524,6 @@ def _encode_heatmap(
 ) raises:
     """`Plot.encode_heatmap()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    _require_mark(mark, "encode_heatmap", "mark_heatmap()", Mark.HEATMAP)
     categorical.x = List[String]()
     continuous.x = List[Float64]()
     continuous.y = List[Float64]()

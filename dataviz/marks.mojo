@@ -320,7 +320,6 @@ struct Point(MarkType):
         x_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode(
-            Self.id,
             self.continuous,
             self.categorical,
             self.channels,
@@ -347,7 +346,7 @@ struct Point(MarkType):
         x: List[Morrow],
         y: List[Float64],
     ) raises:
-        _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
+        _encode_time(self.continuous, self.categorical, settings, x, y)
 
     def encode_frame(
         mut self,
@@ -472,7 +471,6 @@ struct Line(MarkType):
         x_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode(
-            Self.id,
             self.continuous,
             self.categorical,
             self.channels,
@@ -499,7 +497,7 @@ struct Line(MarkType):
         x: List[Morrow],
         y: List[Float64],
     ) raises:
-        _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
+        _encode_time(self.continuous, self.categorical, settings, x, y)
 
     def encode_frame(
         mut self,
@@ -613,7 +611,6 @@ struct Bar(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -635,7 +632,6 @@ struct Bar(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_time_bars(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -653,9 +649,7 @@ struct Bar(MarkType):
         data: List[Float64],
         bins: Int = 10,
     ) raises:
-        _encode_binned_categories(
-            Self.id, self.continuous, self.categorical, data, bins
-        )
+        _encode_binned_categories(self.continuous, self.categorical, data, bins)
 
     def encode_binned_categories(
         mut self,
@@ -663,9 +657,7 @@ struct Bar(MarkType):
         data: List[Float64],
         rule: BinRule,
     ) raises:
-        _encode_binned_categories(
-            Self.id, self.continuous, self.categorical, data, rule
-        )
+        _encode_binned_categories(self.continuous, self.categorical, data, rule)
 
     def encode_frame(
         mut self,
@@ -789,7 +781,6 @@ struct Area(MarkType):
         x_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode(
-            Self.id,
             self.continuous,
             self.categorical,
             self.channels,
@@ -816,7 +807,7 @@ struct Area(MarkType):
         x: List[Morrow],
         y: List[Float64],
     ) raises:
-        _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
+        _encode_time(self.continuous, self.categorical, settings, x, y)
 
     def encode_frame(
         mut self,
@@ -935,7 +926,6 @@ struct Arc(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -1058,7 +1048,6 @@ struct Lollipop(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -1171,7 +1160,6 @@ struct Waterfall(MarkType):
         is_total: List[Bool] = List[Bool](),
     ) raises:
         _encode_waterfall(
-            Self.id,
             self.waterfall,
             self.continuous,
             self.categorical,
@@ -1254,7 +1242,6 @@ struct Box(MarkType):
         values: List[List[Float64]],
     ) raises:
         _encode_boxplot(
-            Self.id,
             self.box,
             self.continuous,
             self.categorical,
@@ -1340,7 +1327,6 @@ struct Candlestick(MarkType):
         close: List[Float64],
     ) raises:
         _encode_candlestick(
-            Self.id,
             self.candle,
             self.continuous,
             self.categorical,
@@ -1362,7 +1348,6 @@ struct Candlestick(MarkType):
         close: List[Float64],
     ) raises:
         _encode_candlestick_time(
-            Self.id,
             self.candle,
             self.continuous,
             self.categorical,
@@ -1451,7 +1436,6 @@ struct Bullet(MarkType):
         ranges: List[List[Float64]],
     ) raises:
         _encode_bullet(
-            Self.id,
             self.bullet,
             self.continuous,
             self.categorical,
@@ -1536,7 +1520,6 @@ struct Gantt(MarkType):
         end: List[Float64],
     ) raises:
         _encode_gantt(
-            Self.id,
             self.gantt,
             self.continuous,
             self.categorical,
@@ -1554,7 +1537,6 @@ struct Gantt(MarkType):
         end: List[Morrow],
     ) raises:
         _encode_gantt_time(
-            Self.id,
             self.gantt,
             self.continuous,
             self.categorical,
@@ -1645,7 +1627,6 @@ struct GroupedBar(MarkType):
         errors: List[List[Float64]] = List[List[Float64]](),
     ) raises:
         _encode_grouped_bar(
-            Self.id,
             self.grouped_bar,
             self.continuous,
             self.categorical,
@@ -1736,7 +1717,6 @@ struct StackedBar(MarkType):
         errors: List[List[Float64]] = List[List[Float64]](),
     ) raises:
         _encode_grouped_bar(
-            Self.id,
             self.grouped_bar,
             self.continuous,
             self.categorical,
@@ -1828,7 +1808,6 @@ struct PopulationPyramid(MarkType):
         right_name: String = "",
     ) raises:
         _encode_population_pyramid(
-            Self.id,
             self.pyramid,
             self.continuous,
             self.categorical,
@@ -1906,7 +1885,6 @@ struct Heatmap(MarkType):
         value: List[Float64],
     ) raises:
         _encode_heatmap(
-            Self.id,
             self.heatmap,
             self.continuous,
             self.categorical,
@@ -1990,7 +1968,6 @@ struct Chord(MarkType):
         values: List[Float64],
     ) raises:
         _encode_chord(
-            Self.id,
             self.edge_data,
             self.continuous,
             self.categorical,
@@ -2080,7 +2057,6 @@ struct SingleAxis(MarkType):
         size: List[Float64] = List[Float64](),
     ) raises:
         _encode_single_axis(
-            Self.id,
             self.continuous,
             self.categorical,
             self.channels,
@@ -2189,7 +2165,6 @@ struct EffectScatter(MarkType):
         x_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode(
-            Self.id,
             self.continuous,
             self.categorical,
             self.channels,
@@ -2216,7 +2191,7 @@ struct EffectScatter(MarkType):
         x: List[Morrow],
         y: List[Float64],
     ) raises:
-        _encode_time(Self.id, self.continuous, self.categorical, settings, x, y)
+        _encode_time(self.continuous, self.categorical, settings, x, y)
 
     def encode_frame(
         mut self,
@@ -2334,7 +2309,6 @@ struct Funnel(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -2447,7 +2421,6 @@ struct Bump(MarkType):
         errors: List[List[Float64]] = List[List[Float64]](),
     ) raises:
         _encode_grouped_bar(
-            Self.id,
             self.grouped_bar,
             self.continuous,
             self.categorical,
@@ -2539,7 +2512,6 @@ struct Streamgraph(MarkType):
         errors: List[List[Float64]] = List[List[Float64]](),
     ) raises:
         _encode_grouped_bar(
-            Self.id,
             self.grouped_bar,
             self.continuous,
             self.categorical,
@@ -2623,7 +2595,6 @@ struct Beeswarm(MarkType):
         values: List[List[Float64]],
     ) raises:
         _encode_distribution(
-            Self.id,
             self.continuous,
             self.categorical,
             self.distribution,
@@ -2706,7 +2677,6 @@ struct Violin(MarkType):
         values: List[List[Float64]],
     ) raises:
         _encode_distribution(
-            Self.id,
             self.continuous,
             self.categorical,
             self.distribution,
@@ -2789,7 +2759,6 @@ struct Ridgeline(MarkType):
         values: List[List[Float64]],
     ) raises:
         _encode_distribution(
-            Self.id,
             self.continuous,
             self.categorical,
             self.distribution,
@@ -2891,7 +2860,6 @@ struct Nightingale(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -3019,7 +2987,6 @@ struct PolarBar(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -3116,7 +3083,7 @@ struct Polar(MarkType):
         angle: List[Float64],
         radius: List[Float64],
     ) raises:
-        _encode_polar(Self.id, self.polar, angle, radius)
+        _encode_polar(self.polar, angle, radius)
 
     def encode_polar_series(
         mut self,
@@ -3125,9 +3092,7 @@ struct Polar(MarkType):
         series_names: List[String],
         series_values: List[List[Float64]],
     ) raises:
-        _encode_polar_series(
-            Self.id, self.polar, angle, series_names, series_values
-        )
+        _encode_polar_series(self.polar, angle, series_names, series_values)
 
 
 struct Radar(MarkType):
@@ -3193,7 +3158,6 @@ struct Radar(MarkType):
         series_values: List[List[Float64]],
     ) raises:
         _encode_radar(
-            Self.id,
             self.radar,
             indicators,
             max_values,
@@ -3266,7 +3230,6 @@ struct Gauge(MarkType):
         band_colors: List[Color] = List[Color](),
     ) raises:
         _encode_gauge(
-            Self.id,
             self.gauge,
             value,
             min_value,
@@ -3337,7 +3300,7 @@ struct Parallel(MarkType):
         row_names: List[String],
         data: List[List[Float64]],
     ) raises:
-        _encode_parallel(Self.id, self.parallel, dims, row_names, data)
+        _encode_parallel(self.parallel, dims, row_names, data)
 
 
 struct SpanChart(MarkType):
@@ -3414,7 +3377,6 @@ struct SpanChart(MarkType):
         end: List[Float64],
     ) raises:
         _encode_gantt(
-            Self.id,
             self.gantt,
             self.continuous,
             self.categorical,
@@ -3491,7 +3453,6 @@ struct CalendarHeatmap(MarkType):
         values: List[Float64],
     ) raises:
         _encode_calendar(
-            Self.id,
             self.calendar,
             self.continuous,
             self.categorical,
@@ -3568,7 +3529,7 @@ struct Corrplot(MarkType):
         variables: List[String],
         matrix: List[List[Float64]],
     ) raises:
-        _encode_corrplot(Self.id, self.corrplot, variables, matrix)
+        _encode_corrplot(self.corrplot, variables, matrix)
 
 
 struct Punchcard(MarkType):
@@ -3637,7 +3598,6 @@ struct Punchcard(MarkType):
         sizes: List[Float64],
     ) raises:
         _encode_punchcard(
-            Self.id,
             self.punchcard,
             self.continuous,
             self.categorical,
@@ -3712,9 +3672,7 @@ struct Marimekko(MarkType):
         subcategories: List[String],
         values: List[List[Float64]],
     ) raises:
-        _encode_marimekko(
-            Self.id, self.marimekko, categories, subcategories, values
-        )
+        _encode_marimekko(self.marimekko, categories, subcategories, values)
 
 
 struct Sunburst(MarkType):
@@ -3782,7 +3740,7 @@ struct Sunburst(MarkType):
         parent_ids: List[String],
         values: List[Float64],
     ) raises:
-        _encode_hierarchy(Self.id, self.hierarchy, ids, parent_ids, values)
+        _encode_hierarchy(self.hierarchy, ids, parent_ids, values)
 
 
 struct Tree(MarkType):
@@ -3846,7 +3804,7 @@ struct Tree(MarkType):
         parent_ids: List[String],
         values: List[Float64],
     ) raises:
-        _encode_hierarchy(Self.id, self.hierarchy, ids, parent_ids, values)
+        _encode_hierarchy(self.hierarchy, ids, parent_ids, values)
 
 
 struct Treemap(MarkType):
@@ -3914,7 +3872,7 @@ struct Treemap(MarkType):
         parent_ids: List[String],
         values: List[Float64],
     ) raises:
-        _encode_hierarchy(Self.id, self.hierarchy, ids, parent_ids, values)
+        _encode_hierarchy(self.hierarchy, ids, parent_ids, values)
 
 
 struct ArcDiagram(MarkType):
@@ -3983,7 +3941,6 @@ struct ArcDiagram(MarkType):
         values: List[Float64],
     ) raises:
         _encode_chord(
-            Self.id,
             self.edge_data,
             self.continuous,
             self.categorical,
@@ -4067,7 +4024,6 @@ struct Graph(MarkType):
         values: List[Float64],
     ) raises:
         _encode_chord(
-            Self.id,
             self.edge_data,
             self.continuous,
             self.categorical,
@@ -4151,7 +4107,6 @@ struct Sankey(MarkType):
         values: List[Float64],
     ) raises:
         _encode_chord(
-            Self.id,
             self.edge_data,
             self.continuous,
             self.categorical,
@@ -4248,7 +4203,6 @@ struct Radialbar(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -4351,9 +4305,7 @@ struct Barbs(MarkType):
         u: List[Float64],
         v: List[Float64],
     ) raises:
-        _encode_barbs(
-            Self.id, self.barbs, self.continuous, self.categorical, x, y, u, v
-        )
+        _encode_barbs(self.barbs, self.continuous, self.categorical, x, y, u, v)
 
 
 struct Contour(MarkType):
@@ -4418,7 +4370,7 @@ struct Contour(MarkType):
         x: List[Float64] = List[Float64](),
         y: List[Float64] = List[Float64](),
     ) raises:
-        _encode_contour(Self.id, self.contour, z, levels, x, y)
+        _encode_contour(self.contour, z, levels, x, y)
 
 
 struct Contourf(MarkType):
@@ -4483,7 +4435,7 @@ struct Contourf(MarkType):
         x: List[Float64] = List[Float64](),
         y: List[Float64] = List[Float64](),
     ) raises:
-        _encode_contour(Self.id, self.contour, z, levels, x, y)
+        _encode_contour(self.contour, z, levels, x, y)
 
 
 struct Tricontour(MarkType):
@@ -4548,7 +4500,7 @@ struct Tricontour(MarkType):
         z: List[Float64],
         levels: List[Float64] = List[Float64](),
     ) raises:
-        _encode_tricontour(Self.id, self.tricontour, x, y, z, levels)
+        _encode_tricontour(self.tricontour, x, y, z, levels)
 
 
 struct Tricontourf(MarkType):
@@ -4613,7 +4565,7 @@ struct Tricontourf(MarkType):
         z: List[Float64],
         levels: List[Float64] = List[Float64](),
     ) raises:
-        _encode_tricontour(Self.id, self.tricontour, x, y, z, levels)
+        _encode_tricontour(self.tricontour, x, y, z, levels)
 
 
 struct Kde(MarkType):
@@ -4675,7 +4627,7 @@ struct Kde(MarkType):
         mut settings: _ChartSettings,
         values: List[Float64],
     ) raises:
-        _encode_kde(Self.id, self.distribution, values)
+        _encode_kde(self.distribution, values)
 
 
 struct Rug(MarkType):
@@ -4745,7 +4697,7 @@ struct Rug(MarkType):
         mut settings: _ChartSettings,
         values: List[Float64],
     ) raises:
-        _encode_kde(Self.id, self.distribution, values)
+        _encode_kde(self.distribution, values)
 
 
 struct Triplot(MarkType):
@@ -4813,7 +4765,7 @@ struct Triplot(MarkType):
         gouraud: Bool = False,
     ) raises:
         _encode_triplot(
-            Self.id, self.triplot, x, y, z, triangulation, facecolors, gouraud
+            self.triplot, x, y, z, triangulation, facecolors, gouraud
         )
 
 
@@ -4882,7 +4834,7 @@ struct Tripcolor(MarkType):
         gouraud: Bool = False,
     ) raises:
         _encode_triplot(
-            Self.id, self.triplot, x, y, z, triangulation, facecolors, gouraud
+            self.triplot, x, y, z, triangulation, facecolors, gouraud
         )
 
 
@@ -4953,7 +4905,7 @@ struct Ecdf(MarkType):
         mut settings: _ChartSettings,
         values: List[Float64],
     ) raises:
-        _encode_kde(Self.id, self.distribution, values)
+        _encode_kde(self.distribution, values)
 
 
 struct Imshow(MarkType):
@@ -5097,7 +5049,7 @@ struct Pcolormesh(MarkType):
         y_edges: List[Float64],
         z: List[List[Float64]],
     ) raises:
-        _encode_pcolormesh(Self.id, self.image, x_edges, y_edges, z)
+        _encode_pcolormesh(self.image, x_edges, y_edges, z)
 
     def encode_pcolormesh(
         mut self,
@@ -5106,7 +5058,7 @@ struct Pcolormesh(MarkType):
         y_corners: List[List[Float64]],
         z: List[List[Float64]],
     ) raises:
-        _encode_pcolormesh(Self.id, self.image, x_corners, y_corners, z)
+        _encode_pcolormesh(self.image, x_corners, y_corners, z)
 
 
 struct Eventplot(MarkType):
@@ -5183,7 +5135,6 @@ struct Eventplot(MarkType):
         positions: List[List[Float64]],
     ) raises:
         _encode_eventplot(
-            Self.id,
             self.continuous,
             self.categorical,
             self.distribution,
@@ -5278,7 +5229,6 @@ struct Pointplot(MarkType):
         y_err_upper: List[Float64] = List[Float64](),
     ) raises:
         _encode_categorical(
-            Self.id,
             self.continuous,
             self.categorical,
             self.y_err,
@@ -5388,7 +5338,6 @@ struct Boxenplot(MarkType):
         values: List[List[Float64]],
     ) raises:
         _encode_boxenplot(
-            Self.id,
             self.boxen,
             self.continuous,
             self.categorical,
@@ -5468,7 +5417,7 @@ struct Hist2d(MarkType):
         x_edges: List[Float64],
         y_edges: List[Float64],
     ) raises:
-        _encode_hist2d(Self.id, self.image, x, y, x_edges, y_edges)
+        _encode_hist2d(self.image, x, y, x_edges, y_edges)
 
 
 struct Hexbin(MarkType):
@@ -5532,7 +5481,7 @@ struct Hexbin(MarkType):
         y: List[Float64],
         gridsize: Int = 30,
     ) raises:
-        _encode_hexbin(Self.id, self.hexbin, x, y, gridsize)
+        _encode_hexbin(self.hexbin, x, y, gridsize)
 
 
 struct Quiver(MarkType):
@@ -5601,9 +5550,7 @@ struct Quiver(MarkType):
         u: List[Float64],
         v: List[Float64],
     ) raises:
-        _encode_barbs(
-            Self.id, self.barbs, self.continuous, self.categorical, x, y, u, v
-        )
+        _encode_barbs(self.barbs, self.continuous, self.categorical, x, y, u, v)
 
 
 struct Histogram(MarkType):
@@ -5692,7 +5639,7 @@ struct Histogram(MarkType):
         bins: HistogramBins,
     ) raises:
         _encode_histogram_bins(
-            Self.id, self.histogram, self.continuous, self.categorical, bins
+            self.histogram, self.continuous, self.categorical, bins
         )
 
 
@@ -5763,7 +5710,7 @@ struct Streamplot(MarkType):
         v: List[List[Float64]],
     ) raises:
         _encode_streamplot(
-            Self.id, self.stream, self.continuous, self.categorical, x, y, u, v
+            self.stream, self.continuous, self.categorical, x, y, u, v
         )
 
 
@@ -5892,7 +5839,7 @@ struct Scatter3d(MarkType):
         y: List[Float64],
         z: List[Float64],
     ) raises:
-        _encode_xyz(Self.id, self.xyz, x, y, z)
+        _encode_xyz(self.xyz, x, y, z)
 
 
 struct Plot3d(MarkType):
@@ -5956,7 +5903,7 @@ struct Plot3d(MarkType):
         y: List[Float64],
         z: List[Float64],
     ) raises:
-        _encode_xyz(Self.id, self.xyz, x, y, z)
+        _encode_xyz(self.xyz, x, y, z)
 
 
 struct Surface3d(MarkType):
@@ -6020,7 +5967,7 @@ struct Surface3d(MarkType):
         x: List[Float64] = List[Float64](),
         y: List[Float64] = List[Float64](),
     ) raises:
-        _encode_surface(Self.id, self.surface, z, x, y)
+        _encode_surface(self.surface, z, x, y)
 
 
 struct Wire3d(MarkType):
@@ -6084,7 +6031,7 @@ struct Wire3d(MarkType):
         x: List[Float64] = List[Float64](),
         y: List[Float64] = List[Float64](),
     ) raises:
-        _encode_surface(Self.id, self.surface, z, x, y)
+        _encode_surface(self.surface, z, x, y)
 
 
 struct Trisurf3d(MarkType):
@@ -6148,7 +6095,7 @@ struct Trisurf3d(MarkType):
         y: List[Float64],
         z: List[Float64],
     ) raises:
-        _encode_xyz(Self.id, self.xyz, x, y, z)
+        _encode_xyz(self.xyz, x, y, z)
 
 
 struct Bar3d(MarkType):
@@ -6212,7 +6159,7 @@ struct Bar3d(MarkType):
         y: List[Float64],
         z: List[Float64],
     ) raises:
-        _encode_bars3d(Self.id, self.bars3d, x, y, z)
+        _encode_bars3d(self.bars3d, x, y, z)
 
 
 struct Voxels(MarkType):
@@ -6274,7 +6221,7 @@ struct Voxels(MarkType):
         mut settings: _ChartSettings,
         filled: List[List[List[Bool]]],
     ) raises:
-        _encode_voxels(Self.id, self.voxels, filled)
+        _encode_voxels(self.voxels, filled)
 
 
 struct Stem3d(MarkType):
@@ -6338,7 +6285,7 @@ struct Stem3d(MarkType):
         y: List[Float64],
         z: List[Float64],
     ) raises:
-        _encode_xyz(Self.id, self.xyz, x, y, z)
+        _encode_xyz(self.xyz, x, y, z)
 
 
 struct Quiver3d(MarkType):
@@ -6405,7 +6352,7 @@ struct Quiver3d(MarkType):
         v: List[Float64],
         w: List[Float64],
     ) raises:
-        _encode_vectors3d(Self.id, self.vectors3d, x, y, z, u, v, w)
+        _encode_vectors3d(self.vectors3d, x, y, z, u, v, w)
 
 
 struct FillBetween3d(MarkType):
@@ -6473,7 +6420,7 @@ struct FillBetween3d(MarkType):
         y2: List[Float64],
         z2: List[Float64],
     ) raises:
-        _encode_ribbon3d(Self.id, self.ribbon3d, x1, y1, z1, x2, y2, z2)
+        _encode_ribbon3d(self.ribbon3d, x1, y1, z1, x2, y2, z2)
 
 
 # What the erased chart copies out of a mark for the composition code

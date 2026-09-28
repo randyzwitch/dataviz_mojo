@@ -57,7 +57,6 @@ from dataviz.spatial.scatter3d import (
     _Xyz,
 )
 from dataviz.core.theme import Theme
-from dataviz.core.mark import Mark, _require_mark
 
 
 struct _Surface(Copyable, Movable):
@@ -890,7 +889,6 @@ def trisurf3d[
 
 
 def _encode_surface(
-    mark: Mark,
     mut surface: _Surface,
     z: List[List[Float64]],
     x: List[Float64],
@@ -898,15 +896,6 @@ def _encode_surface(
 ) raises:
     """`Plot.encode_surface()`'s body, which forwards here with
     every argument; see that method for the contract."""
-    var _ok_encode_surface = List[Mark]()
-    _ok_encode_surface.append(Mark.SURFACE3D)
-    _ok_encode_surface.append(Mark.WIRE3D)
-    _require_mark(
-        mark,
-        "encode_surface",
-        "mark_surface3d()",
-        _ok_encode_surface^,
-    )
     surface.z = z.copy()
     surface.x = x.copy()
     surface.y = y.copy()
