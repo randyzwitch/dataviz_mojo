@@ -464,43 +464,52 @@ def _categories() -> List[Category]:
     return cats^
 
 
-def _append_capabilities[
-    M: MarkType
-](mut out: List[_Capabilities], mark: M) raises:
-    """Append `M`'s constants as row `len(out)`, raising unless `M` is
-    the mark with that id, so a list out of order cannot put one mark's
-    flags on another's row."""
-    var expected = Mark(len(out))
-    if not (M.id == expected):
+def _append_capabilities[M: MarkType](mut out: _MarkRows, mark: M) raises:
+    """Append `M` and its constants as row `len(out.marks)`, raising
+    unless `M`'s id has that value, so a list out of order cannot put
+    one mark's flags on another's row."""
+    var position = len(out.marks)
+    if M.id._value != position:
         raise Error(
             "_every_mark_capabilities(): position "
-            + String(len(out))
+            + String(position)
             + " holds "
             + M.id.name()
-            + ", expected "
-            + expected.name()
+            + ", whose value is "
+            + String(M.id._value)
         )
-    out.append(_capabilities_of_type[M]())
+    out.marks.append(M.id)
+    out.caps.append(_capabilities_of_type[M]())
 
 
-def _mark_capabilities[
-    *Ms: MarkType
-](*marks: *Ms) raises -> List[_Capabilities]:
-    """Each mark type's constants, in the order given."""
-    var out = List[_Capabilities]()
+struct _MarkRows(Movable):
+    """One feature-support row per mark: the mark, and its constants."""
+
+    var marks: List[Mark]
+    var caps: List[_Capabilities]
+
+    def __init__(out self):
+        self.marks = List[Mark]()
+        self.caps = List[_Capabilities]()
+
+
+def _mark_capabilities[*Ms: MarkType](*marks: *Ms) raises -> _MarkRows:
+    """Each mark type's id and constants, in the order given."""
+    var out = _MarkRows()
     comptime for i in range(marks.__len__()):
         _append_capabilities(out, marks[i])
     return out^
 
 
-def _every_mark_capabilities() raises -> List[_Capabilities]:
+def _every_mark_capabilities() raises -> _MarkRows:
     """Every mark type's `supports_*` constants, indexed by its `Mark`
-    id: row `i` is `Mark(i)`.
+    value: row `i` is the mark valued `i`.
 
     The list of types is the one place this page names them. It cannot
     drift silently: `_append_capabilities` refuses a type out of id
     order, and a list shorter than `Mark.COUNT` raises here naming the
-    first mark it is missing (longer, and `Mark.COUNT` is behind).
+    value of the first mark it is missing (longer, and `Mark.COUNT` is
+    behind).
     """
     var out = _mark_capabilities(
         Point(),
@@ -577,16 +586,16 @@ def _every_mark_capabilities() raises -> List[_Capabilities]:
         Quiver3d(),
         FillBetween3d(),
     )
-    if len(out) < Mark.COUNT:
+    if len(out.marks) < Mark.COUNT:
         raise Error(
-            "_every_mark_capabilities(): no type for "
-            + Mark(len(out)).name()
+            "_every_mark_capabilities(): no type for the mark valued "
+            + String(len(out.marks))
             + "; add it to the list"
         )
-    if len(out) > Mark.COUNT:
+    if len(out.marks) > Mark.COUNT:
         raise Error(
             "_every_mark_capabilities(): lists "
-            + String(len(out))
+            + String(len(out.marks))
             + " marks but Mark.COUNT is "
             + String(Mark.COUNT)
         )
@@ -674,8 +683,8 @@ def _feature_support_page() raises -> String:
     out.append(rule)
     var every = _every_mark_capabilities()
     for value in range(Mark.COUNT):
-        var mark = Mark(value)
-        var caps = every[value]
+        var mark = every.marks[value]
+        var caps = every.caps[value]
         var flags: List[Bool] = [
             caps.tooltips,
             caps.data_labels,

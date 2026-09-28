@@ -19,7 +19,7 @@ first one per feature.
 
 from std.testing import TestSuite, assert_equal, assert_false, assert_true
 
-from _mark_registry import _H, _W, _representative_plot
+from _mark_registry import _H, _W, _every_mark, _representative_plot
 from dataviz.chart import ChartLike
 from dataviz.marks import DendrogramMark, Histogram
 from dataviz.core.mark import Mark
@@ -42,13 +42,6 @@ def _count(s: String, needle: String) -> Int:
 
 def _svg[C: ChartLike](plot: C) raises -> String:
     return render_svg(plot).to_string()
-
-
-def _every_mark() -> List[Mark]:
-    var out = List[Mark]()
-    for value in range(Mark.COUNT):
-        out.append(Mark(value))
-    return out^
 
 
 def _renders[C: ChartLike](plot: C) -> Bool:

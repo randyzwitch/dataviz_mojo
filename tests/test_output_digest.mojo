@@ -54,7 +54,7 @@ from _composition_registry import (
     _composition_svg,
     _dark_ground,
 )
-from _mark_registry import _H, _W, _representative_plot
+from _mark_registry import _H, _W, _every_mark, _representative_plot
 from dataviz.core.mark import Mark
 from dataviz import render, render_svg
 
@@ -121,8 +121,7 @@ def _digest_lines() raises -> List[String]:
     changed" readable in a diff.
     """
     var out = List[String]()
-    for value in range(Mark.COUNT):
-        var mark = Mark(value)
+    for mark in _every_mark():
         # One Plot, both backends. Building it twice doubled the cost of
         # the slowest module in the suite for nothing.
         var plot = _representative_plot(mark)

@@ -28,8 +28,10 @@ This module exports only what it defines, `Plot` and `_finished`
 
 ## Adding a mark
 
-1. Its `Mark` constant in `core/mark.mojo`, and `Mark.COUNT` one past
-   it; the digest and backend sweeps walk every value.
+1. Its `Mark` constant in `core/mark.mojo`, `Self(<value>, "<NAME>")`,
+   `Mark.COUNT` one past it, and the constant in `_every_mark()`
+   (tests/_mark_registry.mojo); the digest and backend sweeps walk that
+   list.
 2. Its struct in `marks.mojo`: the columns it owns, `render` over them,
    an override of each `encode_*()` it accepts (the trait's default
    refuses at compile time), and every `MarkType` constant -- the

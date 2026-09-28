@@ -119,6 +119,7 @@ from _mark_registry import (
     _ids,
     _nested,
     _parents,
+    _every_mark,
     _representative_plot,
     _vals,
 )
@@ -141,14 +142,11 @@ from _test_helpers import _assert_same_canvas
 # what `_RenderResult` carries.
 #
 # `_representative_plot` is a registry: one minimal, valid `Plot` per
-# `Mark`. The sweep walks `Mark(0)` through `Mark(Mark.COUNT - 1)`, so a
-# mark added without an entry here raises rather than quietly going
-# untested.
+# `Mark`. The sweep walks `_every_mark()`, so a mark added without an
+# entry here raises rather than quietly going untested.
 #
-# `Mark.name()` is tested here for the same reason and off the
-# same range: it is the other per-mark table that a new mark has to be
-# added to, and the failure mode is identical -- a missing entry is
-# invisible until an error message names the wrong mark. Neither needs a
+# `_every_mark()` itself is checked here against `Mark.COUNT`, since a
+# mark missing from it would drop out of every sweep. Neither needs a
 # render, so they cost nothing in this SVG-only module.
 
 
@@ -157,7 +155,7 @@ from _test_helpers import _assert_same_canvas
 # mark is how one of them ends up missing a mark.
 
 
-def _assert_same_layout[C: ChartLike](mark_value: Int, plot: C) raises -> Int:
+def _assert_same_layout[C: ChartLike](mark: Mark, plot: C) raises -> Int:
     """Lay `plot` out on both backends and require the results to match.
 
     Also checks the comparison isn't vacuous: a mark that laid out into
@@ -167,13 +165,13 @@ def _assert_same_layout[C: ChartLike](mark_value: Int, plot: C) raises -> Int:
     marks at once.
 
     Args:
-        mark_value: The mark's numeric value, for failure messages.
+        mark: The mark, named in failure messages.
         plot: The plot to lay out.
 
     Returns:
         How many text requests the layout produced.
     """
-    var label = " (mark value " + String(mark_value) + ")"
+    var label = " (" + mark.name() + ")"
 
     # A fresh cache per backend, so neither starts from the other's
     # warmed state -- what is being compared is the layout the mark
@@ -247,15 +245,14 @@ def test_every_mark_lays_out_identically_on_both_backends() raises:
     """The sweep: every mark, both backends, same plot rect and same text
     requests.
 
-    Walks `Mark(0)` through `Mark(Mark.COUNT - 1)` rather than a list
-    written here, so adding a mark without a representative dataset
-    raises out of `_representative_plot` instead of silently reducing
-    coverage.
+    Walks `_every_mark()` rather than a list written here, so adding a
+    mark without a representative dataset raises out of
+    `_representative_plot` instead of silently reducing coverage.
     """
     var total_text_requests = 0
-    for value in range(Mark.COUNT):
-        var plot = _representative_plot(Mark(value))
-        total_text_requests += _assert_same_layout(value, plot)
+    for mark in _every_mark():
+        var plot = _representative_plot(mark)
+        total_text_requests += _assert_same_layout(mark, plot)
 
     # If every mark somehow produced no text at all, each comparison
     # above would still pass while checking nothing about the half of
@@ -271,12 +268,12 @@ def test_every_mark_value_has_a_representative_plot() raises:
     the sweep above so a missing entry reports as "nothing to test this
     mark with" rather than as a layout mismatch.
     """
-    for value in range(Mark.COUNT):
-        var plot = _representative_plot(Mark(value))
+    for mark in _every_mark():
+        var plot = _representative_plot(mark)
         assert_true(
-            plot.id() == Mark(value),
-            "representative plot for mark value "
-            + String(value)
+            plot.id() == mark,
+            "representative plot for "
+            + mark.name()
             + " actually uses a different mark",
         )
 
@@ -293,7 +290,7 @@ def test_backends_agree_when_a_legend_widens_the_plot_rect() raises:
         "another long series name",
     ]
     var plot = grouped_bar(cats, series, _nested(), width=_W, height=_H)
-    _ = _assert_same_layout(Mark.GROUPED_BAR._value, plot)
+    _ = _assert_same_layout(Mark.GROUPED_BAR, plot)
 
 
 def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
@@ -316,18 +313,19 @@ def test_backends_agree_with_titles_and_rotated_axis_labels() raises:
         width=_W,
         height=_H,
     )
-    _ = _assert_same_layout(Mark.BAR._value, plot)
+    _ = _assert_same_layout(Mark.BAR, plot)
 
 
 def test_mark_name_spells_the_constant() raises:
     """`Mark.name()` returns the qualified constant name a caller would
     type.
 
-    A spot check rather than all of them, because the sweep below is
-    what covers the rest; these are the ones whose spelling a chain of
-    branches is most likely to get wrong -- an underscore name, two
-    names sharing a prefix (`CONTOUR`/`CONTOURF`,
-    `TRICONTOUR`/`TRICONTOURF`), and the first and last constants.
+    Each constant states its name as a literal beside it, so this is a
+    spot check that the literals match and the prefix is added; the
+    distinct-name scan below covers the rest. These are the ones a
+    typo is likeliest in -- an underscore name, two names sharing a
+    prefix (`CONTOUR`/`CONTOURF`, `TRICONTOUR`/`TRICONTOURF`), and the
+    first and last constants.
     """
     assert_equal(Mark.POINT.name(), "Mark.POINT")
     assert_equal(Mark.GROUPED_BAR.name(), "Mark.GROUPED_BAR")
@@ -340,84 +338,43 @@ def test_mark_name_spells_the_constant() raises:
     assert_equal(Mark.EVENTPLOT.name(), "Mark.EVENTPLOT")
 
 
-def test_every_mark_has_its_own_name() raises:
-    """Every value in `[0, Mark.COUNT)` names itself, and no two share a
-    name.
+def test_every_mark_is_listed_once_in_value_order() raises:
+    """`_every_mark()` holds exactly `Mark.COUNT` marks, valued `0` to
+    `COUNT - 1` in order, with distinct names.
 
-    This is the assertion that makes a chain this long safe to extend.
-    Two things go wrong in one and neither is visible by reading it:
-    a mark added without a branch falls through to the `Mark(<n>)`
-    fallback, and a branch copy-pasted from its neighbor returns the
-    neighbor's name -- at which point an error message confidently
-    names the wrong mark, which is worse than the "a different mark"
-    it replaced.
+    Every sweep walks that list, so a mark missing from it goes untested
+    without anything failing -- #634 was a mark past `COUNT`, and when
+    `Mark.DENDROGRAM` arrived with `COUNT` unraised and no `name()`
+    branch, the old pair of tests passed because the two omissions
+    cancelled. There is no name table to cancel against now (each
+    constant states its own name), so the list and `COUNT` are the two
+    records: raising `COUNT` without listing the mark fails the length
+    check, and listing it out of place fails the value check. Adding a
+    mark means both.
 
-    Checking against the fallback's exact spelling is what catches the
-    first case; the O(n^2) distinctness scan is what catches the second.
-    A test that only asserted `name()` is non-empty, or only that it
-    starts with "Mark.", would pass through both.
+    The distinct-name scan catches a constant whose name was copied
+    from its neighbor, which would make an error message confidently
+    name the wrong mark.
     """
-    var names = List[String]()
-    for value in range(Mark.COUNT):
-        var name = Mark(value).name()
-        assert_true(
-            name != "Mark(" + String(value) + ")",
-            (
-                "mark value "
-                + String(value)
-                + " has no branch in Mark.name() -- it fell through to the"
-                " unknown-value fallback"
-            ),
+    var marks = _every_mark()
+    assert_equal(len(marks), Mark.COUNT, "_every_mark() vs Mark.COUNT")
+    for i in range(len(marks)):
+        assert_equal(
+            marks[i]._value,
+            i,
+            marks[i].name() + " is listed at position " + String(i),
         )
-        names.append(name)
-
-    for i in range(len(names)):
-        for j in range(i + 1, len(names)):
+    for i in range(len(marks)):
+        for j in range(i + 1, len(marks)):
             assert_true(
-                names[i] != names[j],
-                (
-                    "mark values "
-                    + String(i)
-                    + " and "
-                    + String(j)
-                    + " both name themselves "
-                    + names[i]
-                ),
+                marks[i].name() != marks[j].name(),
+                "mark values "
+                + String(i)
+                + " and "
+                + String(j)
+                + " both name themselves "
+                + marks[i].name(),
             )
-
-
-def test_mark_name_falls_back_for_an_unknown_value() raises:
-    """A value past the last constant has no name to give, so it reports
-    the value instead of guessing.
-
-    Paired with the sweep above this pins the branch list to exactly
-    `Mark.COUNT` entries: that test fails if a value below `COUNT` hits
-    the fallback, this one fails if `COUNT` itself does not.
-
-    **The pair only works while `name()` is complete, and once it was
-    not.** `Mark.DENDROGRAM` arrived as `Self(62)` with `COUNT` left at
-    62 and no `name()` branch of its own. This test asked for
-    `Mark(62).name()` to be the fallback, and it was -- not because 62
-    was past the end, but because the branch was missing. The two
-    defects cancelled and both tests passed, while every sweep over
-    `range(Mark.COUNT)` stopped one short of the new mark: the output
-    digest never fingerprinted it, `_mark_registry`'s "raises for a
-    mark with no entry" never fired for it, and the missing entry went
-    unnoticed for as long as that held.
-
-    A third test used to guard `COUNT` directly and named
-    `Mark.STREAMPLOT` as the newest mark by hand, so it rotted the
-    moment a newer one arrived and passed against the wrong constant.
-    It was removed rather than re-pinned to `DENDROGRAM`, which would
-    only restart the same clock.
-
-    So when adding a mark: bump `COUNT`, add the `name()` branch, and
-    add the `_mark_registry` entry. Two of the three are checked here;
-    the digest gaining a line for the new mark is what shows the third
-    landed.
-    """
-    assert_equal(Mark(Mark.COUNT).name(), "Mark(" + String(Mark.COUNT) + ")")
-    assert_equal(Mark(-1).name(), "Mark(-1)")
 
 
 def test_step_setter_name_is_derived_from_the_mark() raises:
@@ -445,9 +402,6 @@ def test_step_setter_name_is_derived_from_the_mark() raises:
     assert_equal(
         _step_setter_name(Mark.GROUPED_BAR),
         "Plot.mark_grouped_bar(step=...)",
-    )
-    assert_equal(
-        _step_setter_name(Mark(Mark.COUNT)), "Plot.mark_line(step=...)"
     )
 
 
@@ -666,9 +620,8 @@ def test_a_legend_and_axis_frame_are_inside_the_comparison() raises:
 # leaving the mark's own geometry as the only thing that can differ from
 # the background.
 #
-# Walks `Mark(0)` through `Mark(Mark.COUNT - 1)` off the same registry the
-# backend-equivalence sweep uses, so a new mark is covered without being
-# added here.
+# Walks `_every_mark()` off the same registry the backend-equivalence
+# sweep uses, so a new mark is covered without being added here.
 
 
 comptime _WHITE = Color(255, 255, 255)
@@ -716,8 +669,8 @@ def test_every_mark_draws_ink_on_raster() raises:
     The failure this exists for is a mark whose whole geometry vanishes
     while the render still succeeds -- see this module's docstring.
     """
-    for value in range(Mark.COUNT):
-        var plot = _representative_plot(Mark(value))
+    for mark in _every_mark():
+        var plot = _representative_plot(mark)
         plot.settings.theme = _chrome_free_theme()
         # Render small. Raster cost is per device pixel and this sweep
         # renders every mark, so the default size made this the slowest
@@ -729,14 +682,17 @@ def test_every_mark_draws_ink_on_raster() raises:
         assert_true(
             _has_ink(c),
             "mark "
-            + Mark(value).name()
+            + mark.name()
             + " drew no ink on a raster canvas -- if a draw loop was"
             + " recently wrapped in begin_batch(), check that every path"
             + " out of it reaches end_batch()",
         )
 
     # A sweep over an empty range would pass without checking anything.
-    assert_true(Mark.COUNT > 0, "Mark.COUNT is zero -- the sweep ran no marks")
+    assert_true(
+        len(_every_mark()) > 0,
+        "_every_mark() is empty -- the sweep ran no marks",
+    )
 
 
 # ==== from test_plot_clipping.mojo ====
