@@ -493,7 +493,7 @@ def _two_step[C: ChartLike](plot: C) raises -> Canvas:
         The downsampled canvas.
     """
     var factor = _resolve_supersample(
-        plot.id(), plot.chart_settings().theme, "render"
+        plot.capabilities(), plot.chart_settings().theme, "render"
     )
     var scratch = Canvas(
         plot.canvas_width() * factor,
@@ -542,7 +542,9 @@ def _check[C: ChartLike](plot: C, label: String, want_factor: Int) raises:
             move a test off the path it was written for.
     """
     assert_equal(
-        _resolve_supersample(plot.id(), plot.chart_settings().theme, "render"),
+        _resolve_supersample(
+            plot.capabilities(), plot.chart_settings().theme, "render"
+        ),
         want_factor,
         label + ": supersample factor",
     )

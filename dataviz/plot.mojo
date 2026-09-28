@@ -31,8 +31,12 @@ This module exports only what it defines, `Plot` and `_finished`
 1. Its `Mark` constant in `core/mark.mojo`, and `Mark.COUNT` one past
    it; the digest and backend sweeps walk every value.
 2. Its struct in `marks.mojo`: the columns it owns, `render` over them,
-   and an override of each `encode_*()` it accepts (the trait's default
-   refuses at compile time).
+   an override of each `encode_*()` it accepts (the trait's default
+   refuses at compile time), and every `MarkType` constant -- the
+   `supports_*` features and the drawing facts after them
+   (`straight_edged`, `continuous_path`, `layerable`, ...). They are
+   required, so a missing one is a compile error rather than a list the
+   new mark was left out of.
 3. Its `mark_*()` setter here, returning `Chart[<mark>]`.
 4. Its one-call function in its package, exported from `dataviz/__init__.mojo`.
 5. A representative chart in `tests/_mark_registry.mojo`, then

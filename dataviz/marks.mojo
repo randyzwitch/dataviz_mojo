@@ -235,6 +235,13 @@ struct Point(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = True
     comptime supports_color_size = True
+    comptime straight_edged = False
+    comptime continuous_path = True
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = True
+    comptime continuous_error_bars = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -386,6 +393,13 @@ struct Line(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = True
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = True
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = True
+    comptime continuous_error_bars = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -537,6 +551,13 @@ struct Bar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = True
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -696,6 +717,13 @@ struct Area(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = True
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = True
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -847,6 +875,13 @@ struct Arc(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -974,6 +1009,13 @@ struct Lollipop(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -1096,6 +1138,13 @@ struct Waterfall(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var waterfall: _WaterfallData
     var continuous: _ContinuousData
@@ -1181,6 +1230,13 @@ struct Box(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var box: _BoxData
     var categorical: _CategoricalData
@@ -1262,6 +1318,13 @@ struct Candlestick(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var candle: _CandleData
     var continuous: _ContinuousData
@@ -1372,6 +1435,13 @@ struct Bullet(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var bullet: _BulletData
     var categorical: _CategoricalData
@@ -1458,6 +1528,13 @@ struct Gantt(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var gantt: _GanttData
     var categorical: _CategoricalData
@@ -1559,6 +1636,13 @@ struct GroupedBar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = True
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -1649,6 +1733,13 @@ struct StackedBar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = True
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -1740,6 +1831,13 @@ struct PopulationPyramid(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var pyramid: _PyramidData
     var categorical: _CategoricalData
@@ -1831,6 +1929,13 @@ struct Heatmap(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var heatmap: _HeatmapData
     var continuous: _ContinuousData
@@ -1906,6 +2011,13 @@ struct Chord(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -1989,6 +2101,13 @@ struct SingleAxis(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = True
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -2080,6 +2199,13 @@ struct EffectScatter(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = True
     comptime supports_color_size = True
+    comptime straight_edged = False
+    comptime continuous_path = True
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = True
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -2231,6 +2357,13 @@ struct Funnel(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -2357,6 +2490,13 @@ struct Bump(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -2443,6 +2583,13 @@ struct Streamgraph(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var grouped_bar: _GroupedBarData
     var categorical: _CategoricalData
@@ -2534,6 +2681,13 @@ struct Beeswarm(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2615,6 +2769,13 @@ struct Violin(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2697,6 +2858,13 @@ struct Ridgeline(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -2779,6 +2947,13 @@ struct Nightingale(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var nightingale: _NightingaleData
     var continuous: _ContinuousData
@@ -2908,6 +3083,13 @@ struct PolarBar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -3035,6 +3217,13 @@ struct Polar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var polar: _PolarData
 
@@ -3107,6 +3296,13 @@ struct Radar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var radar: _RadarData
 
@@ -3178,6 +3374,13 @@ struct Gauge(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var gauge: _GaugeData
 
@@ -3251,6 +3454,13 @@ struct Parallel(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var parallel: _ParallelData
 
@@ -3315,6 +3525,13 @@ struct SpanChart(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var gantt: _GanttData
     var categorical: _CategoricalData
@@ -3400,6 +3617,13 @@ struct CalendarHeatmap(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var calendar: _CalendarData
     var continuous: _ContinuousData
@@ -3473,6 +3697,13 @@ struct Corrplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var corrplot: _CorrplotData
 
@@ -3544,6 +3775,13 @@ struct Punchcard(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var punchcard: _PunchcardData
     var continuous: _ContinuousData
@@ -3619,6 +3857,13 @@ struct Marimekko(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var marimekko: _MarimekkoData
 
@@ -3687,6 +3932,13 @@ struct Sunburst(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var hierarchy: _HierarchyData
 
@@ -3755,6 +4007,13 @@ struct Tree(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var hierarchy: _HierarchyData
 
@@ -3819,6 +4078,13 @@ struct Treemap(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var hierarchy: _HierarchyData
 
@@ -3887,6 +4153,13 @@ struct ArcDiagram(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -3962,6 +4235,13 @@ struct Graph(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -4045,6 +4325,13 @@ struct Sankey(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var edge_data: _EdgeData
     var continuous: _ContinuousData
@@ -4128,6 +4415,13 @@ struct Radialbar(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -4251,6 +4545,13 @@ struct Barbs(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var barbs: _BarbsData
     var continuous: _ContinuousData
@@ -4320,6 +4621,13 @@ struct Contour(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var contour: _ContourData
 
@@ -4385,6 +4693,13 @@ struct Contourf(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var contour: _ContourData
 
@@ -4450,6 +4765,13 @@ struct Tricontour(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var tricontour: _TriContourData
 
@@ -4515,6 +4837,13 @@ struct Tricontourf(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var tricontour: _TriContourData
 
@@ -4580,6 +4909,13 @@ struct Kde(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var distribution: _DistributionData
 
@@ -4642,6 +4978,13 @@ struct Rug(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var distribution: _DistributionData
 
@@ -4712,6 +5055,13 @@ struct Triplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var triplot: _TriplotData
 
@@ -4781,6 +5131,13 @@ struct Tripcolor(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var triplot: _TriplotData
 
@@ -4850,6 +5207,13 @@ struct Ecdf(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var distribution: _DistributionData
 
@@ -4920,6 +5284,13 @@ struct Imshow(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var image: _ImageData
 
@@ -4991,6 +5362,13 @@ struct Pcolormesh(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = True
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var image: _ImageData
 
@@ -5073,6 +5451,13 @@ struct Eventplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var categorical: _CategoricalData
     var distribution: _DistributionData
@@ -5155,6 +5540,13 @@ struct Pointplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var categorical: _CategoricalData
@@ -5277,6 +5669,13 @@ struct Boxenplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var boxen: _BoxenData
     var categorical: _CategoricalData
@@ -5358,6 +5757,13 @@ struct Hist2d(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = True
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var image: _ImageData
 
@@ -5432,6 +5838,13 @@ struct Hexbin(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var hexbin: _HexbinData
 
@@ -5496,6 +5909,13 @@ struct Quiver(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var barbs: _BarbsData
     var continuous: _ContinuousData
@@ -5565,6 +5985,13 @@ struct Histogram(MarkType):
     comptime supports_log_x = True
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = True
+    comptime continuous_path = True
+    comptime layerable = True
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var continuous: _ContinuousData
     var channels: _ChannelData
@@ -5655,6 +6082,13 @@ struct Streamplot(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = True
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var stream: _StreamData
     var continuous: _ContinuousData
@@ -5726,6 +6160,13 @@ struct DendrogramMark(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var dendrogram: _DendrogramData
 
@@ -5790,6 +6231,13 @@ struct Scatter3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var xyz: _Xyz
 
@@ -5854,6 +6302,13 @@ struct Plot3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var xyz: _Xyz
 
@@ -5918,6 +6373,13 @@ struct Surface3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var surface: _Surface
 
@@ -5982,6 +6444,13 @@ struct Wire3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var surface: _Surface
 
@@ -6046,6 +6515,13 @@ struct Trisurf3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var xyz: _Xyz
 
@@ -6110,6 +6586,13 @@ struct Bar3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var bars3d: _Bars3D
 
@@ -6174,6 +6657,13 @@ struct Voxels(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var voxels: _Voxels
 
@@ -6236,6 +6726,13 @@ struct Stem3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var xyz: _Xyz
 
@@ -6300,6 +6797,13 @@ struct Quiver3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var vectors3d: _Vectors3D
 
@@ -6368,6 +6872,13 @@ struct FillBetween3d(MarkType):
     comptime supports_log_x = False
     comptime supports_log_y = False
     comptime supports_color_size = False
+    comptime straight_edged = False
+    comptime continuous_path = False
+    comptime layerable = False
+    comptime color_is_value = False
+    comptime categorical_bars = False
+    comptime bar_combo_overlay = False
+    comptime continuous_error_bars = False
 
     var ribbon3d: _Ribbon3D
 

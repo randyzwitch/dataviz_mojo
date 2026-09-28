@@ -470,13 +470,7 @@ def _with_shared_x_domain(plots: List[AnyChart]) raises -> List[AnyChart]:
     var pooled = List[Float64]()
     for i in range(len(plots)):
         var mark = plots[i].id()
-        if not (
-            mark == Mark.POINT
-            or mark == Mark.LINE
-            or mark == Mark.AREA
-            or mark == Mark.HISTOGRAM
-            or mark == Mark.EFFECT_SCATTER
-        ):
+        if not plots[i].capabilities().continuous_path:
             raise Error(
                 context
                 + ": cell "
@@ -820,7 +814,7 @@ def _render_cells_generic[
         # Each cell's annotations draw against that cell's own x/y scale,
         # in the same order a standalone render uses (areas and bands
         # underneath, then lines/vlines, points on top, best_fit last).
-        var cell_under = _filled_annotations_go_under(plots[i].id())
+        var cell_under = _filled_annotations_go_under(plots[i].capabilities())
         var cell_area_requests = List[
             _TextRequest
         ]() if cell_under else _draw_annotation_areas(
@@ -1085,11 +1079,11 @@ def render_grid(
     # One canvas, so one factor must serve every plot on it: take the
     # largest any of them asks for, as render_facets() does.
     var factor = _resolve_supersample(
-        plots[0].id(), plots[0].settings.theme, "render_grid"
+        plots[0].capabilities(), plots[0].settings.theme, "render_grid"
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i].id(), plots[i].settings.theme, "render_grid"
+            plots[i].capabilities(), plots[i].settings.theme, "render_grid"
         )
         if f > factor:
             factor = f
@@ -1519,11 +1513,11 @@ def _render_grid_tight(
         title,
     )
     var factor = _resolve_supersample(
-        plots[0].id(), plots[0].settings.theme, "save_grid"
+        plots[0].capabilities(), plots[0].settings.theme, "save_grid"
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i].id(), plots[i].settings.theme, "save_grid"
+            plots[i].capabilities(), plots[i].settings.theme, "save_grid"
         )
         if f > factor:
             factor = f
@@ -1733,10 +1727,10 @@ def render_inset[
             anything rendering either plot raises.
     """
     var factor = _resolve_supersample(
-        base.id(), base.chart_settings().theme, "render_inset"
+        base.capabilities(), base.chart_settings().theme, "render_inset"
     )
     var inset_factor = _resolve_supersample(
-        inset.id(), inset.chart_settings().theme, "render_inset"
+        inset.capabilities(), inset.chart_settings().theme, "render_inset"
     )
     if inset_factor > factor:
         factor = inset_factor

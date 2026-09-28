@@ -120,51 +120,26 @@ comptime _CURVED_SUPERSAMPLE = 3
 """Supersample factor for circles, arcs, and curved strokes."""
 
 
-def _auto_supersample(mark: Mark, theme: Theme) -> Int:
-    """Return the mark-specific supersample factor for `AUTO`."""
+def _auto_supersample(caps: _Capabilities, theme: Theme) -> Int:
+    """Return the mark-specific supersample factor for `AUTO`: 1 for a
+    `straight_edged` mark, the curved factor otherwise."""
     # A smoothed line or area is a curve whatever its mark says, so it
     # is classified by what it draws rather than by its name.
     if theme.line_smoothing > 0.0:
         return _CURVED_SUPERSAMPLE
-
-    var m = mark
-    if (
-        m == Mark.BAR
-        or m == Mark.GROUPED_BAR
-        or m == Mark.STACKED_BAR
-        or m == Mark.WATERFALL
-        or m == Mark.BULLET
-        or m == Mark.GANTT
-        or m == Mark.SPAN_CHART
-        or m == Mark.BOX
-        or m == Mark.CANDLESTICK
-        or m == Mark.HEATMAP
-        or m == Mark.IMSHOW
-        or m == Mark.PCOLORMESH
-        or m == Mark.HIST2D
-        or m == Mark.MARIMEKKO
-        or m == Mark.TREEMAP
-        or m == Mark.SANKEY
-        or m == Mark.LINE
-        or m == Mark.AREA
-        or m == Mark.HISTOGRAM
-        or m == Mark.VIOLIN
-        or m == Mark.PARALLEL
-        or m == Mark.RADAR
-        or m == Mark.TRICONTOUR
-    ):
+    if caps.straight_edged:
         return 1
     return _CURVED_SUPERSAMPLE
 
 
 def _resolve_supersample(
-    mark: Mark, theme: Theme, context: String
+    caps: _Capabilities, theme: Theme, context: String
 ) raises -> Int:
     """`Theme.raster_supersample` if the caller set one, else the mark's
     own factor. Validated here so every entry point gets the same check.
 
     Args:
-        mark: The mark being rendered.
+        caps: The mark's constants; `straight_edged` picks the factor.
         theme: Its theme.
         context: The caller's name, for the error message.
 
@@ -176,7 +151,7 @@ def _resolve_supersample(
     """
     var configured = theme.raster_supersample
     if configured == _AUTO_SUPERSAMPLE:
-        return _auto_supersample(mark, theme)
+        return _auto_supersample(caps, theme)
     _require_positive_supersample(configured, context)
     return configured
 
@@ -199,7 +174,7 @@ def render[C: ChartLike](plot: C) raises -> Canvas:
     first.
     """
     var factor = _resolve_supersample(
-        plot.id(), plot.chart_settings().theme, "render"
+        plot.capabilities(), plot.chart_settings().theme, "render"
     )
     var out = Canvas(
         plot.canvas_width(),
@@ -347,7 +322,7 @@ def _draw_figure_into[
         result.py1,
         cache=cache,
     )
-    var under_mark = _filled_annotations_go_under(mark)
+    var under_mark = _filled_annotations_go_under(plot.capabilities())
     if not under_mark:
         _extend_text_requests(
             text,
@@ -446,7 +421,7 @@ def render_tight[C: ChartLike](plot: C) raises -> Canvas:
     """
     var box = _tight_box(plot, False)
     var factor = _resolve_supersample(
-        plot.id(), plot.chart_settings().theme, "render_tight"
+        plot.capabilities(), plot.chart_settings().theme, "render_tight"
     )
     var out = Canvas(box[2], box[3], plot.chart_settings().theme.background)
     out.begin_supersampled(factor, plot.chart_settings().theme.background)
@@ -1331,7 +1306,7 @@ def write_accessible_svg(
     f.close()
 
 
-def _filled_annotations_go_under(mark: Mark) raises -> Bool:
+def _filled_annotations_go_under(caps: _Capabilities) raises -> Bool:
     """Whether `mark` draws its filled annotations -- `annotate_area()`
     bands and `annotate_band()` ribbons -- *under* its geometry. True
     for the continuous-frame marks, where a ribbon is a region the mark
@@ -1340,15 +1315,10 @@ def _filled_annotations_go_under(mark: Mark) raises -> Bool:
     Those marks draw the fills between frame and mark inside
     `_render_generic`; every other mark still draws them after, from
     `_render_into`/`render_svg`, where a band over solid bars was the
-    order it always had.
+    order it always had. "Continuous-frame" is the mark type's
+    `continuous_path` constant.
     """
-    return (
-        mark == Mark.POINT
-        or mark == Mark.LINE
-        or mark == Mark.AREA
-        or mark == Mark.HISTOGRAM
-        or mark == Mark.EFFECT_SCATTER
-    )
+    return caps.continuous_path
 
 
 def _check_render_settings(
@@ -1414,18 +1384,14 @@ def _check_render_settings(
             " y-domain through a zero baseline (see"
             " _zero_baseline_y_extent()'s docstring), and zero has no logarithm"
         )
-    if (settings.x_domain.has or settings.y_domain.has) and not (
-        mark == Mark.POINT
-        or mark == Mark.LINE
-        or mark == Mark.AREA
-        or mark == Mark.HISTOGRAM
-        or mark == Mark.EFFECT_SCATTER
-    ):
+    if (
+        settings.x_domain.has or settings.y_domain.has
+    ) and not caps.continuous_path:
         raise Error(
             "Plot.scale_x_domain()/scale_y_domain() only apply to"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER today -- a categorical-x-axis"
-            " (or other non-continuous) mark isn't wired up to an explicit"
-            " domain override yet"
+            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER today -- a"
+            " categorical-x-axis (or other non-continuous) mark isn't wired up"
+            " to an explicit domain override yet"
         )
     _validate_domain_override(
         settings.x_domain, settings.x_log, "Plot.scale_x_domain"
@@ -1439,13 +1405,7 @@ def _check_render_settings(
         or settings.x_reversed
         or settings.y_reversed
         or settings.equal_aspect
-    ) and not (
-        mark == Mark.POINT
-        or mark == Mark.LINE
-        or mark == Mark.AREA
-        or mark == Mark.HISTOGRAM
-        or mark == Mark.EFFECT_SCATTER
-    ):
+    ) and not caps.continuous_path:
         raise Error(
             "Plot.scale_x_ticks()/scale_y_ticks()/scale_x_reverse()/"
             "scale_y_reverse()/equal_aspect() only apply to"
@@ -1476,17 +1436,12 @@ def _check_render_settings(
             " and a unit of y are not comparable lengths, so there is no"
             " aspect to equalize"
         )
-    _validate_color_domain(settings.color_domain, mark, channels)
-    if has_shared_y_domain and not (
-        mark == Mark.POINT
-        or mark == Mark.LINE
-        or mark == Mark.AREA
-        or mark == Mark.HISTOGRAM
-        or mark == Mark.EFFECT_SCATTER
-    ):
+    _validate_color_domain(settings.color_domain, mark, caps, channels)
+    if has_shared_y_domain and not caps.continuous_path:
         raise Error(
             "render_facets(shared_y_scale=True): only"
-            " Mark.POINT/LINE/AREA/EFFECT_SCATTER support a shared y-scale"
+            " Mark.POINT/LINE/AREA/HISTOGRAM/EFFECT_SCATTER support a shared"
+            " y-scale"
             " today -- a categorical or polar mark has no continuous"
             " y-domain for a shared range to mean anything against"
         )
@@ -1544,6 +1499,7 @@ def _render_continuous[
         y_err,
         mark,
         caps.color_size,
+        caps.continuous_error_bars,
         "Plot.encode()",
     )
     _require_non_empty(len(continuous.x), "Plot.encode()")
@@ -1558,7 +1514,7 @@ def _render_continuous[
     var ch = _PointChannels(channels, settings.theme, settings.color_domain, sc)
 
     var legend_reserve = _legend_reserve_for(
-        mark, settings.theme, ch, sc, cache=cache
+        caps.color_size, settings.theme, ch, sc, cache=cache
     )
 
     # Mark.AREA forces a zero baseline into the y-domain; every other

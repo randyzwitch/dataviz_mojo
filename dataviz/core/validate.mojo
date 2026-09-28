@@ -172,21 +172,20 @@ def _validate_error_bar_axis(
     lower: List[Float64],
     upper: List[Float64],
     n: Int,
-    mark: Mark,
+    marks_ok: Bool,
     context: String,
 ) raises:
     """One axis's error-bar checks for `_validate_continuous_encoding`:
     the symmetric form and the lower/upper pair are mutually exclusive,
     the pair comes together, every column matches the data's length,
-    every value is `>= 0`, and only `Mark.POINT`/`LINE`/`EFFECT_SCATTER`
-    take them. `axis` is `"y"` or `"x"` and names the parameters in each
+    every value is `>= 0`, and only a mark whose type sets
+    `continuous_error_bars` (`Mark.POINT`/`LINE`/`EFFECT_SCATTER`) takes
+    them; `marks_ok` is that constant. `axis` is `"y"` or `"x"` and
+    names the parameters in each
     message (`y_err`, `x_err_lower`, ...).
     """
     var name = axis + "_err"
     var has_sym = len(symmetric) > 0
-    var marks_ok = (
-        mark == Mark.POINT or mark == Mark.LINE or mark == Mark.EFFECT_SCATTER
-    )
     if has_sym and len(symmetric) != n:
         raise Error(
             context
@@ -284,6 +283,7 @@ def _validate_continuous_encoding(
     y_err: _ErrorBarData,
     mark: Mark,
     supports_color_size: Bool,
+    continuous_error_bars: Bool,
     context: String,
 ) raises:
     """Every check `Plot.encode()`'s channels need before a continuous-axis
@@ -360,7 +360,7 @@ def _validate_continuous_encoding(
         y_err.lower,
         y_err.upper,
         len(continuous.x),
-        mark,
+        continuous_error_bars,
         context,
     )
     _validate_error_bar_axis(
@@ -369,7 +369,7 @@ def _validate_continuous_encoding(
         y_err.x_lower,
         y_err.x_upper,
         len(continuous.x),
-        mark,
+        continuous_error_bars,
         context,
     )
 
@@ -486,13 +486,15 @@ def _validate_domain_override(
         )
 
 
-def _mark_colors_by_value(mark: Mark, channels: _ChannelData) -> Bool:
+def _mark_colors_by_value(caps: _Capabilities, channels: _ChannelData) -> Bool:
     """Whether this plot's colors encode a continuous data value, and so
     whether `Plot.scale_color_domain()`/`scale_color_center()` have
     anything to act on.
 
-    The grid, field and contour marks always do. The three continuous
-    marks only do when `Plot.encode(color=...)` was given numbers:
+    The grid, field and contour marks, whose types set `color_is_value`,
+    always do. The `supports_color_size` marks (POINT, SINGLE_AXIS,
+    EFFECT_SCATTER) only do when `Plot.encode(color=...)` was given
+    numbers:
     `color_categories=` is a qualitative palette lookup with no domain,
     and a plot with no color channel at all is drawn in one flat color.
 
@@ -503,38 +505,22 @@ def _mark_colors_by_value(mark: Mark, channels: _ChannelData) -> Bool:
     accepting one would be accepting a setting that does nothing.
 
     Args:
-        mark: The mark about to be rendered.
+        caps: The constants of the mark about to be rendered.
         channels: Its color channel.
 
     Returns:
         True when a continuous color domain applies.
     """
-    if (
-        mark == Mark.POINT
-        or mark == Mark.SINGLE_AXIS
-        or mark == Mark.EFFECT_SCATTER
-    ):
+    if caps.color_size:
         return len(channels.color) > 0
-    return (
-        mark == Mark.HEATMAP
-        or mark == Mark.CALENDAR_HEATMAP
-        or mark == Mark.CORRPLOT
-        or mark == Mark.IMSHOW
-        or mark == Mark.PCOLORMESH
-        or mark == Mark.HIST2D
-        or mark == Mark.HEXBIN
-        or mark == Mark.CONTOUR
-        or mark == Mark.CONTOURF
-        or mark == Mark.TRICONTOUR
-        or mark == Mark.TRICONTOURF
-        or mark == Mark.TRIPCOLOR
-        or mark == Mark.QUIVER
-        or mark == Mark.STREAMPLOT
-    )
+    return caps.color_is_value
 
 
 def _validate_color_domain(
-    color_domain: _ColorDomainOverride, mark: Mark, channels: _ChannelData
+    color_domain: _ColorDomainOverride,
+    mark: Mark,
+    caps: _Capabilities,
+    channels: _ChannelData,
 ) raises:
     """Refuse a color-domain override on a mark that has no continuous
     color channel to apply it to.
@@ -549,7 +535,7 @@ def _validate_color_domain(
     """
     if not (color_domain.has or color_domain.has_center):
         return
-    if _mark_colors_by_value(mark, channels):
+    if _mark_colors_by_value(caps, channels):
         return
     raise Error(
         "Plot.scale_color_domain()/scale_color_center(): "
