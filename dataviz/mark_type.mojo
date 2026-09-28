@@ -36,6 +36,32 @@ trait MarkType(Copyable, Deinitable, Movable):
     comptime supports_log_x: Bool
     comptime supports_log_y: Bool
     comptime supports_color_size: Bool
+    comptime straight_edged: Bool
+    """Draws only axis-aligned straight edges, so the automatic raster
+    supersample is 1 rather than the curved factor (`_auto_supersample`,
+    rendering.mojo)."""
+    comptime continuous_path: Bool
+    """Drawn by `_render_generic`'s continuous path, which is what carries
+    domain and tick overrides, axis reversal, equal aspect, a shared x-
+    or y-scale, a log axis inside `render_layers()`, and filled
+    annotations drawn under the mark."""
+    comptime layerable: Bool
+    """Can share `render_layers()`' continuous frame: places its data on a
+    continuous x/y axis in the caller's own units (`_is_layerable_mark`,
+    layers.mojo, gives the reasons for the rest)."""
+    comptime color_is_value: Bool
+    """Its colors always encode a continuous data value, so
+    `scale_color_domain()`/`scale_color_center()` apply. The
+    `supports_color_size` marks qualify only when given numeric `color=`
+    (`_mark_colors_by_value`, validate.mojo)."""
+    comptime categorical_bars: Bool
+    """A categorical bar mark: the base of a `render_layers()` bar-combo
+    chart, whose bars share one categorical frame."""
+    comptime bar_combo_overlay: Bool
+    """Can be layered over categorical bars in a bar-combo chart, moving
+    onto the bars' band centers."""
+    comptime continuous_error_bars: Bool
+    """Takes `encode()`'s `y_err`/`x_err` columns."""
 
     def render[
         T: DrawTarget
@@ -658,7 +684,7 @@ trait MarkType(Copyable, Deinitable, Movable):
 
 
 def _capabilities_of_type[M: MarkType]() -> _Capabilities:
-    """`M`'s `supports_*` constants as one value."""
+    """`M`'s `supports_*` and drawing-fact constants as one value."""
     var caps = _Capabilities()
     caps.tooltips = M.supports_tooltips
     caps.data_labels = M.supports_data_labels
@@ -669,4 +695,11 @@ def _capabilities_of_type[M: MarkType]() -> _Capabilities:
     caps.log_x = M.supports_log_x
     caps.log_y = M.supports_log_y
     caps.color_size = M.supports_color_size
+    caps.straight_edged = M.straight_edged
+    caps.continuous_path = M.continuous_path
+    caps.layerable = M.layerable
+    caps.color_is_value = M.color_is_value
+    caps.categorical_bars = M.categorical_bars
+    caps.bar_combo_overlay = M.bar_combo_overlay
+    caps.continuous_error_bars = M.continuous_error_bars
     return caps

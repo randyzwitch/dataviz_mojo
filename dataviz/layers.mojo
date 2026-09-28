@@ -60,6 +60,7 @@ from dataviz.basic.continuous import (
     area,
     line,
 )
+from dataviz.core.capabilities import _Capabilities
 from dataviz.core.point_channels import _PointChannels
 from dataviz.facets import _require_uniform_size
 from dataviz.core.frame import (
@@ -339,11 +340,11 @@ def _layers_supersample(plots: List[AnyChart], caller: String) raises -> Int:
     any layer asks for, since one canvas has one factor and a curved mark
     beside a bar chart must not be drawn at the bar's."""
     var factor = _resolve_supersample(
-        plots[0].id(), plots[0].settings.theme, caller
+        plots[0].capabilities(), plots[0].settings.theme, caller
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i].id(), plots[i].settings.theme, caller
+            plots[i].capabilities(), plots[i].settings.theme, caller
         )
         if f > factor:
             factor = f
@@ -530,11 +531,7 @@ def _render_bar_combo_layers[
     var subdivided_count = 0
     for i in range(len(plots)):
         var mark = plots[i].id()
-        if not (
-            mark == Mark.BAR
-            or mark == Mark.GROUPED_BAR
-            or mark == Mark.STACKED_BAR
-        ):
+        if not plots[i].capabilities().categorical_bars:
             continue
         if mark == Mark.BAR:
             _validate_categorical_encoding(
@@ -615,17 +612,9 @@ def _render_bar_combo_layers[
                 + String(i)
                 + ")"
             )
-        if (
-            plots[i].id() == Mark.BAR
-            or plots[i].id() == Mark.GROUPED_BAR
-            or plots[i].id() == Mark.STACKED_BAR
-        ):
+        if plots[i].capabilities().categorical_bars:
             continue
-        if not (
-            plots[i].id() == Mark.POINT
-            or plots[i].id() == Mark.LINE
-            or plots[i].id() == Mark.AREA
-        ):
+        if not plots[i].capabilities().bar_combo_overlay:
             raise Error(
                 "render_layers(): alongside categorical bars, every other layer"
                 " must be Mark.POINT/LINE/AREA (layer "
@@ -801,11 +790,7 @@ def _render_bar_combo_layers[
         bar_slot += 1
 
     for i in range(len(plots)):
-        if (
-            plots[i].id() == Mark.BAR
-            or plots[i].id() == Mark.GROUPED_BAR
-            or plots[i].id() == Mark.STACKED_BAR
-        ):
+        if plots[i].capabilities().categorical_bars:
             continue
         var layer_theme = plots[i].settings.theme
         _check_line_smoothing(layer_theme)
@@ -947,17 +932,17 @@ def _exact_extent(data: List[Float64]) raises -> LinearScale:
     return LinearScale(mm.min, mm.max, 0.0, 1.0)
 
 
-def _is_layerable_mark(mark: Mark) raises -> Bool:
-    """Whether `mark` can share `_render_layers_generic`'s continuous
-    frame.
+def _is_layerable_mark(caps: _Capabilities) -> Bool:
+    """Whether a mark with these constants can share
+    `_render_layers_generic`'s continuous frame: its type's `layerable`.
 
     The rule is not "does this mark call `_draw_continuous_axis_frame`"
     -- `Mark.CONTOUR` does and is still excluded. It is **does this mark
     place its data on a continuous x/y axis in the caller's own units,
     sized by `_data_extent`**. That is what makes one combined domain
     mean the same thing to every layer, which is the only thing layering
-    can be. The twelve below all satisfy it; everything else fails it for
-    one of three reasons:
+    can be. The marks whose type sets `layerable` all satisfy it;
+    everything else fails it for one of three reasons:
 
     - **A categorical x** (BAR beyond the bar-combo special case,
       LOLLIPOP, BOX, VIOLIN, BEESWARM, GROUPED_BAR, STACKED_BAR,
@@ -987,26 +972,8 @@ def _is_layerable_mark(mark: Mark) raises -> Bool:
     is still rejected is the *mix*: an index-unit grid and a coordinate
     mark on one axis, which is the reading that would silently equate
     column 12 with the value 12.
-
-    A `raises` `def` only because `Mark.__eq__` is one.
     """
-    return (
-        mark == Mark.POINT
-        or mark == Mark.LINE
-        or mark == Mark.AREA
-        or mark == Mark.HISTOGRAM
-        or mark == Mark.EFFECT_SCATTER
-        or mark == Mark.KDE
-        or mark == Mark.ECDF
-        or mark == Mark.RUG
-        or mark == Mark.BARBS
-        or mark == Mark.TRICONTOUR
-        or mark == Mark.TRICONTOURF
-        or mark == Mark.TRIPLOT
-        or mark == Mark.TRIPCOLOR
-        or mark == Mark.CONTOUR
-        or mark == Mark.CONTOURF
-    )
+    return caps.layerable
 
 
 struct _LayerDomain(Copyable, Movable):
@@ -1463,11 +1430,7 @@ def _render_layers_generic[
     # on the whole category band.
     var bar_layer_index = -1
     for i in range(len(plots)):
-        if (
-            plots[i].id() == Mark.BAR
-            or plots[i].id() == Mark.GROUPED_BAR
-            or plots[i].id() == Mark.STACKED_BAR
-        ) and bar_layer_index < 0:
+        if plots[i].capabilities().categorical_bars and bar_layer_index < 0:
             bar_layer_index = i
     if bar_layer_index >= 0:
         return _render_bar_combo_layers(
@@ -1499,7 +1462,7 @@ def _render_layers_generic[
         # layer marks this rejects, and a reader who followed one got a
         # message that named neither.
         # constants and the index was all a raise could report.
-        if not _is_layerable_mark(plots[i].id()):
+        if not _is_layerable_mark(plots[i].capabilities()):
             raise Error(
                 "render_layers(): layer "
                 + String(i)
@@ -1521,13 +1484,9 @@ def _render_layers_generic[
                 " real y-axis. Use render_facets(), which has no allow-list"
                 " and takes any mark."
             )
-        if (plots[i].settings.x_log or plots[i].settings.y_log) and not (
-            plots[i].id() == Mark.POINT
-            or plots[i].id() == Mark.LINE
-            or plots[i].id() == Mark.AREA
-            or plots[i].id() == Mark.HISTOGRAM
-            or plots[i].id() == Mark.EFFECT_SCATTER
-        ):
+        if (plots[i].settings.x_log or plots[i].settings.y_log) and not plots[
+            i
+        ].capabilities().continuous_path:
             # The same rule _render_generic enforces on a standalone plot,
             # repeated here because the marks admitted reach this
             # path without going through it. None of them has a log
@@ -1563,7 +1522,10 @@ def _render_layers_generic[
         # own mark with its own colors, and only one layer in an overlay
         # normally carries a continuous color channel at all.
         _validate_color_domain(
-            plots[i].settings.color_domain, plots[i].id(), plots[i].channels
+            plots[i].settings.color_domain,
+            plots[i].id(),
+            plots[i].capabilities(),
+            plots[i].channels,
         )
         if plots[i].settings.x_domain.has:
             _validate_domain_override(
@@ -1647,6 +1609,7 @@ def _render_layers_generic[
             plots[i].y_err,
             plots[i].id(),
             plots[i].capabilities().color_size,
+            plots[i].capabilities().continuous_error_bars,
             "render_layers(): layer " + String(i),
         )
         _validate_log_scale_annotations(
@@ -1853,7 +1816,11 @@ def _render_layers_generic[
             p_sc_j,
         )
         var layer_legend = _legend_reserve_for(
-            plots[j].id(), plots[j].settings.theme, ch_j, p_sc_j, cache=cache
+            plots[j].capabilities().color_size,
+            plots[j].settings.theme,
+            ch_j,
+            p_sc_j,
+            cache=cache,
         )
         legend_width = max(legend_width, layer_legend.left + layer_legend.right)
     if len(series_names) > 0:

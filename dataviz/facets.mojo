@@ -246,11 +246,11 @@ def _render_facets_tight(
     size and then cropped, as `render_tight()` does for one plot."""
     var box = _facets_tight_box(plots, cols, shared_y_scale, shared_x_scale)
     var factor = _resolve_supersample(
-        plots[0].id(), plots[0].settings.theme, "save_facets"
+        plots[0].capabilities(), plots[0].settings.theme, "save_facets"
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i].id(), plots[i].settings.theme, "save_facets"
+            plots[i].capabilities(), plots[i].settings.theme, "save_facets"
         )
         if f > factor:
             factor = f
@@ -319,11 +319,11 @@ def render_facets(
     # largest any of them asks for rather than the first plot's, or a
     # curved mark beside a bar chart would be drawn at the bar's factor.
     var factor = _resolve_supersample(
-        plots[0].id(), plots[0].settings.theme, "render_facets"
+        plots[0].capabilities(), plots[0].settings.theme, "render_facets"
     )
     for i in range(1, len(plots)):
         var f = _resolve_supersample(
-            plots[i].id(), plots[i].settings.theme, "render_facets"
+            plots[i].capabilities(), plots[i].settings.theme, "render_facets"
         )
         if f > factor:
             factor = f

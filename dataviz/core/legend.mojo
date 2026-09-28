@@ -24,7 +24,6 @@ from dataviz.core.text import _extend_text_requests
 from dataviz.core.color_scale import ColorScale
 from dataviz.core.point_channels import _PointChannels
 from dataviz.core.legend_position import LegendPosition
-from dataviz.core.mark import Mark
 from dataviz.core.marker import PointShape, _fill_shape_aa
 from dataviz.core.scale import LinearScale, MinMax, _format_tick
 from dataviz.core.text import (
@@ -1110,7 +1109,7 @@ def _levels_descending(levels: List[Float64]) -> List[Float64]:
 
 
 def _legend_reserve_for(
-    mark: Mark,
+    color_size: Bool,
     theme: Theme,
     ch: _PointChannels,
     sc: _Scaled,
@@ -1119,7 +1118,8 @@ def _legend_reserve_for(
 ) raises -> _LegendLayout:
     """How much room a point mark's legend needs and on which edge,
     or an inactive layout when it has no legend (`Theme.show_legend` off,
-    not a point mark, or no data-driven channel). A plot combining
+    not a point mark -- `color_size` is its type's `supports_color_size`
+    -- or no data-driven channel). A plot combining
     continuous color and size stacks both sections vertically in one
     column, so the width is the larger of the two, not the sum. Called
     before the plot rect is finalized, measuring through the render's
@@ -1136,11 +1136,7 @@ def _legend_reserve_for(
     var layout = _LegendLayout()
     if not theme.show_legend:
         return layout^
-    if not (
-        mark == Mark.POINT
-        or mark == Mark.SINGLE_AXIS
-        or mark == Mark.EFFECT_SCATTER
-    ):
+    if not color_size:
         return layout^
     if not (ch.has_color_categories or ch.has_color or ch.has_size):
         return layout^

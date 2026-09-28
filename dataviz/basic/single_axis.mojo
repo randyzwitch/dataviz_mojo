@@ -201,6 +201,7 @@ def _render_single_axis[
         y_err,
         mark,
         True,  # SingleAxis.supports_color_size: it reuses the point channels
+        False,  # SingleAxis.continuous_error_bars: no y-domain for a bar
         "Plot.encode_single_axis()",
     )
     _require_non_empty(len(continuous.x), "Plot.encode_single_axis()")
@@ -210,7 +211,11 @@ def _render_single_axis[
     var sc = _Scaled(theme)
     var ch = _PointChannels(channels, settings.theme, settings.color_domain, sc)
     var legend_reserve = _legend_reserve_for(
-        mark, settings.theme, ch, sc, cache=cache
+        True,  # SingleAxis.supports_color_size
+        settings.theme,
+        ch,
+        sc,
+        cache=cache,
     )
 
     var x_scale = _data_extent(continuous.x)

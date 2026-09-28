@@ -190,7 +190,8 @@ struct Theme(ImplicitlyCopyable, Movable):
     downsampling back down, for finer anti-aliasing at shape edges.
 
     Defaults to `0`, meaning automatic: the factor is chosen per mark by
-    `_auto_supersample()`, which is the list of record. It returns 1 for
+    `_auto_supersample()` from each mark type's `straight_edged`
+    constant, which is the list of record. It is 1 for
     the marks drawn entirely from straight-edged geometry -- rectangles
     and polygons, so bars, boxes, heatmaps, lines, areas, and also
     violins and radars, whose curved *look* is a polygon through many
