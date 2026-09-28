@@ -51,8 +51,10 @@ documentation build enforces the following contract:
 - At least one `Example:` contains a complete runnable Mojo program.
 - Example code imports chart constructors and core plotting symbols from
   `dataviz`. Specialist symbols come from their named public modules, such as
-  `dataviz.colors`, `dataviz.colormaps`, or `dataviz.histogram`; implementation
-  modules such as `dataviz.plot` are not example entry points.
+  `dataviz.core.colors`, `dataviz.core.colormaps`, or
+  `dataviz.binned.histogram` (the full list is `_is_public_example_import` in
+  `scripts/_example_docstrings.mojo`); implementation modules such as
+  `dataviz.plot` are not example entry points.
 - Every rendered example sets a non-empty chart title; label meaningful axes.
 - Each generated example writes beneath `docs/src/examples/` so its rendered
   output can appear beside the source.

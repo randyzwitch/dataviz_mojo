@@ -4,14 +4,13 @@ keywords" list (<https://www.w3.org/TR/css-color-3/#svg-color>) plus
 `Theme(mark_color=CORNFLOWERBLUE)` works instead of
 `Theme(mark_color=Color(100, 149, 237))`.
 
-The constants themselves moved to `canvas.named_colors` in canvas_mojo
-v0.18.0 -- this file's own docstring had said they could, "if another
-consumer wants the list", and one did. This module stays as a
-re-export rather than being deleted: `from dataviz.core.colors import RED`
-is the import the cookbook recipes and several `Example:` docstrings
-use, and it appears on the docs site, so removing the module would
-break documented usage for no gain. `from dataviz import RED` keeps
-working through `dataviz/__init__.mojo`'s star-import of this module.
+The constants themselves live in `canvas.named_colors` (moved there in
+canvas_mojo v0.18.0, when another consumer wanted the list). This module
+re-exports them so colors have a home inside `dataviz`, like the other
+specialist vocabulary (colormaps, palettes, markers): the package root
+keeps them out of `from dataviz import ...`, and
+`from dataviz.core.colors import RED` is the import the docs, cookbook
+recipes and `Example:` docstrings use.
 
 Names and values are unchanged by the move: all 148 constants match
 the previous list exactly, name for name and value for value.
