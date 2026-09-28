@@ -1,8 +1,8 @@
 """One minimal, valid `Plot` per `Mark`: the registry two sweeps share.
 
-It started inside `test_backend_equivalence.mojo`, which walks `Mark(0)`
-through `Mark(Mark.COUNT - 1)` and raises for a mark with no entry, so a
-mark added without one fails rather than quietly going untested.
+It started inside `test_backend_equivalence.mojo`, which walks every
+mark in `_every_mark()` and raises for a mark with no entry, so a mark
+added without one fails rather than quietly going untested.
 `test_output_digest.mojo` (#570) needs exactly the same coverage for
 exactly the same reason, and two copies of a table with one entry per
 mark is how one of them ends up missing a mark.
@@ -121,6 +121,92 @@ def _nested() -> List[List[Float64]]:
     out.append(r0^)
     out.append(r1^)
     return out^
+
+
+def _every_mark() -> List[Mark]:
+    """Every `Mark` constant, in value order: what the sweeps walk.
+
+    The one list of marks the tests keep. It cannot silently fall
+    behind `core/mark.mojo`: `test_every_mark_is_listed_once_in_value_order`
+    requires exactly `Mark.COUNT` entries valued `0` to `COUNT - 1` in
+    order, with distinct names, so a mark added with `COUNT` raised but
+    not listed here fails, and so does one listed out of place.
+    """
+    return [
+        Mark.POINT,
+        Mark.LINE,
+        Mark.BAR,
+        Mark.AREA,
+        Mark.ARC,
+        Mark.LOLLIPOP,
+        Mark.WATERFALL,
+        Mark.BOX,
+        Mark.CANDLESTICK,
+        Mark.BULLET,
+        Mark.GANTT,
+        Mark.GROUPED_BAR,
+        Mark.STACKED_BAR,
+        Mark.POPULATION_PYRAMID,
+        Mark.HEATMAP,
+        Mark.CHORD,
+        Mark.SINGLE_AXIS,
+        Mark.EFFECT_SCATTER,
+        Mark.FUNNEL,
+        Mark.BUMP,
+        Mark.STREAMGRAPH,
+        Mark.BEESWARM,
+        Mark.VIOLIN,
+        Mark.RIDGELINE,
+        Mark.NIGHTINGALE,
+        Mark.POLAR_BAR,
+        Mark.POLAR,
+        Mark.RADAR,
+        Mark.GAUGE,
+        Mark.PARALLEL,
+        Mark.SPAN_CHART,
+        Mark.CALENDAR_HEATMAP,
+        Mark.CORRPLOT,
+        Mark.PUNCHCARD,
+        Mark.MARIMEKKO,
+        Mark.SUNBURST,
+        Mark.TREE,
+        Mark.TREEMAP,
+        Mark.ARC_DIAGRAM,
+        Mark.GRAPH,
+        Mark.SANKEY,
+        Mark.RADIALBAR,
+        Mark.BARBS,
+        Mark.CONTOUR,
+        Mark.CONTOURF,
+        Mark.TRICONTOUR,
+        Mark.TRICONTOURF,
+        Mark.KDE,
+        Mark.RUG,
+        Mark.TRIPLOT,
+        Mark.TRIPCOLOR,
+        Mark.ECDF,
+        Mark.IMSHOW,
+        Mark.PCOLORMESH,
+        Mark.EVENTPLOT,
+        Mark.POINTPLOT,
+        Mark.BOXENPLOT,
+        Mark.HIST2D,
+        Mark.HEXBIN,
+        Mark.QUIVER,
+        Mark.HISTOGRAM,
+        Mark.STREAMPLOT,
+        Mark.DENDROGRAM,
+        Mark.SCATTER3D,
+        Mark.PLOT3D,
+        Mark.SURFACE3D,
+        Mark.WIRE3D,
+        Mark.TRISURF3D,
+        Mark.BAR3D,
+        Mark.VOXELS,
+        Mark.STEM3D,
+        Mark.QUIVER3D,
+        Mark.FILL_BETWEEN3D,
+    ]
 
 
 def _representative_plot(mark: Mark) raises -> AnyChart:

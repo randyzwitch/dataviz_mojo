@@ -13,8 +13,9 @@ last row is not a white hole, and the digest did not notice because
 nothing in the sweep renders a facet grid.
 
 **This list is hand-maintained.** `_mark_registry` gets its
-completeness from `Mark.COUNT` -- a sweep walks every enum value and
-raises for one with no entry, so a new mark cannot be forgotten. There
+completeness from `Mark.COUNT` -- its `_every_mark()` is held to exactly
+`COUNT` marks and every sweep raises for one with no entry, so a new
+mark cannot be forgotten. There
 is no enumeration of compositions to do the same here, so a new
 composition function goes uncovered until somebody adds it below.
 `_COMPOSITION_COUNT` is the one guard against the list silently

@@ -590,21 +590,13 @@ def _step_setter_name(mark: Mark) -> String:
     means a new stepped mark gets the right setter named with no edit
     here at all.
 
-    A mark outside the constants (`Mark(n)` is public) has no builder
-    name to derive, so it falls back to `Plot.mark_line(step=...)`,
-    which is what the old chain returned for everything it did not
-    list.
-
     Args:
         mark: The mark being drawn.
 
     Returns:
         The fully spelled builder call, ready to drop into a message.
     """
-    var name = mark.name()
-    if not name.startswith("Mark."):
-        return "Plot.mark_line(step=...)"
-    return "Plot.mark_" + String(name[byte=5:]).lower() + "(step=...)"
+    return "Plot.mark_" + String(mark.name()[byte=5:]).lower() + "(step=...)"
 
 
 def _check_step_smoothing(

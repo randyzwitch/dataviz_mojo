@@ -64,266 +64,124 @@ Vertical categorical marks share `_draw_categorical_axis_frame`
 LOLLIPOP/GROUPED_BAR/STACKED_BAR each have a `horizontal=True`
 variant.
 
-Adding a mark requires its constant and name, an updated `COUNT`, a
-representative plot in `tests/_mark_registry.mojo`, and a reviewed output
-digest, and a `Plot.mark_*()` setter that binds its renderer with
+Adding a mark requires its constant (value and name), an updated
+`COUNT`, an entry in `_every_mark()` and a representative plot in
+`tests/_mark_registry.mojo`, and a reviewed output digest, and a `Plot.mark_*()` setter that binds its renderer with
 `Plot._bind`; see the checklist in `plot.mojo`.
 """
 
 
 struct Mark(Copyable, ImplicitlyCopyable, Movable):
+    """A mark's runtime identity: its value, and its name, which the
+    constant states itself so no table maps one to the other (#854)."""
+
     var _value: Int
+    var _name: StaticString
 
-    comptime POINT = Self(0)
-    comptime LINE = Self(1)
-    comptime BAR = Self(2)
-    comptime AREA = Self(3)
-    comptime ARC = Self(4)
-    comptime LOLLIPOP = Self(5)
-    comptime WATERFALL = Self(6)
-    comptime BOX = Self(7)
-    comptime CANDLESTICK = Self(8)
-    comptime BULLET = Self(9)
-    comptime GANTT = Self(10)
-    comptime GROUPED_BAR = Self(11)
-    comptime STACKED_BAR = Self(12)
-    comptime POPULATION_PYRAMID = Self(13)
-    comptime HEATMAP = Self(14)
-    comptime CHORD = Self(15)
-    comptime SINGLE_AXIS = Self(16)
-    comptime EFFECT_SCATTER = Self(17)
-    comptime FUNNEL = Self(18)
-    comptime BUMP = Self(19)
-    comptime STREAMGRAPH = Self(20)
-    comptime BEESWARM = Self(21)
-    comptime VIOLIN = Self(22)
-    comptime RIDGELINE = Self(23)
-    comptime NIGHTINGALE = Self(24)
-    comptime POLAR_BAR = Self(25)
-    comptime POLAR = Self(26)
-    comptime RADAR = Self(27)
-    comptime GAUGE = Self(28)
-    comptime PARALLEL = Self(29)
-    comptime SPAN_CHART = Self(30)
-    comptime CALENDAR_HEATMAP = Self(31)
-    comptime CORRPLOT = Self(32)
-    comptime PUNCHCARD = Self(33)
-    comptime MARIMEKKO = Self(34)
-    comptime SUNBURST = Self(35)
-    comptime TREE = Self(36)
-    comptime TREEMAP = Self(37)
-    comptime ARC_DIAGRAM = Self(38)
-    comptime GRAPH = Self(39)
-    comptime SANKEY = Self(40)
-    comptime RADIALBAR = Self(41)
-    comptime BARBS = Self(42)
-    comptime CONTOUR = Self(43)
-    comptime CONTOURF = Self(44)
-    comptime TRICONTOUR = Self(45)
-    comptime TRICONTOURF = Self(46)
-    comptime KDE = Self(47)
-    comptime RUG = Self(48)
-    comptime TRIPLOT = Self(49)
-    comptime TRIPCOLOR = Self(50)
-    comptime ECDF = Self(51)
-    comptime IMSHOW = Self(52)
-    comptime PCOLORMESH = Self(53)
-    comptime EVENTPLOT = Self(54)
+    comptime POINT = Self(0, "POINT")
+    comptime LINE = Self(1, "LINE")
+    comptime BAR = Self(2, "BAR")
+    comptime AREA = Self(3, "AREA")
+    comptime ARC = Self(4, "ARC")
+    comptime LOLLIPOP = Self(5, "LOLLIPOP")
+    comptime WATERFALL = Self(6, "WATERFALL")
+    comptime BOX = Self(7, "BOX")
+    comptime CANDLESTICK = Self(8, "CANDLESTICK")
+    comptime BULLET = Self(9, "BULLET")
+    comptime GANTT = Self(10, "GANTT")
+    comptime GROUPED_BAR = Self(11, "GROUPED_BAR")
+    comptime STACKED_BAR = Self(12, "STACKED_BAR")
+    comptime POPULATION_PYRAMID = Self(13, "POPULATION_PYRAMID")
+    comptime HEATMAP = Self(14, "HEATMAP")
+    comptime CHORD = Self(15, "CHORD")
+    comptime SINGLE_AXIS = Self(16, "SINGLE_AXIS")
+    comptime EFFECT_SCATTER = Self(17, "EFFECT_SCATTER")
+    comptime FUNNEL = Self(18, "FUNNEL")
+    comptime BUMP = Self(19, "BUMP")
+    comptime STREAMGRAPH = Self(20, "STREAMGRAPH")
+    comptime BEESWARM = Self(21, "BEESWARM")
+    comptime VIOLIN = Self(22, "VIOLIN")
+    comptime RIDGELINE = Self(23, "RIDGELINE")
+    comptime NIGHTINGALE = Self(24, "NIGHTINGALE")
+    comptime POLAR_BAR = Self(25, "POLAR_BAR")
+    comptime POLAR = Self(26, "POLAR")
+    comptime RADAR = Self(27, "RADAR")
+    comptime GAUGE = Self(28, "GAUGE")
+    comptime PARALLEL = Self(29, "PARALLEL")
+    comptime SPAN_CHART = Self(30, "SPAN_CHART")
+    comptime CALENDAR_HEATMAP = Self(31, "CALENDAR_HEATMAP")
+    comptime CORRPLOT = Self(32, "CORRPLOT")
+    comptime PUNCHCARD = Self(33, "PUNCHCARD")
+    comptime MARIMEKKO = Self(34, "MARIMEKKO")
+    comptime SUNBURST = Self(35, "SUNBURST")
+    comptime TREE = Self(36, "TREE")
+    comptime TREEMAP = Self(37, "TREEMAP")
+    comptime ARC_DIAGRAM = Self(38, "ARC_DIAGRAM")
+    comptime GRAPH = Self(39, "GRAPH")
+    comptime SANKEY = Self(40, "SANKEY")
+    comptime RADIALBAR = Self(41, "RADIALBAR")
+    comptime BARBS = Self(42, "BARBS")
+    comptime CONTOUR = Self(43, "CONTOUR")
+    comptime CONTOURF = Self(44, "CONTOURF")
+    comptime TRICONTOUR = Self(45, "TRICONTOUR")
+    comptime TRICONTOURF = Self(46, "TRICONTOURF")
+    comptime KDE = Self(47, "KDE")
+    comptime RUG = Self(48, "RUG")
+    comptime TRIPLOT = Self(49, "TRIPLOT")
+    comptime TRIPCOLOR = Self(50, "TRIPCOLOR")
+    comptime ECDF = Self(51, "ECDF")
+    comptime IMSHOW = Self(52, "IMSHOW")
+    comptime PCOLORMESH = Self(53, "PCOLORMESH")
+    comptime EVENTPLOT = Self(54, "EVENTPLOT")
 
-    comptime POINTPLOT = Self(55)
-    comptime BOXENPLOT = Self(56)
-    comptime HIST2D = Self(57)
-    comptime HEXBIN = Self(58)
-    comptime QUIVER = Self(59)
-    comptime HISTOGRAM = Self(60)
-    comptime STREAMPLOT = Self(61)
-    comptime DENDROGRAM = Self(62)
-    comptime SCATTER3D = Self(63)
-    comptime PLOT3D = Self(64)
-    comptime SURFACE3D = Self(65)
-    comptime WIRE3D = Self(66)
-    comptime TRISURF3D = Self(67)
-    comptime BAR3D = Self(68)
-    comptime VOXELS = Self(69)
-    comptime STEM3D = Self(70)
-    comptime QUIVER3D = Self(71)
-    comptime FILL_BETWEEN3D = Self(72)
+    comptime POINTPLOT = Self(55, "POINTPLOT")
+    comptime BOXENPLOT = Self(56, "BOXENPLOT")
+    comptime HIST2D = Self(57, "HIST2D")
+    comptime HEXBIN = Self(58, "HEXBIN")
+    comptime QUIVER = Self(59, "QUIVER")
+    comptime HISTOGRAM = Self(60, "HISTOGRAM")
+    comptime STREAMPLOT = Self(61, "STREAMPLOT")
+    comptime DENDROGRAM = Self(62, "DENDROGRAM")
+    comptime SCATTER3D = Self(63, "SCATTER3D")
+    comptime PLOT3D = Self(64, "PLOT3D")
+    comptime SURFACE3D = Self(65, "SURFACE3D")
+    comptime WIRE3D = Self(66, "WIRE3D")
+    comptime TRISURF3D = Self(67, "TRISURF3D")
+    comptime BAR3D = Self(68, "BAR3D")
+    comptime VOXELS = Self(69, "VOXELS")
+    comptime STEM3D = Self(70, "STEM3D")
+    comptime QUIVER3D = Self(71, "QUIVER3D")
+    comptime FILL_BETWEEN3D = Self(72, "FILL_BETWEEN3D")
     comptime COUNT = 73
     """How many marks exist -- one past the largest value above.
 
-    The layout, output-digest, and callback ownership sweeps read this.
-    Each walks `Mark(0)` through `Mark(COUNT - 1)` and requires a
-    representative dataset for each, so a mark *below* `COUNT` added
-    without one fails loudly instead of silently going untested.
+    The sweeps walk `_every_mark()` (tests/_mark_registry.mojo), a list
+    of the constants above, and require a representative dataset for
+    each, so a mark in the list without one fails loudly instead of
+    silently going untested.
 
-    That protection does not reach `COUNT` itself. A mark added at or
-    past it is never visited, so every sweep skips it and nothing fails
-    -- which is how #634 happened. Raise it in the same edit that adds
-    the mark above. `test_count_is_one_past_the_last_named_mark` fails
-    when it is not, by asking `name()` whether the value at `COUNT` has
-    a constant.
+    `COUNT` is the second record that makes a mark left out of that
+    list visible: `test_every_mark_is_listed_once_in_value_order` fails
+    unless the list holds exactly `COUNT` marks, valued `0` to
+    `COUNT - 1` in order. Raise it in the same edit that adds a mark
+    above -- #634 was a mark past `COUNT` that every sweep skipped.
     """
 
-    def __init__(out self, value: Int):
+    def __init__(out self, value: Int, name: StaticString):
+        """For the constants above, which state both halves; there is no
+        `Mark(n)` to build an unnamed mark from a bare number.
+
+        Args:
+            value: The mark's value, `0` to `COUNT - 1`.
+            name: The constant's own name, without the `Mark.` prefix.
+        """
         self._value = value
+        self._name = name
 
     def __eq__(self, other: Self) -> Bool:
         return self._value == other._value
 
     def name(self) -> String:
-        """Return the qualified constant name used in error messages.
-
-        Returns:
-            The constant's qualified name, or `"Mark(<n>)"` for a value
-            outside the constants above -- which is reachable, since
-            `Mark(n)` is public and the sweep in
-            tests/test_rendering.mojo constructs marks by
-            number.
-        """
-        if self == Self.POINT:
-            return "Mark.POINT"
-        if self == Self.LINE:
-            return "Mark.LINE"
-        if self == Self.BAR:
-            return "Mark.BAR"
-        if self == Self.AREA:
-            return "Mark.AREA"
-        if self == Self.ARC:
-            return "Mark.ARC"
-        if self == Self.LOLLIPOP:
-            return "Mark.LOLLIPOP"
-        if self == Self.POINTPLOT:
-            return "Mark.POINTPLOT"
-        if self == Self.BOXENPLOT:
-            return "Mark.BOXENPLOT"
-        if self == Self.HIST2D:
-            return "Mark.HIST2D"
-        if self == Self.HEXBIN:
-            return "Mark.HEXBIN"
-        if self == Self.QUIVER:
-            return "Mark.QUIVER"
-        if self == Self.HISTOGRAM:
-            return "Mark.HISTOGRAM"
-        if self == Self.STREAMPLOT:
-            return "Mark.STREAMPLOT"
-        if self == Self.DENDROGRAM:
-            return "Mark.DENDROGRAM"
-        if self == Self.SCATTER3D:
-            return "Mark.SCATTER3D"
-        if self == Self.PLOT3D:
-            return "Mark.PLOT3D"
-        if self == Self.SURFACE3D:
-            return "Mark.SURFACE3D"
-        if self == Self.WIRE3D:
-            return "Mark.WIRE3D"
-        if self == Self.TRISURF3D:
-            return "Mark.TRISURF3D"
-        if self == Self.BAR3D:
-            return "Mark.BAR3D"
-        if self == Self.VOXELS:
-            return "Mark.VOXELS"
-        if self == Self.STEM3D:
-            return "Mark.STEM3D"
-        if self == Self.QUIVER3D:
-            return "Mark.QUIVER3D"
-        if self == Self.FILL_BETWEEN3D:
-            return "Mark.FILL_BETWEEN3D"
-        if self == Self.WATERFALL:
-            return "Mark.WATERFALL"
-        if self == Self.BOX:
-            return "Mark.BOX"
-        if self == Self.CANDLESTICK:
-            return "Mark.CANDLESTICK"
-        if self == Self.BULLET:
-            return "Mark.BULLET"
-        if self == Self.GANTT:
-            return "Mark.GANTT"
-        if self == Self.GROUPED_BAR:
-            return "Mark.GROUPED_BAR"
-        if self == Self.STACKED_BAR:
-            return "Mark.STACKED_BAR"
-        if self == Self.POPULATION_PYRAMID:
-            return "Mark.POPULATION_PYRAMID"
-        if self == Self.HEATMAP:
-            return "Mark.HEATMAP"
-        if self == Self.CHORD:
-            return "Mark.CHORD"
-        if self == Self.SINGLE_AXIS:
-            return "Mark.SINGLE_AXIS"
-        if self == Self.EFFECT_SCATTER:
-            return "Mark.EFFECT_SCATTER"
-        if self == Self.FUNNEL:
-            return "Mark.FUNNEL"
-        if self == Self.BUMP:
-            return "Mark.BUMP"
-        if self == Self.STREAMGRAPH:
-            return "Mark.STREAMGRAPH"
-        if self == Self.BEESWARM:
-            return "Mark.BEESWARM"
-        if self == Self.VIOLIN:
-            return "Mark.VIOLIN"
-        if self == Self.RIDGELINE:
-            return "Mark.RIDGELINE"
-        if self == Self.NIGHTINGALE:
-            return "Mark.NIGHTINGALE"
-        if self == Self.POLAR_BAR:
-            return "Mark.POLAR_BAR"
-        if self == Self.POLAR:
-            return "Mark.POLAR"
-        if self == Self.RADAR:
-            return "Mark.RADAR"
-        if self == Self.GAUGE:
-            return "Mark.GAUGE"
-        if self == Self.PARALLEL:
-            return "Mark.PARALLEL"
-        if self == Self.SPAN_CHART:
-            return "Mark.SPAN_CHART"
-        if self == Self.CALENDAR_HEATMAP:
-            return "Mark.CALENDAR_HEATMAP"
-        if self == Self.CORRPLOT:
-            return "Mark.CORRPLOT"
-        if self == Self.PUNCHCARD:
-            return "Mark.PUNCHCARD"
-        if self == Self.MARIMEKKO:
-            return "Mark.MARIMEKKO"
-        if self == Self.SUNBURST:
-            return "Mark.SUNBURST"
-        if self == Self.TREE:
-            return "Mark.TREE"
-        if self == Self.TREEMAP:
-            return "Mark.TREEMAP"
-        if self == Self.ARC_DIAGRAM:
-            return "Mark.ARC_DIAGRAM"
-        if self == Self.GRAPH:
-            return "Mark.GRAPH"
-        if self == Self.SANKEY:
-            return "Mark.SANKEY"
-        if self == Self.RADIALBAR:
-            return "Mark.RADIALBAR"
-        if self == Self.BARBS:
-            return "Mark.BARBS"
-        if self == Self.CONTOUR:
-            return "Mark.CONTOUR"
-        if self == Self.CONTOURF:
-            return "Mark.CONTOURF"
-        if self == Self.TRICONTOUR:
-            return "Mark.TRICONTOUR"
-        if self == Self.TRICONTOURF:
-            return "Mark.TRICONTOURF"
-        if self == Self.KDE:
-            return "Mark.KDE"
-        if self == Self.RUG:
-            return "Mark.RUG"
-        if self == Self.TRIPLOT:
-            return "Mark.TRIPLOT"
-        if self == Self.TRIPCOLOR:
-            return "Mark.TRIPCOLOR"
-        if self == Self.ECDF:
-            return "Mark.ECDF"
-        if self == Self.IMSHOW:
-            return "Mark.IMSHOW"
-        if self == Self.PCOLORMESH:
-            return "Mark.PCOLORMESH"
-        if self == Self.EVENTPLOT:
-            return "Mark.EVENTPLOT"
-        return "Mark(" + String(self._value) + ")"
+        """Return the qualified constant name used in error messages:
+        `Mark.POINT` for `Mark.POINT`."""
+        return "Mark." + String(self._name)
