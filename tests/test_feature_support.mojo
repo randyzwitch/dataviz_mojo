@@ -1,5 +1,6 @@
-"""The feature-support table (`Mark.supports`, mark.mojo) against what
-the code does, for every mark and every feature (#213).
+"""The feature-support table (each mark type's `supports_*` constants,
+read here through the representative plot's `capabilities()`) against
+what the code does, for every mark and every feature (#213).
 
 The sweep turns each feature on for every mark's representative plot
 and asks the output, not the source: a `<title>` appears or does not,
@@ -22,7 +23,6 @@ from _mark_registry import _H, _W, _representative_plot
 from dataviz.chart import ChartLike
 from dataviz.marks import DendrogramMark, Histogram
 from dataviz.core.mark import Mark
-from dataviz.marks import _capabilities_of
 from dataviz.core.theme import Theme
 from dataviz.core.tooltips import Tooltips
 from dataviz.plot import Plot
@@ -144,9 +144,9 @@ def test_auto_tooltips_switch_off_exactly_past_each_mark_s_own_count() raises:
     draw none (#700)."""
     var mismatches = List[String]()
     for mark in _every_mark():
-        if not _capabilities_of(mark).tooltips:
-            continue
         var plot = _representative_plot(mark)
+        if not plot.capabilities().tooltips:
+            continue
         var drawn = _count(_svg(plot.copy().tooltips(Tooltips.ON)), "<title>")
         var at = plot.copy()
         at.settings.theme.auto_tooltip_limit = drawn
@@ -174,7 +174,7 @@ def test_every_mark_matches_the_table() raises:
     var c: List[Float64] = [0.1, 0.5, 0.9]
     for mark in _every_mark():
         var plot = _representative_plot(mark)
-        var caps = _capabilities_of(mark)
+        var caps = plot.capabilities()
         var base = _svg(plot)
 
         # Tooltips.AUTO is the default and every representative plot is
