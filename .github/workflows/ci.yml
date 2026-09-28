@@ -78,7 +78,7 @@ jobs:
           pixi-version: v0.78.0
           cache: true
 
-      - name: Run MAX adapter tests under the Mojo 1.1 environment
+      - name: Run MAX adapter tests under the Mojo 1.2 environment
         run: pixi run -e max-adapter test-max-adapter
 
   package:
@@ -118,7 +118,7 @@ jobs:
           [workspace]
           name = "dataviz-consumer-check"
           version = "0.0.0"
-          channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
+          channels = [{ channel = "https://conda.modular.com/max-nightly", exclude-newer = "2026-09-21T12:00:00Z" }, "https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
           platforms = ["$consumer_platform"]
           preview = ["pixi-build"]
 
@@ -221,7 +221,7 @@ jobs:
           [workspace]
           name = "fontless-consumer"
           version = "0.0.0"
-          channels = ["https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
+          channels = [{ channel = "https://conda.modular.com/max-nightly", exclude-newer = "2026-09-21T12:00:00Z" }, "https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
           platforms = ["linux-64"]
           preview = ["pixi-build"]
 
