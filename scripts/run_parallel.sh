@@ -15,6 +15,13 @@
 # docs example prints no summary by design, so the summary is a note on a
 # failure and never a failure by itself.
 #
+# A file passed here can itself be a batch driver covering several test
+# modules (scripts/build_test_batches.mojo), sharing one compile. A
+# driver names each module it ran before running it and each one that
+# failed, so the trailing summary below greps a failing driver's own
+# output for those names -- a crash still names only the driver, since
+# nothing after the crash ran to say otherwise.
+#
 # Each module also gets a wall-clock timeout (#535). The toolchain
 # occasionally deadlocks under parallel load: every thread of a `mojo
 # run` parks on a futex at zero CPU and the process never exits. Without
@@ -101,10 +108,12 @@ else
 fi
 REQUESTED=$#
 STATUS_DIR="$(mktemp -d)"
-trap 'rm -rf "$STATUS_DIR"' EXIT
+LOG_DIR="$(mktemp -d)"
+trap 'rm -rf "$STATUS_DIR" "$LOG_DIR"' EXIT
 
-# One status file per failing module, named after the module, so parallel
-# workers never write to the same file and nothing is lost to interleaving.
+# One status (and log) file per failing module, named after the module, so
+# parallel workers never write to the same file and nothing is lost to
+# interleaving.
 code=0
 printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
     case "$4" in
@@ -131,16 +140,21 @@ printf '%s\n' "$@" | xargs -P "$CORES" -I {} bash -c '
                 esac
                 ;;
         esac
-        printf "%s\t%s%s\n" "$1" "$status" "$note" \
-            > "$2/$(printf "%s" "$1" | tr "/." "__")"
+        name="$(printf "%s" "$1" | tr "/." "__")"
+        printf "%s\n" "$out" > "$6/$name"
+        printf "%s\t%s%s\n" "$1" "$status" "$note" > "$2/$name"
     fi
-' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$GUARD" "$GUARD_SCRIPT" || code=$?
+' _ {} "$STATUS_DIR" "$MODULE_TIMEOUT" "$GUARD" "$GUARD_SCRIPT" "$LOG_DIR" \
+    || code=$?
 
 FAILED="$(find "$STATUS_DIR" -type f | wc -l)"
 printf '\n%s of %s modules ran clean.\n' "$((REQUESTED - FAILED))" "$REQUESTED"
 if [ "$FAILED" -ne 0 ]; then
     for status_file in "$STATUS_DIR"/*; do
         while IFS=$'\t' read -r module detail; do
+            # A batch driver names the modules it ran; a plain module
+            # doesn't print that line, so this greps nothing for one.
+            grep -h '^FAILED: ' "$LOG_DIR/$(basename "$status_file")" || true
             printf 'FAILED: %s (exit %s)\n' "$module" "$detail"
         done < "$status_file"
     done

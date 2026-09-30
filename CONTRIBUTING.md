@@ -13,6 +13,18 @@ pixi run docs
 Use `pixi run test` instead of `test-changed` before merging changes that
 affect shared rendering, encoding, scale, or layout behavior.
 
+## Testing
+
+`pixi run test` groups `tests/test_*.mojo` into a handful of batch drivers
+(`scripts/build_test_batches.mojo`) before running them, since compiling the
+library, not running the tests, is most of a test run, and each module
+compiles it again on its own. A module joins a driver when its `main()` is
+the standard `TestSuite.discover_tests[__functions_in_module()]().run()`;
+write tests as top-level `def test_x() raises:` functions and leave `main()`
+alone, or the module falls back to running by itself. `test-changed` and
+explicit `scripts/run_parallel.sh` invocations run named modules ungrouped,
+for a quick local check.
+
 ## Public API docstrings
 
 Public callables use this structure:

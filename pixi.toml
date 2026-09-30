@@ -63,7 +63,11 @@ MBLACK_CACHE_DIR = "$PIXI_PROJECT_ROOT/.pixi/mblack-cache"
 # the batches in parallel. Quickstart examples use `example-quickstart`.
 example = "mkdir -p docs/src/examples && rm -rf docs/src/examples/verify && rm -f docs/src/examples/*.mojo docs/src/examples/out_* && mojo run -I . -I scripts scripts/extract_docstring_examples.mojo && mojo run -I . -I scripts scripts/build_verify_batches.mojo && bash scripts/run_parallel.sh docs/src/examples/verify/*.mojo"
 example-quickstart = "bash scripts/run_parallel.sh docs/src/examples/quickstart/*.mojo"
-test = "bash scripts/run_parallel.sh tests/test_*.mojo"
+# Groups tests/test_*.mojo into a handful of batch drivers first, so the
+# library they share compiles once per driver instead of once per module
+# (scripts/run_tests.sh, scripts/build_test_batches.mojo). `test-changed`
+# runs named modules ungrouped, for a quick local check.
+test = "bash scripts/run_tests.sh"
 # The parallel runner's own timeout guard. `test` runs Mojo modules and
 # cannot see the runner that launches them, so a guard that quietly stops
 # working leaves a green suite and a run that never ends (#543).
