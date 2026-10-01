@@ -91,9 +91,9 @@ def test_an_unbound_render_slot_refuses() raises:
         _ = render_facets_svg(canvas_only, cols=1)
 
     var svg_only: List[AnyChart] = [
-        AnyChart.bound[canvas=False, svg=True, pdf=False, bounds=False](
-            line(_xs(), _vals())
-        )
+        AnyChart.bound[
+            canvas=False, svg=True, pdf=False, bounds=False, display_list=False
+        ](line(_xs(), _vals()))
     ]
     with assert_raises(contains="erased without a render for this draw"):
         _ = render_facets(svg_only, cols=1)

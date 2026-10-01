@@ -350,6 +350,8 @@ def _render_calendar_heatmap[
             snap_to_pixel_edge(y_stop) - cell_y,
             color,
         )
+        if tooltips_on:
+            target.end_annotated_group()
 
     _draw_continuous_color_legend_at(
         target,

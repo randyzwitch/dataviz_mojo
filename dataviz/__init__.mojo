@@ -37,7 +37,7 @@ from dataviz.core.x_label_rotation import XAxisLabelRotation
 from dataviz.plot import Plot
 from dataviz.chart import AnyChart, Chart
 from dataviz.basic.continuous import area, line, scatter
-from dataviz.rendering import render, render_pdf, render_svg, save
+from dataviz.rendering import record, render, render_pdf, render_svg, save
 from dataviz.facets import (
     render_facets,
     render_facets_pdf,

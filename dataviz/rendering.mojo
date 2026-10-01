@@ -11,6 +11,7 @@ follows."""
 from dataviz.core.chart_settings import _ChartSettings
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
+from canvas.display_list import DisplayList
 from canvas.io.bmp import write_bmp
 from canvas.io.png import write_png
 from canvas.vector.draw_target import DrawTarget
@@ -829,6 +830,69 @@ def _render_pdf_into[
     )
     _replay_text_requests(pdf, drawn.text, cache)
     return (drawn.px0, drawn.py0, drawn.px1, drawn.py1)
+
+
+def record[
+    C: ChartLike
+](plot: C, output: OutputFormat = OutputFormat.PNG) raises -> DisplayList:
+    """Record `plot` into a `DisplayList` that owns the finished drawing
+    and can be replayed into any draw target, as often as needed (#862).
+
+    The recording is the whole figure in the order a direct render draws
+    it: the background, the axes and the mark, the annotations, then
+    every label, styled run and math rule. It owns every string, run,
+    path and image it was handed, so it outlives `plot`, and replaying
+    it into a `Canvas`, `SvgCanvas` or `PdfCanvas` draws what `render()`,
+    `render_svg()` or `render_pdf()` would. `render()` and the other
+    direct entry points are unchanged and record nothing.
+
+    A recording is one finished layout at `plot.canvas_width()` by
+    `plot.canvas_height()` with the plot's theme. Replaying it under a
+    scale transform scales that layout; it does not pick new ticks,
+    rewrap labels or move a legend. For another size, `size()` the
+    chart again and record again.
+
+    Raster replay is not supersampled for you: to match `render()`,
+    replay between the canvas's `begin_supersampled()` and
+    `end_supersampled()` at the plot's `Theme.raster_supersample`.
+
+    An erased chart is recorded through its display-list slot, which
+    `erased()` leaves unbound; erase it with
+    `erased_with[display_list=True]()`.
+
+    Args:
+        plot: The chart to record.
+        output: The kind of target the recording will be replayed into.
+            A few marks draw differently for a vector target: a large
+            `imshow()` grid is one image there rather than a rect per
+            cell. `OutputFormat.SVG` or `OutputFormat.PDF` records that
+            form; `PNG` or `BMP` (the default) the raster one. Either
+            recording replays into any target.
+
+    Returns:
+        The recorded figure.
+
+    Raises:
+        Error: Whatever rendering the plot raises.
+    """
+    var vector_target = output == OutputFormat.SVG or output == OutputFormat.PDF
+    var recording = DisplayList()
+    # Fonts are measured while laying out and resolved again at replay;
+    # the recording keeps text, never this cache.
+    var cache = FontCache()
+    var drawn = _draw_figure_into(
+        recording,
+        plot,
+        0,
+        0,
+        plot.canvas_width(),
+        plot.canvas_height(),
+        True,
+        vector_target,
+        cache,
+    )
+    _replay_text_requests(recording, drawn.text, cache)
+    return recording^
 
 
 def _at_dpi[
