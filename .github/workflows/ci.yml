@@ -100,77 +100,19 @@ jobs:
           pixi-version: v0.78.0
           cache: true
 
-      # The consumer's path dependency below builds this package with the
-      # same pixi-build-mojo backend, so it is the build check. A separate
+      # The consumer's path dependency builds this package with the
+      # pixi-build-mojo backend, so it is the build check. A separate
       # `pixi build` step used to run first; pixi deprecated that command
       # in 0.68 in favor of `pixi publish`, which refuses a package whose
       # run dependencies come from source (canvas_mojo's git pin), so the
-      # step went rather than the warning staying.
-      - name: Create a throwaway consumer workspace
-        run: |
-          mkdir -p "$RUNNER_TEMP/consumer"
-          case "$(uname -m)" in
-            x86_64) consumer_platform=linux-64 ;;
-            aarch64) consumer_platform=linux-aarch64 ;;
-            *) echo "unsupported consumer architecture: $(uname -m)"; exit 1 ;;
-          esac
-          cat > "$RUNNER_TEMP/consumer/pixi.toml" <<EOF
-          [workspace]
-          name = "dataviz-consumer-check"
-          version = "0.0.0"
-          channels = [{ channel = "https://conda.modular.com/max-nightly", exclude-newer = "2026-09-21T12:00:00Z" }, "https://conda.modular.com/max", "https://repo.prefix.dev/modular-community", "conda-forge"]
-          platforms = ["$consumer_platform"]
-          preview = ["pixi-build"]
-
-          [dependencies]
-          dataviz_mojo = { path = "$GITHUB_WORKSPACE" }
-          EOF
-          cat > "$RUNNER_TEMP/consumer/consumer.mojo" <<'EOF'
-          from dataviz import bar, save
-
-          def main() raises:
-              var cats: List[String] = ["a", "b", "c"]
-              var vals: List[Float64] = [3.0, 1.0, 2.0]
-              var c = bar(cats, vals, title="Consumer check")
-              save(c, "out.svg")
-              save(c, "out.png")
-              print("consumer ok")
-          EOF
-
-      # The build backend runs here, so this is where its output can be
-      # read. Kept as one step for that reason: the backend only builds
-      # on the first `pixi run`, so splitting the assertions into a step
-      # of their own would find nothing to assert against.
-      - name: Compile and run the consumer, and check how it was packaged
-        working-directory: ${{ runner.temp }}/consumer
-        run: |
-          set -o pipefail
-          pixi run mojo run consumer.mojo 2>&1 | tee build.log
-          # pixi-build-mojo below 0.2.6 packages with `mojo package` into
-          # a .mojopkg and warns twice while doing it (#603). Those
-          # warnings are the only symptom, so without this the backend
-          # can quietly fall back and nothing fails.
-          grep -q "mojo precompile" build.log || {
-            echo "the backend did not use 'mojo precompile' -- it resolved"
-            echo "an older pixi-build-mojo than intended. Check that the"
-            echo "pixi-version above is new enough for the backend's"
-            echo "pixi-build-api-version (7 needs pixi 0.77.0 or later)."
-            exit 1
-          }
-          if grep -qE "'package' is deprecated|'\.mojopkg' file extensions is deprecated" build.log; then
-            echo "the packaging deprecation warnings of #603 are back:"
-            grep -E "deprecated" build.log
-            exit 1
-          fi
-          echo "packaged with precompile, no packaging deprecation warnings"
-
-      - name: Assert both outputs exist and are non-empty
-        working-directory: ${{ runner.temp }}/consumer
-        run: |
-          test -s out.svg || { echo "out.svg missing or empty"; exit 1; }
-          test -s out.png || { echo "out.png missing or empty"; exit 1; }
-          head -c 64 out.svg; echo
-          ls -l out.svg out.png
+      # step went rather than the warning staying. `pixi build` also
+      # ignores the nightly channel's `exclude-newer` for the source
+      # dependencies (#863), so it is no stand-in locally either; this
+      # script is `pixi run check-consumer`. It takes the channels from
+      # pixi.toml, builds, runs the consumer, and checks the backend
+      # used `mojo precompile` without the #603 deprecation warnings.
+      - name: Build the package and run a consumer against it
+        run: python3 scripts/check_consumer.py "$RUNNER_TEMP/consumer"
 
       # Each mark_*() setter binds only its own renderer. #817 compiled
       # every mark family into every program and doubled compile time
