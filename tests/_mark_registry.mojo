@@ -17,7 +17,8 @@ from std.math import cos, sin
 from canvas.buffer import Canvas
 from canvas.text.font_cache import FontCache
 from canvas.vector.svg import SvgCanvas
-from dataviz.chart import AnyChart
+from dataviz.chart import AnyChart, Chart
+from dataviz.mark_type import MarkType
 from dataviz.core.colors import WHITE
 from dataviz.core.cluster import linkage
 from dataviz.core.mark import Mark
@@ -209,6 +210,15 @@ def _every_mark() -> List[Mark]:
     ]
 
 
+def _erased[M: MarkType](chart: Chart[M]) -> AnyChart:
+    """`chart` erased with every render slot bound, the display list's
+    included, so a sweep can hand the same entry to `render()`,
+    `render_svg()`, `render_pdf()` or `record()` (#862)."""
+    return chart.erased_with[
+        canvas=True, svg=True, pdf=True, bounds=True, display_list=True
+    ]()
+
+
 def _representative_plot(mark: Mark) raises -> AnyChart:
     """One minimal, valid `Plot` per mark, built through the mark's own
     one-call function so the shape is whatever that function guarantees
@@ -234,51 +244,51 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
     var series: List[String] = ["s1", "s2"]
 
     if mark == Mark.POINT:
-        return AnyChart(scatter(xs, ys, width=_W, height=_H))
+        return _erased(scatter(xs, ys, width=_W, height=_H))
     if mark == Mark.LINE:
-        return AnyChart(line(xs, ys, width=_W, height=_H))
+        return _erased(line(xs, ys, width=_W, height=_H))
     if mark == Mark.AREA:
-        return AnyChart(area(xs, ys, width=_W, height=_H))
+        return _erased(area(xs, ys, width=_W, height=_H))
     if mark == Mark.HISTOGRAM:
-        return AnyChart(histogram(ys, bins=4, width=_W, height=_H))
+        return _erased(histogram(ys, bins=4, width=_W, height=_H))
     if mark == Mark.EFFECT_SCATTER:
-        return AnyChart(effect_scatter(xs, ys, width=_W, height=_H))
+        return _erased(effect_scatter(xs, ys, width=_W, height=_H))
     if mark == Mark.SINGLE_AXIS:
-        return AnyChart(single_axis(xs, width=_W, height=_H))
+        return _erased(single_axis(xs, width=_W, height=_H))
     if mark == Mark.BAR:
-        return AnyChart(bar(cats, vals, width=_W, height=_H))
+        return _erased(bar(cats, vals, width=_W, height=_H))
     if mark == Mark.LOLLIPOP:
-        return AnyChart(lollipop(cats, vals, width=_W, height=_H))
+        return _erased(lollipop(cats, vals, width=_W, height=_H))
     if mark == Mark.POINTPLOT:
-        return AnyChart(pointplot(cats, vals, width=_W, height=_H))
+        return _erased(pointplot(cats, vals, width=_W, height=_H))
     if mark == Mark.ARC:
-        return AnyChart(pie(cats, vals, width=_W, height=_H))
+        return _erased(pie(cats, vals, width=_W, height=_H))
     if mark == Mark.FUNNEL:
-        return AnyChart(funnel(cats, vals, width=_W, height=_H))
+        return _erased(funnel(cats, vals, width=_W, height=_H))
     if mark == Mark.NIGHTINGALE:
-        return AnyChart(nightingale(cats, vals, width=_W, height=_H))
+        return _erased(nightingale(cats, vals, width=_W, height=_H))
     if mark == Mark.POLAR_BAR:
-        return AnyChart(polarbar(cats, vals, width=_W, height=_H))
+        return _erased(polarbar(cats, vals, width=_W, height=_H))
     if mark == Mark.RADIALBAR:
-        return AnyChart(radialbar(cats, vals, width=_W, height=_H))
+        return _erased(radialbar(cats, vals, width=_W, height=_H))
     if mark == Mark.WATERFALL:
-        return AnyChart(waterfall(cats, vals, width=_W, height=_H))
+        return _erased(waterfall(cats, vals, width=_W, height=_H))
     if mark == Mark.BOX:
-        return AnyChart(box(cats, _box_values(), width=_W, height=_H))
+        return _erased(box(cats, _box_values(), width=_W, height=_H))
     if mark == Mark.BOXENPLOT:
-        return AnyChart(boxenplot(cats, _box_values(), width=_W, height=_H))
+        return _erased(boxenplot(cats, _box_values(), width=_W, height=_H))
     if mark == Mark.BEESWARM:
-        return AnyChart(beeswarm(cats, _box_values(), width=_W, height=_H))
+        return _erased(beeswarm(cats, _box_values(), width=_W, height=_H))
     if mark == Mark.VIOLIN:
-        return AnyChart(violin(cats, _box_values(), width=_W, height=_H))
+        return _erased(violin(cats, _box_values(), width=_W, height=_H))
     if mark == Mark.RIDGELINE:
-        return AnyChart(ridgeline(cats, _box_values(), width=_W, height=_H))
+        return _erased(ridgeline(cats, _box_values(), width=_W, height=_H))
     if mark == Mark.CANDLESTICK:
         var o: List[Float64] = [1.0, 2.0, 3.0]
         var h: List[Float64] = [4.0, 5.0, 6.0]
         var lo: List[Float64] = [0.5, 1.5, 2.5]
         var cl: List[Float64] = [3.0, 4.0, 5.0]
-        return AnyChart(candlestick(cats, o, h, lo, cl, width=_W, height=_H))
+        return _erased(candlestick(cats, o, h, lo, cl, width=_W, height=_H))
     if mark == Mark.BULLET:
         var measures: List[Float64] = [7.0, 5.0, 9.0]
         var targets: List[Float64] = [8.0, 6.0, 8.0]
@@ -286,52 +296,52 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         for _ in range(3):
             var band: List[Float64] = [5.0, 8.0, 10.0]
             ranges.append(band^)
-        return AnyChart(
+        return _erased(
             bullet(cats, measures, targets, ranges, width=_W, height=_H)
         )
     if mark == Mark.GANTT:
         var start: List[Float64] = [0.0, 2.0, 4.0]
         var end: List[Float64] = [3.0, 5.0, 7.0]
-        return AnyChart(gantt(cats, start, end, width=_W, height=_H))
+        return _erased(gantt(cats, start, end, width=_W, height=_H))
     if mark == Mark.SPAN_CHART:
         var lo2: List[Float64] = [1.0, 2.0, 3.0]
         var hi2: List[Float64] = [4.0, 5.0, 6.0]
-        return AnyChart(span_chart(cats, lo2, hi2, width=_W, height=_H))
+        return _erased(span_chart(cats, lo2, hi2, width=_W, height=_H))
     if mark == Mark.POPULATION_PYRAMID:
         var left: List[Float64] = [3.0, 2.0, 1.0]
         var right: List[Float64] = [2.0, 3.0, 2.0]
-        return AnyChart(
+        return _erased(
             population_pyramid(cats, left, right, width=_W, height=_H)
         )
     if mark == Mark.GROUPED_BAR:
-        return AnyChart(
+        return _erased(
             grouped_bar(cats, series, _nested(), width=_W, height=_H)
         )
     if mark == Mark.STACKED_BAR:
-        return AnyChart(
+        return _erased(
             stacked_bar(cats, series, _nested(), width=_W, height=_H)
         )
     if mark == Mark.BUMP:
-        return AnyChart(bump(cats, series, _nested(), width=_W, height=_H))
+        return _erased(bump(cats, series, _nested(), width=_W, height=_H))
     if mark == Mark.STREAMGRAPH:
-        return AnyChart(
+        return _erased(
             streamgraph(cats, series, _nested(), width=_W, height=_H)
         )
     if mark == Mark.MARIMEKKO:
-        return AnyChart(marimekko(cats, series, _nested(), width=_W, height=_H))
+        return _erased(marimekko(cats, series, _nested(), width=_W, height=_H))
     if mark == Mark.HEATMAP:
         var hx: List[String] = ["a", "b", "a", "b"]
         var hy: List[String] = ["x", "x", "y", "y"]
         var hv: List[Float64] = [1.0, 2.0, 3.0, 4.0]
-        return AnyChart(heatmap(hx, hy, hv, width=_W, height=_H))
+        return _erased(heatmap(hx, hy, hv, width=_W, height=_H))
     if mark == Mark.PUNCHCARD:
         var hx2: List[String] = ["a", "b", "a", "b"]
         var hy2: List[String] = ["x", "x", "y", "y"]
         var hs: List[Float64] = [1.0, 2.0, 3.0, 4.0]
-        return AnyChart(punchcard(hx2, hy2, hs, width=_W, height=_H))
+        return _erased(punchcard(hx2, hy2, hs, width=_W, height=_H))
     if mark == Mark.CALENDAR_HEATMAP:
         var dates: List[String] = ["2024-01-01", "2024-01-02", "2024-01-03"]
-        return AnyChart(calendar_heatmap(dates, vals, width=_W, height=_H))
+        return _erased(calendar_heatmap(dates, vals, width=_W, height=_H))
     if mark == Mark.CORRPLOT:
         var matrix = List[List[Float64]]()
         var m0: List[Float64] = [1.0, 0.5]
@@ -339,41 +349,41 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         matrix.append(m0^)
         matrix.append(m1^)
         var vars2: List[String] = ["a", "b"]
-        return AnyChart(corrplot(vars2, matrix, width=_W, height=_H))
+        return _erased(corrplot(vars2, matrix, width=_W, height=_H))
     if mark == Mark.CHORD:
-        return AnyChart(
+        return _erased(
             chord(_edge_from(), _edge_to(), _edge_vals(), width=_W, height=_H)
         )
     if mark == Mark.ARC_DIAGRAM:
-        return AnyChart(
+        return _erased(
             arc_diagram(
                 _edge_from(), _edge_to(), _edge_vals(), width=_W, height=_H
             )
         )
     if mark == Mark.GRAPH:
-        return AnyChart(
+        return _erased(
             graph(_edge_from(), _edge_to(), _edge_vals(), width=_W, height=_H)
         )
     if mark == Mark.SANKEY:
-        return AnyChart(
+        return _erased(
             sankey(_edge_from(), _edge_to(), _edge_vals(), width=_W, height=_H)
         )
     if mark == Mark.SUNBURST:
-        return AnyChart(
+        return _erased(
             sunburst(_ids(), _parents(), _hier_vals(), width=_W, height=_H)
         )
     if mark == Mark.TREE:
-        return AnyChart(
+        return _erased(
             tree(_ids(), _parents(), _hier_vals(), width=_W, height=_H)
         )
     if mark == Mark.TREEMAP:
-        return AnyChart(
+        return _erased(
             treemap(_ids(), _parents(), _hier_vals(), width=_W, height=_H)
         )
     if mark == Mark.POLAR:
         var angle: List[Float64] = [0.0, 1.0, 2.0]
         var radius: List[Float64] = [1.0, 2.0, 3.0]
-        return AnyChart(polar(angle, radius, width=_W, height=_H))
+        return _erased(polar(angle, radius, width=_W, height=_H))
     if mark == Mark.RADAR:
         var indicators: List[String] = ["a", "b", "c"]
         var maxes: List[Float64] = [10.0, 10.0, 10.0]
@@ -381,13 +391,13 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         var sv = List[List[Float64]]()
         var svr: List[Float64] = [5.0, 7.0, 3.0]
         sv.append(svr^)
-        return AnyChart(radar(indicators, maxes, one, sv, width=_W, height=_H))
+        return _erased(radar(indicators, maxes, one, sv, width=_W, height=_H))
     if mark == Mark.GAUGE:
-        return AnyChart(gauge(42.0, width=_W, height=_H))
+        return _erased(gauge(42.0, width=_W, height=_H))
     if mark == Mark.PARALLEL:
         var dims: List[String] = ["d1", "d2", "d3"]
         var rows: List[String] = ["r1", "r2"]
-        return AnyChart(parallel(_nested(), dims, rows, width=_W, height=_H))
+        return _erased(parallel(_nested(), dims, rows, width=_W, height=_H))
     if mark == Mark.CONTOUR:
         var z = List[List[Float64]]()
         for r in range(6):
@@ -395,7 +405,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             for c in range(7):
                 row.append(Float64((r + 1) * (c + 2) % 11))
             z.append(row^)
-        return AnyChart(contour(z, level_count=4, width=_W, height=_H))
+        return _erased(contour(z, level_count=4, width=_W, height=_H))
     if mark == Mark.CONTOURF:
         var zf = List[List[Float64]]()
         for r in range(6):
@@ -403,7 +413,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             for c in range(7):
                 row.append(Float64((r + 1) * (c + 2) % 11))
             zf.append(row^)
-        return AnyChart(contourf(zf, level_count=4, width=_W, height=_H))
+        return _erased(contourf(zf, level_count=4, width=_W, height=_H))
     if mark == Mark.IMSHOW:
         var zi = List[List[Float64]]()
         for r in range(5):
@@ -411,7 +421,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             for c in range(7):
                 row.append(Float64((r + 1) * (c + 2) % 11))
             zi.append(row^)
-        return AnyChart(imshow(zi, width=_W, height=_H))
+        return _erased(imshow(zi, width=_W, height=_H))
     if mark == Mark.PCOLORMESH:
         var zm = List[List[Float64]]()
         for r in range(5):
@@ -433,7 +443,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         var mesh_y = List[Float64]()
         for r in range(6):
             mesh_y.append(Float64(r) * Float64(r) + 1.0)
-        return AnyChart(pcolormesh(mesh_x, mesh_y, zm, width=_W, height=_H))
+        return _erased(pcolormesh(mesh_x, mesh_y, zm, width=_W, height=_H))
     if mark == Mark.HIST2D:
         var hx = List[Float64]()
         var hy = List[Float64]()
@@ -446,7 +456,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         # Explicit edges rather than hist2d(bins=8): hist2d() refuses a
         # log axis added afterwards over bins it chose in linear units,
         # while edges a caller gives are drawn as given (#718).
-        return AnyChart(
+        return _erased(
             (
                 Plot()
                 .mark_hist2d()
@@ -463,7 +473,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             # asked for a log axis (#718).
             bx.append((t * 7.0) % 23.0 + (t * 3.0) % 5.0 + 1.0)
             by.append((t * 11.0) % 17.0 + (t * 2.0) % 3.0 + 1.0)
-        return AnyChart(hexbin(bx, by, gridsize=8, width=_W, height=_H))
+        return _erased(hexbin(bx, by, gridsize=8, width=_W, height=_H))
     if mark == Mark.TRICONTOUR:
         var tx = List[Float64]()
         var ty = List[Float64]()
@@ -474,7 +484,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             tx.append(a)
             ty.append(b)
             tz.append(a * b)
-        return AnyChart(
+        return _erased(
             tricontour(tx, ty, tz, level_count=3, width=_W, height=_H)
         )
     if mark == Mark.TRICONTOURF:
@@ -487,7 +497,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             fx.append(a)
             fy.append(b)
             fz.append(a * b)
-        return AnyChart(
+        return _erased(
             tricontourf(fx, fy, fz, level_count=3, width=_W, height=_H)
         )
     if mark == Mark.TRIPLOT:
@@ -496,7 +506,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         for i in range(24):
             mx.append(Float64(i % 6))
             my.append(Float64((i * 5) % 7))
-        return AnyChart(triplot(mx, my, width=_W, height=_H))
+        return _erased(triplot(mx, my, width=_W, height=_H))
     if mark == Mark.TRIPCOLOR:
         var px = List[Float64]()
         var py = List[Float64]()
@@ -512,16 +522,16 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         # at the mean of its corners while raster interpolates, and the
         # two backends diverge on purpose (#398). This sweep exists to
         # catch divergence that is *not* on purpose.
-        return AnyChart(tripcolor(px, py, pz, width=_W, height=_H))
+        return _erased(tripcolor(px, py, pz, width=_W, height=_H))
     if mark == Mark.KDE:
         var kv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
-        return AnyChart(kdeplot(kv, fill=True, rug=True, width=_W, height=_H))
+        return _erased(kdeplot(kv, fill=True, rug=True, width=_W, height=_H))
     if mark == Mark.RUG:
         var rv: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
-        return AnyChart(rugplot(rv, width=_W, height=_H))
+        return _erased(rugplot(rv, width=_W, height=_H))
     if mark == Mark.ECDF:
         var ev: List[Float64] = [1.0, 2.0, 2.0, 3.0, 5.0, 5.0, 6.0, 8.0]
-        return AnyChart(ecdf(ev, width=_W, height=_H))
+        return _erased(ecdf(ev, width=_W, height=_H))
     if mark == Mark.EVENTPLOT:
         var rows = List[List[Float64]]()
         var r0: List[Float64] = [1.0, 2.0, 5.0]
@@ -529,15 +539,15 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
         rows.append(r0^)
         rows.append(r1^)
         var row_labels: List[String] = ["a", "b"]
-        return AnyChart(eventplot(row_labels, rows, width=_W, height=_H))
+        return _erased(eventplot(row_labels, rows, width=_W, height=_H))
     if mark == Mark.BARBS:
         var u: List[Float64] = [5.0, 10.0, 15.0]
         var v: List[Float64] = [5.0, -10.0, 0.0]
-        return AnyChart(barbs(xs, ys, u, v, width=_W, height=_H))
+        return _erased(barbs(xs, ys, u, v, width=_W, height=_H))
     if mark == Mark.QUIVER:
         var qu: List[Float64] = [5.0, 10.0, 15.0]
         var qv: List[Float64] = [5.0, -10.0, 0.0]
-        return AnyChart(
+        return _erased(
             quiver(xs, ys, qu, qv, color_by_magnitude=True, width=_W, height=_H)
         )
     if mark == Mark.STREAMPLOT:
@@ -557,7 +567,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                 vrow.append(sx[i])
             su.append(urow^)
             sv.append(vrow^)
-        return AnyChart(streamplot(sx, sy, su, sv, width=_W, height=_H))
+        return _erased(streamplot(sx, sy, su, sv, width=_W, height=_H))
 
     if mark == Mark.DENDROGRAM:
         # Four rows that cluster into two obvious pairs, so the merge
@@ -571,7 +581,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                 row.append(seeds[i] + Float64(k) * 0.1)
             rows.append(row^)
         var labels: List[String] = ["a", "b", "c", "d"]
-        return AnyChart(
+        return _erased(
             (
                 Plot()
                 .mark_dendrogram()
@@ -593,8 +603,8 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             hy.append(sin(t))
             hz.append(Float64(i) * 0.05)
         if mark == Mark.SCATTER3D:
-            return AnyChart(scatter3d(hx, hy, hz, width=_W, height=_H))
-        return AnyChart(plot3d(hx, hy, hz, width=_W, height=_H))
+            return _erased(scatter3d(hx, hy, hz, width=_W, height=_H))
+        return _erased(plot3d(hx, hy, hz, width=_W, height=_H))
 
     if mark == Mark.TRISURF3D:
         # Integer coordinates, like every other triangulated mark here,
@@ -613,7 +623,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             sx.append(a)
             sy.append(b)
             sz.append(a * b)
-        return AnyChart(trisurf3d(sx, sy, sz, width=_W, height=_H))
+        return _erased(trisurf3d(sx, sy, sz, width=_W, height=_H))
 
     if mark == Mark.SURFACE3D or mark == Mark.WIRE3D:
         # A saddle: it rises along one axis and falls along the other,
@@ -628,8 +638,8 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                 row.append(u * u - v * v)
             grid.append(row^)
         if mark == Mark.SURFACE3D:
-            return AnyChart(surface3d(grid, width=_W, height=_H))
-        return AnyChart(wire3d(grid, width=_W, height=_H))
+            return _erased(surface3d(grid, width=_W, height=_H))
+        return _erased(wire3d(grid, width=_W, height=_H))
 
     if mark == Mark.BAR3D:
         # Heights that differ across both axes, so a bar drawn at the
@@ -644,7 +654,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                 bx.append(Float64(c))
                 by.append(Float64(r))
                 bz.append(Float64((c * 2 + r * 3) % 5 + 1))
-        return AnyChart(bar3d(bx, by, bz, width=_W, height=_H))
+        return _erased(bar3d(bx, by, bz, width=_W, height=_H))
 
     if mark == Mark.VOXELS:
         # A staircase, so every layer differs from the one below it and
@@ -658,7 +668,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                     cols.append(col >= layer and row >= layer)
                 rows.append(cols^)
             grid.append(rows^)
-        return AnyChart(voxels(grid, width=_W, height=_H))
+        return _erased(voxels(grid, width=_W, height=_H))
 
     if mark == Mark.STEM3D:
         # Heights that rise and fall around the track, so a stem drawn
@@ -672,7 +682,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             sx.append(a)
             sy.append(b)
             sz.append(Float64((i * 7) % 6) + 1.0)
-        return AnyChart(stem3d(sx, sy, sz, width=_W, height=_H))
+        return _erased(stem3d(sx, sy, sz, width=_W, height=_H))
 
     if mark == Mark.QUIVER3D:
         # A field that turns about z: every arrow points somewhere
@@ -694,7 +704,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
                     qu.append(-py * 0.4)
                     qv.append(px * 0.4)
                     qw.append(0.3)
-        return AnyChart(quiver3d(qx, qy, qz, qu, qv, qw, width=_W, height=_H))
+        return _erased(quiver3d(qx, qy, qz, qu, qv, qw, width=_W, height=_H))
 
     if mark == Mark.FILL_BETWEEN3D:
         # Two curves that stay apart, so the ribbon has a consistent
@@ -713,7 +723,7 @@ def _representative_plot(mark: Mark) raises -> AnyChart:
             bx.append(t)
             by.append(Float64(i % 3) + 2.0)
             bz.append(Float64((i * 5) % 7) + 1.0)
-        return AnyChart(
+        return _erased(
             fill_between3d(ax, ay, az, bx, by, bz, width=_W, height=_H)
         )
 

@@ -11,6 +11,7 @@ from dataviz.core.category_order import CategoryOrder
 from canvas.bounds import BoundsTarget
 from canvas.buffer import Canvas
 from canvas.color import Color
+from canvas.display_list import DisplayList
 from canvas.text.font_cache import FontCache
 from canvas.vector.draw_target import DrawTarget
 from canvas.vector.pdf import PdfCanvas, write_pdf
@@ -223,11 +224,13 @@ trait ChartLike(Copyable, Deinitable, Movable):
         svg: Bool = False,
         pdf: Bool = False,
         bounds: Bool = False,
+        display_list: Bool = False,
     ](self) -> AnyChart:
         """`erased()` with only the named targets' renders bound, for a
         composition entry that knows which targets it draws marks into
-        and never hands the chart on. Drawing the mark into an unbound
-        target raises. See `AnyChart`."""
+        and never hands the chart on, or with `display_list=True` for an
+        erased chart that `record()` will draw. Drawing the mark into an
+        unbound target raises. See `AnyChart`."""
         ...
 
     def capabilities(self) -> _Capabilities:
@@ -352,8 +355,9 @@ struct Chart[M: MarkType](ChartLike):
         svg: Bool = False,
         pdf: Bool = False,
         bounds: Bool = False,
+        display_list: Bool = False,
     ](self) -> AnyChart:
-        return AnyChart.bound[canvas, svg, pdf, bounds](self)
+        return AnyChart.bound[canvas, svg, pdf, bounds, display_list](self)
 
     def capabilities(self) -> _Capabilities:
         return _capabilities_of_type[Self.M]()
@@ -4010,7 +4014,9 @@ def _erased_render_unbound[
     the targets it draws marks into and must not hand the chart on."""
     raise Error(
         "AnyChart: this chart was erased without a render for this draw"
-        " target; use erased() for a chart that has to render everywhere"
+        " target; use erased() for a chart that has to render to every"
+        " output, or erased_with[display_list=True]() for one record()"
+        " draws"
     )
 
 
@@ -4054,6 +4060,13 @@ struct AnyChart(ChartLike):
     `align_axes` probe draws through the `Canvas` slot whatever the
     output, which is fine: it takes a `List[AnyChart]`.)
 
+    `record()` draws into a `DisplayList`, a fifth slot that no entry
+    taking a `List[AnyChart]` uses, so `erased()` leaves it unbound and
+    a chart that will be recorded after erasing asks for it with
+    `erased_with[display_list=True]()` (#862). A target type with no
+    slot of its own is a compile error in `render_mark`, never a draw
+    through another target's slot.
+
     `mark[M]()` gives the mark back to code that has checked `id`.
     """
 
@@ -4074,6 +4087,7 @@ struct AnyChart(ChartLike):
     var _render_svg: _ErasedRender[SvgCanvas]
     var _render_pdf: _ErasedRender[PdfCanvas]
     var _render_bounds: _ErasedRender[BoundsTarget]
+    var _render_display_list: _ErasedRender[DisplayList]
     var _copy: def(Int) thin -> Int
     var _free: def(Int) thin
 
@@ -4084,11 +4098,17 @@ struct AnyChart(ChartLike):
             svg=_erased_render[M, SvgCanvas],
             pdf=_erased_render[M, PdfCanvas],
             bounds=_erased_render[M, BoundsTarget],
+            display_list=_erased_render_unbound[DisplayList],
         )
 
     @staticmethod
     def bound[
-        canvas: Bool, svg: Bool, pdf: Bool, bounds: Bool, M: MarkType
+        canvas: Bool,
+        svg: Bool,
+        pdf: Bool,
+        bounds: Bool,
+        display_list: Bool,
+        M: MarkType,
     ](chart: Chart[M]) -> AnyChart:
         """`chart` erased with only the named targets' renders bound;
         see the struct docstring. The other slots raise if drawn into."""
@@ -4096,6 +4116,7 @@ struct AnyChart(ChartLike):
         var render_svg: _ErasedRender[SvgCanvas]
         var render_pdf: _ErasedRender[PdfCanvas]
         var render_bounds: _ErasedRender[BoundsTarget]
+        var render_display_list: _ErasedRender[DisplayList]
 
         comptime if canvas:
             render_canvas = _erased_render[M, Canvas]
@@ -4116,12 +4137,18 @@ struct AnyChart(ChartLike):
             render_bounds = _erased_render[M, BoundsTarget]
         else:
             render_bounds = _erased_render_unbound[BoundsTarget]
+
+        comptime if display_list:
+            render_display_list = _erased_render[M, DisplayList]
+        else:
+            render_display_list = _erased_render_unbound[DisplayList]
         return Self(
             chart,
             canvas=render_canvas,
             svg=render_svg,
             pdf=render_pdf,
             bounds=render_bounds,
+            display_list=render_display_list,
         )
 
     def __init__[
@@ -4134,6 +4161,7 @@ struct AnyChart(ChartLike):
         svg: _ErasedRender[SvgCanvas],
         pdf: _ErasedRender[PdfCanvas],
         bounds: _ErasedRender[BoundsTarget],
+        display_list: _ErasedRender[DisplayList],
     ):
         self.mark_id = M.id
         self.caps = _capabilities_of_type[M]()
@@ -4154,6 +4182,7 @@ struct AnyChart(ChartLike):
         self._render_svg = svg
         self._render_pdf = pdf
         self._render_bounds = bounds
+        self._render_display_list = display_list
         self._copy = _erased_copy[M]
         self._free = _erased_free[M]
 
@@ -4175,6 +4204,7 @@ struct AnyChart(ChartLike):
         self._render_svg = copy._render_svg
         self._render_pdf = copy._render_pdf
         self._render_bounds = copy._render_bounds
+        self._render_display_list = copy._render_display_list
         self._copy = copy._copy
         self._free = copy._free
 
@@ -5273,7 +5303,10 @@ struct AnyChart(ChartLike):
         svg: Bool = False,
         pdf: Bool = False,
         bounds: Bool = False,
+        display_list: Bool = False,
     ](self) -> AnyChart:
+        """A copy with the slots this chart was erased with: the mark
+        type is gone, so no slot can be bound here."""
         return self.copy()
 
     def capabilities(self) -> _Capabilities:
@@ -5356,7 +5389,25 @@ struct AnyChart(ChartLike):
                 cache,
                 vector_target,
             )
-        else:
+        elif T == DisplayList:
+            return self._render_display_list(
+                self._ptr,
+                rebind[DisplayList](target),
+                self.style,
+                self.annotations,
+                self.settings,
+                ox0,
+                oy0,
+                ox1,
+                oy1,
+                has_shared_y_domain,
+                shared_y_min,
+                shared_y_max,
+                shared_y_is_log,
+                cache,
+                vector_target,
+            )
+        elif T == BoundsTarget:
             return self._render_bounds(
                 self._ptr,
                 rebind[BoundsTarget](target),
@@ -5373,4 +5424,10 @@ struct AnyChart(ChartLike):
                 shared_y_is_log,
                 cache,
                 vector_target,
+            )
+        else:
+            comptime assert False, (
+                "AnyChart.render_mark(): no erased render slot for this draw"
+                " target; add one beside Canvas, SvgCanvas, PdfCanvas,"
+                " BoundsTarget and DisplayList"
             )
