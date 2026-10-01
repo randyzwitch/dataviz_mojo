@@ -82,6 +82,9 @@ format = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examp
 format-check = "mojo format dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && git diff --exit-code -- dataviz tests scripts docs/cookbook_recipes docs/src/examples/quickstart && bash scripts/check_docstring_terms.sh && bash scripts/check_pixi_pins.sh && python3 scripts/check_dependency_pins.py && bash scripts/check_doc_warnings.sh && bash scripts/check_install_tag.sh && bash scripts/check_doc_counts.sh && python3 scripts/check_import_direction.py"
 # Render representative marks; `--check` also detects quadratic scaling.
 bench = "mojo run -I . -I scripts scripts/bench.mojo"
+# Build the package the way a user installs it and run a chart program
+# on it; CI's package job. `pixi build` is not equivalent (#863).
+check-consumer = "python3 scripts/check_consumer.py"
 # record() beside direct rendering, small and dense chart (#862).
 bench-record = "mojo run -I . -I scripts scripts/bench_record.mojo"
 # Regenerate untracked site content after `pixi run example`.
