@@ -21,7 +21,7 @@ channels = [
 ]
 
 [dependencies]
-dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.14.0" }
+dataviz_mojo = { git = "https://github.com/randyzwitch/dataviz_mojo.git", tag = "v0.15.0" }
 ```
 
 `pixi install`/`pixi run` builds `dataviz_mojo` (and its `canvas_mojo` dependency) from that git ref and installs the resulting precompiled package into your workspace's pixi environment.
